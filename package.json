@@ -1,5 +1,5 @@
 {
-  "name": "animate-js",
+  "name": "tweenjs",
   "version": "0.1.0",
   "description": "Editeur d'animation vectorielle inspiré d'Adobe Animate, en JavaScript vanilla.",
   "type": "module",

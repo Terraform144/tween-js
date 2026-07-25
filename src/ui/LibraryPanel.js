@@ -27,8 +27,9 @@ export function mountLibraryPanel(container, state, { addInstanceAt }) {
   });
 
   // Crée un symbole vide et bascule immédiatement en édition isolée dessus
-  // (scène vierge dédiée), façon "Nouveau symbole" (Ctrl+F8) d'un éditeur professionnel.
-  // Le bandeau en haut de la scène permet de revenir à la scène principale.
+  // (scène vierge dédiée), façon "Nouveau symbole" (Ctrl+F8) des éditeurs
+  // d'animation professionnels. Le bandeau en haut de la scène permet de
+  // revenir à la scène principale.
   function createNewSymbol() {
     const asMovieClip = confirm('Créer un clip animé (MovieClip) avec sa propre timeline ?\nAnnuler = symbole Graphic (synchronisé sur la scène).');
     const name = prompt('Nom du symbole :', 'Symbole ' + (Object.keys(state.doc.symbols).length + 1));

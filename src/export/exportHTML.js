@@ -1,9 +1,9 @@
 // Génère un fichier HTML autonome (aucune dépendance externe, pas de build)
 // qui rejoue tout le document avec le runtime MovieClip partagé (voir
-// animateRuntime.js — importé tel quel via ?raw pour ne jamais dupliquer la
+// tweenRuntime.js — importé tel quel via ?raw pour ne jamais dupliquer la
 // logique de rendu/interpolation : un seul fichier source pour l'éditeur ET
 // les deux formes d'export, cf. la mémoire projet à ce sujet).
-import runtimeSource from './animateRuntime.js?raw';
+import runtimeSource from './tweenRuntime.js?raw';
 import { invertFrameLabels } from '../core/model.js';
 import { downloadTextFile } from '../util/download.js';
 
@@ -65,7 +65,7 @@ export function buildStandaloneHTML(doc) {
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
-<title>${title} — export Animate JS</title>
+<title>${title} — export TweenJS</title>
 <style>
   html, body { margin: 0; height: 100%; background: #111318; display: flex; align-items: center; justify-content: center; }
   canvas { background: #ffffff; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }

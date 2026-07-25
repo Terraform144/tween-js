@@ -11,7 +11,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
 
   const brand = document.createElement('span');
   brand.className = 'brand';
-  brand.textContent = 'Animate JS';
+  brand.textContent = 'TweenJS';
 
   const btnUndo = iconTextButton('undo', 'Annuler', () => history.undo());
   btnUndo.title = 'Annuler (Ctrl+Z) — 15 niveaux';

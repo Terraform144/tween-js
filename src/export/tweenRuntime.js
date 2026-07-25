@@ -1,5 +1,5 @@
-// animate-runtime.js — runtime autonome (aucune dépendance) pour rejouer,
-// comme objets de jeu réutilisables, les symboles exportés depuis Animate JS.
+// tween-runtime.js — runtime autonome (aucune dépendance) pour rejouer,
+// comme objets de jeu réutilisables, les symboles exportés depuis TweenJS.
 //
 // Usage typique dans un jeu :
 //

@@ -1,9 +1,9 @@
 // Export d'un symbole (Graphic ou MovieClip) en classe JS réutilisable comme
-// objet de jeu : deux fichiers sont téléchargés — animate-runtime.js (le
-// moteur partagé, identique à src/export/animateRuntime.js) et
+// objet de jeu : deux fichiers sont téléchargés — tween-runtime.js (le
+// moteur partagé, identique à src/export/tweenRuntime.js) et
 // <NomDuSymbole>.js (une petite classe `extends MovieClip` qui embarque les
 // données du symbole et de tout ce dont il dépend).
-import runtimeSource from './animateRuntime.js?raw';
+import runtimeSource from './tweenRuntime.js?raw';
 import { downloadTextFile } from '../util/download.js';
 import { invertFrameLabels as invertLabels } from '../core/model.js';
 
@@ -59,9 +59,9 @@ export function buildSymbolClassSource(doc, symbol) {
   const data = buildSymbolExportData(doc, symbol.id);
   const className = toClassName(symbol.name) + 'Clip';
   const labelNames = Object.keys(data.frameLabels);
-  return `// Généré par Animate JS — symbole "${symbol.name}" (${symbol.type}).
-// Nécessite animate-runtime.js dans le même dossier (import relatif ci-dessous).
-import { MovieClip } from './animate-runtime.js';
+  return `// Généré par TweenJS — symbole "${symbol.name}" (${symbol.type}).
+// Nécessite tween-runtime.js dans le même dossier (import relatif ci-dessous).
+import { MovieClip } from './tween-runtime.js';
 
 const DATA = ${JSON.stringify(data)};
 
@@ -83,7 +83,7 @@ export function downloadSymbolAsGameObject(doc, symbolId) {
   const symbol = doc.symbols[symbolId];
   if (!symbol) return;
   const classSource = buildSymbolClassSource(doc, symbol);
-  downloadTextFile(runtimeSource, 'animate-runtime.js', 'text/javascript');
+  downloadTextFile(runtimeSource, 'tween-runtime.js', 'text/javascript');
   setTimeout(() => {
     downloadTextFile(classSource, safeFileName(symbol.name) + '.js', 'text/javascript');
   }, 150);

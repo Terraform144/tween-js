@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
-<title>Animate JS — Documentation</title>
+<title>TweenJS — Documentation</title>
 <style>
   @page { size: A4; margin: 22mm 18mm; }
 
@@ -77,7 +77,7 @@
 
 <section class="cover">
   <div class="tag">Documentation utilisateur</div>
-  <h1>Animate JS</h1>
+  <h1>TweenJS</h1>
   <div class="subtitle">
     Éditeur d'animation vectorielle image par image, inspiré d'Adobe Animate,
     entièrement en JavaScript vanilla — de la scène de dessin jusqu'à
@@ -102,7 +102,7 @@
 </section>
 
 <h1 class="first">1. Vue d'ensemble de l'interface</h1>
-<p>La fenêtre d'Animate JS est découpée en cinq zones :</p>
+<p>La fenêtre d'TweenJS est découpée en cinq zones :</p>
 <table>
   <tr><th>Zone</th><th>Rôle</th></tr>
   <tr><td><strong>Barre de menu</strong> (haut)</td><td>Annuler/rétablir, Nouveau, Ouvrir, Enregistrer JSON, Exporter HTML, propriétés du document (nom, largeur, hauteur, images/seconde, nombre d'images, couleur de fond).</td></tr>
@@ -196,7 +196,7 @@
   <tr><td>Enregistrer JSON</td><td>Télécharge le document complet (calques, symboles, tout) dans un fichier <code>.json</code>, rechargeable via "Ouvrir…".</td></tr>
   <tr><td>Ouvrir…</td><td>Recharge un fichier <code>.json</code> précédemment enregistré.</td></tr>
   <tr><td>Exporter HTML</td><td>Génère un fichier <code>.html</code> autonome (aucune dépendance) qui rejoue <strong>toute la scène</strong> en boucle, avec le runtime <code>MovieClip</code> embarqué. Idéal pour partager un aperçu ou publier une animation simple.</td></tr>
-  <tr><td>🎮 (par symbole, dans la bibliothèque)</td><td>Télécharge <code>animate-runtime.js</code> + <code>&lt;NomDuSymbole&gt;.js</code> — un objet réutilisable dans du code JS, détaillé section 9.</td></tr>
+  <tr><td>🎮 (par symbole, dans la bibliothèque)</td><td>Télécharge <code>tween-runtime.js</code> + <code>&lt;NomDuSymbole&gt;.js</code> — un objet réutilisable dans du code JS, détaillé section 9.</td></tr>
 </table>
 
 <h1>9. Exploiter les MovieClips pour faire des jeux en JavaScript vanilla</h1>
@@ -204,11 +204,11 @@
 <h2>9.1 Ce que tu obtiens en exportant un symbole</h2>
 <p>Le bouton 🎮 d'un symbole dans la bibliothèque télécharge deux fichiers :</p>
 <ul>
-  <li><code>animate-runtime.js</code> — le moteur de lecture, à garder <strong>un seul exemplaire</strong> par projet de jeu, quel que soit le nombre de symboles exportés.</li>
+  <li><code>tween-runtime.js</code> — le moteur de lecture, à garder <strong>un seul exemplaire</strong> par projet de jeu, quel que soit le nombre de symboles exportés.</li>
   <li><code>&lt;NomDuSymbole&gt;.js</code> — une petite classe qui étend <code>MovieClip</code> et embarque les données du symbole (et de tout ce dont il dépend, s'il contient d'autres symboles imbriqués).</li>
 </ul>
 <div class="warn">
-  <strong>Important :</strong> les deux fichiers doivent rester dans le même dossier (le second fait <code>import { MovieClip } from './animate-runtime.js'</code>). Aucune autre dépendance n'est nécessaire — pas de Konva, pas de bundler, pas d'installation npm côté jeu.
+  <strong>Important :</strong> les deux fichiers doivent rester dans le même dossier (le second fait <code>import { MovieClip } from './tween-runtime.js'</code>). Aucune autre dépendance n'est nécessaire — pas de Konva, pas de bundler, pas d'installation npm côté jeu.
 </div>
 
 <h2>9.2 API de la classe MovieClip</h2>
@@ -294,7 +294,7 @@ requestAnimationFrame(loop);
 <p>Un <code>MovieClip</code> ne demande rien de plus qu'un contexte Canvas 2D : dans un moteur qui expose un canvas offscreen ou une texture dynamique, appelle <code>update(dt)</code> puis <code>draw(ctx)</code> sur ce contexte à chaque tick, comme dans l'exemple 9.3 — aucune intégration spécifique n'est nécessaire.</p>
 
 <div class="note">
-  <strong>En résumé :</strong> dessine et anime dans Animate JS, convertis en symbole MovieClip, exporte-le depuis la bibliothèque (🎮), puis utilise la classe générée comme n'importe quel objet de jeu — <code>x</code>/<code>y</code> pour la position, <code>gotoAndPlay()</code> pour changer d'état, <code>update()</code>/<code>draw()</code> dans ta boucle. Aucune dépendance à installer.
+  <strong>En résumé :</strong> dessine et anime dans TweenJS, convertis en symbole MovieClip, exporte-le depuis la bibliothèque (🎮), puis utilise la classe générée comme n'importe quel objet de jeu — <code>x</code>/<code>y</code> pour la position, <code>gotoAndPlay()</code> pour changer d'état, <code>update()</code>/<code>draw()</code> dans ta boucle. Aucune dépendance à installer.
 </div>
 
 </body>

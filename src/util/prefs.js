@@ -1,4 +1,4 @@
-const PREFIX = 'animate-js:';
+const PREFIX = 'tweenjs:';
 
 // Distingue "jamais réglé" de "réglé explicitement à false" — sert à
 // n'appliquer un défaut intelligent (ex. replié par défaut sur mobile) que

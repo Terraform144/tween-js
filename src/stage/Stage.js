@@ -10,7 +10,7 @@ const CLOSE_PATH_THRESHOLD = 8; // px, distance au premier point pour fermer le 
 // Trace un chemin (segments droits ou courbes de Bézier) dans un contexte
 // canvas déjà positionné en beginPath(). Partagé par le rendu Konva (scène
 // éditeur) et l'aperçu en direct de l'outil plume — jamais par l'export, qui
-// a sa propre copie autonome dans animateRuntime.js (voir la mémoire projet).
+// a sa propre copie autonome dans tweenRuntime.js (voir la mémoire projet).
 function tracePath(ctx, points, closed) {
   if (!points.length) return;
   ctx.moveTo(points[0].x, points[0].y);

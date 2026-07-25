@@ -1,4 +1,4 @@
-# Animate JS
+# TweenJS
 
 Éditeur d'animation vectorielle image par image, inspiré d'Adobe Animate,
 en JavaScript vanilla (ES modules, sans framework UI). Konva.js est utilisé
@@ -63,7 +63,7 @@ Ouvrir l'URL affichée (http://localhost:5173).
   image (ex. "walk", "jump"), affichée sous forme de 🏷 sur la règle —
   utilisable avec `gotoAndPlay('walk')` une fois exporté.
 - **Export "objet de jeu"** : bouton 🎮 sur un symbole dans la bibliothèque —
-  télécharge `animate-runtime.js` (runtime `MovieClip` partagé, aucune
+  télécharge `tween-runtime.js` (runtime `MovieClip` partagé, aucune
   dépendance) + `<NomDuSymbole>.js` (une classe `extends MovieClip` qui
   embarque les données du symbole et de ses dépendances). Utilisable dans
   n'importe quelle boucle de jeu :
@@ -85,12 +85,12 @@ src/
   ui/Panel.js               enveloppe standard d'un panneau réductible (titre + corps) — à réutiliser pour tout nouveau panneau du conteneur latéral
   ui/icons.js               jeu d'icônes SVG au trait partagé (currentColor — suit automatiquement la couleur du bouton)
   export/exportHTML.js      export de toute la scène en HTML autonome (runtime Canvas 2D inline)
-  export/animateRuntime.js  runtime MovieClip partagé (play/stop/gotoAndPlay/update/draw)
+  export/tweenRuntime.js    runtime MovieClip partagé (play/stop/gotoAndPlay/update/draw)
   export/exportSymbol.js    export d'un symbole en classe JS réutilisable (objet de jeu)
   util/download.js          petit utilitaire de téléchargement de fichier texte
   util/prefs.js              petites préférences UI persistées (localStorage) : largeur/repli des panneaux
   util/responsive.js         seuils responsive partagés entre le CSS et le JS (voir section Responsive)
-  util/importSvg.js          import de fichiers SVG (conversion en formes Animate JS)
+  util/importSvg.js          import de fichiers SVG (conversion en formes TweenJS)
   state.js                  état central + pub/sub
   history.js                 annuler/rétablir (15 niveaux)
   main.js                   assemblage de l'application

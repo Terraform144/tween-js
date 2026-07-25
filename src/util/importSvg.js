@@ -1,5 +1,5 @@
 // Utilitaire pour importer des fichiers SVG et les convertir en éléments
-// Animate JS (rect, ellipse, line, path, text).
+// TweenJS (rect, ellipse, line, path, text).
 //
 // Limitations :
 // - Ne gère pas les groupes imbriqués (seul le contenu direct de <svg> est importé)
@@ -10,12 +10,12 @@
 import { createShape, createPathPoint } from '../core/model.js';
 
 /**
- * Parse un fichier SVG et retourne une liste d'éléments Animate JS.
+ * Parse un fichier SVG et retourne une liste d'éléments TweenJS.
  * @param {string} svgText - Le contenu textuel du fichier SVG
  * @param {Object} options - Options d'import
  * @param {number} options.x - Position x de départ (défaut: 0)
  * @param {number} options.y - Position y de départ (défaut: 0)
- * @returns {Array} Tableau d'éléments au format Animate JS
+ * @returns {Array} Tableau d'éléments au format TweenJS
  */
 export function parseSvg(svgText, { x = 0, y = 0 } = {}) {
   const elements = [];
@@ -60,7 +60,7 @@ export function parseSvg(svgText, { x = 0, y = 0 } = {}) {
 }
 
 /**
- * Parse un élément SVG unique et le convertit en élément Animate JS.
+ * Parse un élément SVG unique et le convertit en élément TweenJS.
  */
 function parseSvgElement(node, { x: offsetX, y: offsetY, defaultStyles }) {
   const tagName = node.tagName.toLowerCase();
@@ -92,11 +92,11 @@ function parseSvgElement(node, { x: offsetX, y: offsetY, defaultStyles }) {
       }
     }
     
-    // Retourner les éléments du groupe (pas de groupe en tant que tel dans Animate JS)
+    // Retourner les éléments du groupe (pas de groupe en tant que tel dans TweenJS)
     return groupElements;
   }
   
-  // Mapper les éléments SVG vers les types Animate JS
+  // Mapper les éléments SVG vers les types TweenJS
   switch (tagName) {
     case 'rect':
       return parseRect(node, { x: elementX, y: elementY, styles });
@@ -486,7 +486,7 @@ function parsePathData(d) {
           currentX = x;
           currentY = y;
           
-          // Pour Animate JS, on approxime la courbe de Bézier par des segments de ligne
+          // Pour TweenJS, on approxime la courbe de Bézier par des segments de ligne
           // ou on stocke les points de contrôle dans les path points
           // Ici, on va créer un point avec cIn et cOut
           const lastCmd = commands[commands.length - 1];

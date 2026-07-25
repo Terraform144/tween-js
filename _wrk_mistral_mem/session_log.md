@@ -1,7 +1,7 @@
 # 📜 Historique des sessions de travail avec Mistral Vibe
 
 *Dernière mise à jour : 24/07/2026*
-*Projet : Animate JS (Éditeur d'animation vectorielle)*
+*Projet : TweenJS (Éditeur d'animation vectorielle)*
 
 ---
 
@@ -117,7 +117,7 @@
 
 ### ✅ Actions réalisées
 1. **Nouveau module d'import SVG** (`src/util/importSvg.js`)
-   - `parseSvg(svgText, options)` : parse le texte SVG et retourne des éléments Animate JS
+   - `parseSvg(svgText, options)` : parse le texte SVG et retourne des éléments TweenJS
    - Support des éléments : rect, circle, ellipse, line, path, text, polygon, polyline
    - Support des groupes (`<g>`) avec parsing récursif
    - Support des styles : fill, stroke, stroke-width, opacity, font-size, font-family
