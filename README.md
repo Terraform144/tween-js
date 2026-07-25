@@ -140,3 +140,11 @@ src/
 - Le contenu imbriqué dans une instance n'est pas éditable directement sur
   la scène parente : il faut double-cliquer pour entrer dans le symbole.
 - Pas de zoom/pan de la scène.
+
+## Licence
+
+Ce projet est publié sous licence [GNU AGPL-3.0](LICENSE). Le code est libre
+(usage, modification, redistribution), y compris commercial, mais toute
+version modifiée — y compris exploitée uniquement comme service en ligne
+(SaaS) sans distribution de binaire — doit republier son code source
+complet sous la même licence.
