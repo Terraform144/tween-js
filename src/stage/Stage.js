@@ -82,10 +82,35 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   penActions.append(btnPenCancel, btnPenConfirm);
   container.parentElement.appendChild(penActions);
 
+  // Boutons flottants pour la chaîne d'ossatures (même principe que plume)
+  const boneChainActions = document.createElement('div');
+  boneChainActions.className = 'pen-actions';
+  boneChainActions.style.display = 'none';
+  const btnChainCancel = document.createElement('button');
+  btnChainCancel.type = 'button';
+  btnChainCancel.className = 'pen-action-btn pen-cancel';
+  btnChainCancel.title = 'Annuler la chaîne (Échap)';
+  btnChainCancel.innerHTML = ICONS.close + '<span>Annuler</span>';
+  btnChainCancel.addEventListener('click', () => cancelDraw());
+  const btnChainConfirm = document.createElement('button');
+  btnChainConfirm.type = 'button';
+  btnChainConfirm.className = 'pen-action-btn pen-confirm';
+  btnChainConfirm.title = 'Valider la chaîne (Entrée)';
+  btnChainConfirm.innerHTML = ICONS.check + '<span>Valider</span>';
+  btnChainConfirm.addEventListener('click', () => finishBoneChain());
+  boneChainActions.append(btnChainCancel, btnChainConfirm);
+  container.parentElement.appendChild(boneChainActions);
+
   function updatePenActions() {
     const active = !!(drawState && drawState.tool === 'pen');
     penActions.style.display = active ? 'flex' : 'none';
     if (active) btnPenConfirm.disabled = drawState.points.length < 2;
+  }
+
+  function updateBoneChainActions() {
+    const active = !!(drawState && drawState.tool === 'boneChain');
+    boneChainActions.style.display = active ? 'flex' : 'none';
+    if (active) btnChainConfirm.disabled = drawState.points.length < 2;
   }
 
   let drawState = null;
@@ -826,6 +851,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
     
     overlayLayer.draw();
+    updateBoneChainActions();
   }
 
   function finishBoneChain() {
