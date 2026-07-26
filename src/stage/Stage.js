@@ -883,6 +883,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       addElement(bone);
     }
     
+    updateBoneChainActions();
     cancelDraw();
   }
 
@@ -898,8 +899,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys),
       fill: state.fillColor, stroke: state.strokeColor, strokeWidth: state.strokeWidth,
     });
-    drawState = null;
     updatePenActions();
+    drawState = null;
     addElement(el);
   }
 
@@ -921,6 +922,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     overlayLayer.draw();
     drawState = null;
     updatePenActions();
+    updateBoneChainActions();
   }
 
   function destroyPenPreview() {
