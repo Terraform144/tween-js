@@ -44,6 +44,7 @@ export const ICONS = {
   save: svg('<path d="M5 4.5h11L20 8.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z"/><path d="M8 4.5V10h7V4.5"/><path d="M8 14h8v6H8Z"/>'),
   exportHtml: svg('<rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/><path d="M8.5 8.2 6.3 10.4l2.2 2.2M15.5 8.2l2.2 2.2-2.2 2.2M13 7.5l-2 9"/>'),
   bone: svg('<line x1="12" y1="4" x2="12" y2="20"/><circle cx="12" cy="4" r="2" fill="currentColor" stroke="none"/><path d="M12 20l-2-2 2-2 2 2-2 2Z" fill="currentColor" stroke="none"/>'),
+  boneChain: svg('<line x1="4" y1="12" x2="8" y2="12"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="10" y1="12" x2="14" y2="12"/><circle cx="14" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="16" y1="12" x2="20" y2="12"/><circle cx="20" cy="12" r="1.5" fill="currentColor" stroke="none"/>'),
 };
 
 // Injecte l'icône dans un bouton/élément existant, avant tout texte déjà

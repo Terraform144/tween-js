@@ -216,22 +216,25 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const allBones = elements.filter((el) => el.kind === 'bone');
     
     for (const el of elements) {
-      // Appliquer la déformation aux paths si des bones sont présents
+      // Appliquer la déformation aux paths si un bone leur est assigné
       let deformedEl = el;
-      if (el.kind === 'shape' && (el.shapeType === 'path' || el.shapeType === 'line') && allBones.length > 0) {
+      if (el.kind === 'shape' && (el.shapeType === 'path' || el.shapeType === 'line') && el.boneId && allBones.length > 0) {
         // Cloner l'élément pour ne pas modifier l'original
         deformedEl = JSON.parse(JSON.stringify(el));
         
-        // Calculer les poids et déformer chaque point
-        for (let i = 0; i < deformedEl.points.length; i++) {
-          const point = deformedEl.points[i];
-          const weights = calculateBoneWeightsForPoint(point, allBones);
-          if (weights.length > 0) {
-            // Appliquer la transformation
-            const deformed = applyBoneTransformToPoint(point, allBones, weights);
-            // Mettre à jour le point avec la position déformée
-            // Pour l'instant, on met à jour x et y, mais pas cIn/cOut
-            deformedEl.points[i] = { ...point, x: deformed.x, y: deformed.y };
+        // Trouver le bone assigné
+        const assignedBone = allBones.find((b) => b.id === el.boneId);
+        if (assignedBone) {
+          // Calculer les poids pour chaque point en considérant tous les bones
+          // (pour permettre les enveloppes multiples)
+          for (let i = 0; i < deformedEl.points.length; i++) {
+            const point = deformedEl.points[i];
+            const weights = calculateBoneWeightsForPoint(point, allBones);
+            if (weights.length > 0) {
+              // Appliquer la transformation
+              const deformed = applyBoneTransformToPoint(point, allBones, weights);
+              deformedEl.points[i] = { ...point, x: deformed.x, y: deformed.y };
+            }
           }
         }
       }
@@ -252,9 +255,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   function render(tick = 0) {
-    // Changer d'outil en pleine plume abandonnait un tracé fantôme (aperçu
-    // jamais détruit, drawState jamais nettoyé) — on l'annule proprement.
+    // Changer d'outil en pleine plume ou chaîne de bones abandonnait un tracé fantôme
     if (drawState && drawState.tool === 'pen' && state.currentTool !== 'pen') cancelDraw();
+    if (drawState && drawState.tool === 'boneChain' && state.currentTool !== 'boneChain') finishBoneChain();
     const doc = state.doc;
     bgRect.width(doc.width);
     bgRect.height(doc.height);
@@ -570,6 +573,18 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       drawState.previewHead = previewHead;
       overlayLayer.add(previewLine, previewHead);
       overlayLayer.draw();
+    } else if (tool === 'boneChain') {
+      // Création d'une chaîne de bones
+      if (!drawState || drawState.tool !== 'boneChain') {
+        // Premier clic : démarrer la chaîne
+        drawState = { tool: 'boneChain', points: [p], previewLines: [], previewJoints: [] };
+      } else {
+        // Clic suivant : ajouter un segment
+        drawState.points.push(p);
+      }
+      
+      // Mettre à jour l'aperçu
+      updateBoneChainPreview();
     } else if (tool === 'pen') {
       startOrContinuePen(p);
     } else if (tool === 'text') {
@@ -708,7 +723,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   window.addEventListener('keydown', (e) => {
     if (isTypingTarget(e.target)) return;
     if (e.key === 'Enter' && drawState && drawState.tool === 'pen') finishPen(false);
+    if (e.key === 'Enter' && drawState && drawState.tool === 'boneChain') finishBoneChain();
     if (e.key === 'Escape' && drawState && drawState.tool === 'pen') cancelDraw();
+    if (e.key === 'Escape' && drawState && drawState.tool === 'boneChain') cancelDraw();
     if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedElementIds.length) deleteSelected();
   });
 
@@ -747,6 +764,83 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (el) addElement(el);
   }
 
+  function updateBoneChainPreview() {
+    // Supprimer les anciens aperçus
+    if (drawState.previewLines) {
+      for (const line of drawState.previewLines) line.destroy();
+    }
+    if (drawState.previewJoints) {
+      for (const joint of drawState.previewJoints) joint.destroy();
+    }
+    drawState.previewLines = [];
+    drawState.previewJoints = [];
+    
+    const points = drawState.points;
+    if (points.length < 2) return;
+    
+    // Dessiner les segments entre les points
+    for (let i = 0; i < points.length - 1; i++) {
+      const line = new Konva.Line({
+        points: [points[i].x, points[i].y, points[i + 1].x, points[i + 1].y],
+        stroke: '#4a90d9',
+        strokeWidth: 2,
+        dash: [4, 4],
+        listening: false,
+      });
+      overlayLayer.add(line);
+      drawState.previewLines.push(line);
+    }
+    
+    // Dessiner les articulations (joints)
+    for (let i = 0; i < points.length; i++) {
+      const joint = new Konva.Circle({
+        x: points[i].x,
+        y: points[i].y,
+        radius: 5,
+        fill: i === 0 ? '#ffcc00' : (i === points.length - 1 ? '#4a90d9' : '#ffffff'),
+        stroke: '#cb4b16',
+        strokeWidth: 2,
+        listening: false,
+      });
+      overlayLayer.add(joint);
+      drawState.previewJoints.push(joint);
+    }
+    
+    overlayLayer.draw();
+  }
+
+  function finishBoneChain() {
+    if (!drawState || drawState.tool !== 'boneChain' || drawState.points.length < 2) {
+      cancelDraw();
+      return;
+    }
+    
+    const points = drawState.points;
+    const bones = [];
+    const segmentLength = distance(points[0], points[1]); // Utiliser la longueur du premier segment comme référence
+    
+    // Créer les bones de la chaîne
+    for (let i = 0; i < points.length - 1; i++) {
+      const dx = points[i + 1].x - points[i].x;
+      const dy = points[i + 1].y - points[i].y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      const rotation = Math.atan2(dy, dx) * 180 / Math.PI;
+      
+      const bone = createBone({
+        x: points[i].x,
+        y: points[i].y,
+        length: length,
+        rotation: rotation,
+        // Le parent est le bone précédent
+        parentBoneId: i > 0 ? bones[i - 1].id : null,
+      });
+      bones.push(bone);
+      addElement(bone);
+    }
+    
+    cancelDraw();
+  }
+
   function finishPen(closeShape) {
     if (!drawState || drawState.points.length < 2) { cancelDraw(); return; }
     destroyPenPreview();
@@ -769,6 +863,15 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     else if (drawState && drawState.previewNode) {
       drawState.previewNode.destroy();
       if (drawState.previewHead) drawState.previewHead.destroy();
+    }
+    else if (drawState && drawState.tool === 'boneChain') {
+      // Nettoyer l'aperçu de la chaîne
+      if (drawState.previewLines) {
+        for (const line of drawState.previewLines) line.destroy();
+      }
+      if (drawState.previewJoints) {
+        for (const joint of drawState.previewJoints) joint.destroy();
+      }
     }
     overlayLayer.draw();
     drawState = null;
