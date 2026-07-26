@@ -1,4 +1,4 @@
-import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe } from '../core/model.js';
+import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones } from '../core/model.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 
@@ -57,6 +57,33 @@ export function mountPropertiesPanel(container, state) {
     input.addEventListener('change', () => onChange(input.value));
     row.append(l, input);
     body.appendChild(row);
+  }
+
+  function selectRow(label, value, options, onChange) {
+    const row = document.createElement('div');
+    row.className = 'prop-row';
+    const l = document.createElement('label');
+    l.textContent = label;
+    const select = document.createElement('select');
+    
+    // Ajouter une option vide pour aucun parent
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = '(aucun)';
+    select.appendChild(emptyOpt);
+    
+    for (const opt of options) {
+      const option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.text;
+      if (opt.value === value) option.selected = true;
+      select.appendChild(option);
+    }
+    
+    select.addEventListener('change', () => onChange(select.value === '' ? null : select.value));
+    row.append(l, select);
+    body.appendChild(row);
+    return select;
   }
 
   function renderTweenSection() {
@@ -132,6 +159,19 @@ export function mountPropertiesPanel(container, state) {
         textRow('Texte', el.text, (v) => mutateSelectedElement((e) => (e.text = v)));
         numberRow('Taille police', el.fontSize, (v) => mutateSelectedElement((e) => (e.fontSize = Math.max(1, v))));
       }
+      
+      // Sélecteur de bone pour le skinning
+      const layer = selectedLayer();
+      const kf = getActiveKeyframe(layer, state.currentFrame);
+      if (kf) {
+        const allBones = kf.elements.filter((e) => e.kind === 'bone');
+        if (allBones.length > 0) {
+          const boneOptions = allBones.map((bone) => ({ value: bone.id, text: bone.id }));
+          selectRow('Bone parent', el.boneId, boneOptions, (boneId) => {
+            mutateSelectedElement((e) => (e.boneId = boneId === null ? null : boneId));
+          });
+        }
+      }
     } else if (el.kind === 'instance') {
       const symbol = state.doc.symbols[el.symbolId];
       const row = document.createElement('div');
@@ -139,6 +179,21 @@ export function mountPropertiesPanel(container, state) {
       row.innerHTML = `<label>Symbole</label><div>${symbol ? symbol.name : '(manquant)'}</div>`;
       body.appendChild(row);
       textRow('Nom instance', el.name, (v) => mutateSelectedElement((e) => (e.name = v)));
+    } else if (el.kind === 'bone') {
+      numberRow('Longueur', el.length, (v) => mutateSelectedElement((e) => (e.length = Math.max(1, v))));
+      colorRow('Couleur', el.color, (v) => mutateSelectedElement((e) => (e.color = v)));
+      numberRow('Ép. trait', el.strokeWidth, (v) => mutateSelectedElement((e) => (e.strokeWidth = Math.max(1, v))));
+      
+      // Sélecteur de parent
+      const layer = selectedLayer();
+      const kf = getActiveKeyframe(layer, state.currentFrame);
+      if (kf) {
+        const allBones = kf.elements.filter((e) => e.kind === 'bone' && e.id !== el.id);
+        const boneOptions = allBones.map((bone) => ({ value: bone.id, text: bone.id }));
+        selectRow('Parent', el.parentBoneId, boneOptions, (parentId) => {
+          mutateSelectedElement((e) => (e.parentBoneId = parentId));
+        });
+      }
     }
 
     const delRow = document.createElement('div');

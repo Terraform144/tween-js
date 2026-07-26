@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone } from '../core/model.js';
+import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, solveIK } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
 import { ICONS } from '../ui/icons.js';
@@ -320,11 +320,48 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const kf = insertKeyframe(layer, state.currentFrame);
     const el = kf.elements.find((e) => e.id === id);
     if (!el) return;
+    
+    const oldX = el.x, oldY = el.y, oldRotation = el.rotation;
     el.x = node.x();
     el.y = node.y();
     el.rotation = node.rotation();
     el.scaleX = node.scaleX();
     el.scaleY = node.scaleY();
+    
+    // Propager la transformation aux enfants et aux shapes associées si c'est un bone
+    if (el.kind === 'bone') {
+      const dx = el.x - oldX;
+      const dy = el.y - oldY;
+      const dRotation = el.rotation - oldRotation;
+      
+      // Si ce bone a un parent, c'est peut-être un déplacement IK
+      // Calculer la nouvelle position de la queue
+      const newTailX = el.x + el.length * Math.cos(el.rotation * Math.PI / 180);
+      const newTailY = el.y + el.length * Math.sin(el.rotation * Math.PI / 180);
+      
+      if (el.parentBoneId) {
+        // Résoudre l'IK pour la chaîne
+        solveIK(kf, el.id, newTailX, newTailY);
+      }
+      
+      // Propager aux bones enfants (normal, pas IK)
+      const childBones = getChildBones(kf, el.id);
+      for (const child of childBones) {
+        child.x += dx;
+        child.y += dy;
+        child.rotation += dRotation;
+      }
+      
+      // Propager aux shapes associées (skinning)
+      for (const shape of kf.elements) {
+        if (shape.kind === 'shape' && shape.boneId === el.id) {
+          shape.x += dx;
+          shape.y += dy;
+          shape.rotation += dRotation;
+        }
+      }
+    }
+    
     notify(state);
   }
 

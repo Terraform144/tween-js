@@ -73,6 +73,7 @@ export function createShape(shapeType, props = {}) {
     strokeWidth: 2,
     closed: false,
     text: '', fontSize: 24, fontFamily: 'Arial',
+    boneId: null, // ID du bone auquel cette forme est attachée (skinning)
   };
   return Object.assign(base, props);
 }
@@ -111,6 +112,86 @@ export function createBone(props = {}) {
     strokeWidth: 2,
   };
   return Object.assign(base, props);
+}
+
+// Retourne tous les bones d'une keyframe
+function getBonesFromKeyframe(kf) {
+  return kf.elements.filter((el) => el.kind === 'bone');
+}
+
+// Retourne les enfants directs d'un bone dans une keyframe
+export function getChildBones(kf, parentBoneId) {
+  return getBonesFromKeyframe(kf).filter((bone) => bone.parentBoneId === parentBoneId);
+}
+
+// Retourne le parent d'un bone dans une keyframe
+export function getParentBone(kf, boneId) {
+  return getBonesFromKeyframe(kf).find((bone) => bone.id === boneId);
+}
+
+// Calcule la position/rotation globale d'un bone en tenant compte de sa hiérarchie
+export function getGlobalBoneTransform(kf, bone, layers) {
+  // Pour l'instant, on ne gère que le parent direct
+  // Dans une version plus avancée, on parcourrait toute la hiérarchie
+  const parentBone = bone.parentBoneId ? getBonesFromKeyframe(kf).find((b) => b.id === bone.parentBoneId) : null;
+  
+  let globalX = bone.x;
+  let globalY = bone.y;
+  let globalRotation = bone.rotation;
+  
+  if (parentBone) {
+    // La position du bone enfant est relative à la queue de son parent
+    const parentTailX = parentBone.x + parentBone.length * Math.cos(parentBone.rotation * Math.PI / 180);
+    const parentTailY = parentBone.y + parentBone.length * Math.sin(parentBone.rotation * Math.PI / 180);
+    
+    // Position globale = position parent + position relative de l'enfant
+    globalX = parentTailX + bone.x * Math.cos(parentBone.rotation * Math.PI / 180) - bone.y * Math.sin(parentBone.rotation * Math.PI / 180);
+    globalY = parentTailY + bone.x * Math.sin(parentBone.rotation * Math.PI / 180) + bone.y * Math.cos(parentBone.rotation * Math.PI / 180);
+    
+    // Rotation globale = rotation parent + rotation locale
+    globalRotation = parentBone.rotation + bone.rotation;
+  }
+  
+  return { x: globalX, y: globalY, rotation: globalRotation };
+}
+
+// Résout l'IK pour une chaîne de bones (max 2 bones pour l'instant)
+// Si on déplace la queue d'un bone enfant, recalcule la rotation du parent
+export function solveIK(kf, movedBoneId, newTailX, newTailY) {
+  const bones = getBonesFromKeyframe(kf);
+  const movedBone = bones.find((b) => b.id === movedBoneId);
+  if (!movedBone) return;
+  
+  // Cas 1 : le bone déplacé a un parent (chaîne de 2 bones)
+  if (movedBone.parentBoneId) {
+    const parentBone = bones.find((b) => b.id === movedBone.parentBoneId);
+    if (!parentBone) return;
+    
+    // Calculer la nouvelle rotation du parent pour que sa queue soit à la position désirée
+    const dx = newTailX - parentBone.x;
+    const dy = newTailY - parentBone.y;
+    const newParentRotation = Math.atan2(dy, dx) * 180 / Math.PI;
+    
+    // Mettre à jour la rotation du parent
+    parentBone.rotation = newParentRotation;
+    
+    // Recalculer la position et rotation de l'enfant
+    const parentTailX = parentBone.x + parentBone.length * Math.cos(parentBone.rotation * Math.PI / 180);
+    const parentTailY = parentBone.y + parentBone.length * Math.sin(parentBone.rotation * Math.PI / 180);
+    
+    // La queue du parent doit être à la position de la tête de l'enfant
+    // Donc la tête de l'enfant reste à (parentTailX, parentTailY)
+    movedBone.x = parentTailX;
+    movedBone.y = parentTailY;
+    
+    // La rotation de l'enfant : de la tête à la queue (newTailX, newTailY)
+    const childDx = newTailX - movedBone.x;
+    const childDy = newTailY - movedBone.y;
+    movedBone.rotation = Math.atan2(childDy, childDx) * 180 / Math.PI;
+    
+    // Mettre à jour la longueur de l'enfant si nécessaire
+    movedBone.length = Math.sqrt(childDx * childDx + childDy * childDy);
+  }
 }
 
 export function cloneElement(el, withNewId = false) {
