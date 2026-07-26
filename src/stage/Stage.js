@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
+import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
 import { ICONS } from '../ui/icons.js';
@@ -263,9 +263,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
           if (rootBone) {
             // Trouver tous les bones enfants rÃ©cursivement
             bonesToUse = [rootBone];
-            const children = getChildBones(kf, rootBone.id);
-            // Ajouter les enfants (1 niveau pour l'instant)
-            bonesToUse.push(...children);
+            const allChildren = getAllChildBones(kf, rootBone.id);
+            // Ajouter tous les descendants récursivement
+            bonesToUse.push(...allChildren);
           }
         }
         
@@ -457,18 +457,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function buildPointHandles(node, elData) {
     const pts = elData.points;
-    const stageScale = { x: konvaStage.scaleX(), y: konvaStage.scaleY() };
-    // Pour les poignÃ©es, on veut des coordonnÃ©es Ã©cran absolues
-    // node.x() et node.y() sont dans l'espace du document
-    // Les points p.x, p.y sont relatifs Ã  node.x, node.y
-    // Donc position absolue dans le document = node.x() + p.x, node.y() + p.y
-    // Position en Ã©cran = (node.x() + p.x) * stageScale.x
-    const worldOf = (local) => {
-      return {
-        x: (node.x() + local.x) * stageScale.x,
-        y: (node.y() + local.y) * stageScale.y,
-      };
-    };
+    // Utiliser node.getAbsoluteTransform() qui inclut dÃ©jÃ  le scale du stage
+    const worldOf = (local) => node.getAbsoluteTransform().point(local);
 
     pts.forEach((p, i) => {
       const ref = {};
@@ -504,62 +494,42 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   function onAnchorDrag(node, elData, i, ref) {
-    const stageScale = { x: konvaStage.scaleX(), y: konvaStage.scaleY() };
+    const transform = node.getAbsoluteTransform();
+    const local = transform.copy().invert().point(ref.anchor.position());
     const p = elData.points[i];
-    
-    // ref.anchor.position() retourne des coordonnÃ©es Ã©cran
-    const anchorScreenPos = ref.anchor.position();
-    // Convertir en coordonnÃ©es document
-    const anchorDoc = { x: anchorScreenPos.x / stageScale.x, y: anchorScreenPos.y / stageScale.y };
-    // Calculer la position locale (relative au node dans le document)
-    const localX = anchorDoc.x - node.x();
-    const localY = anchorDoc.y - node.y();
-    p.x = localX;
-    p.y = localY;
-    
-    const anchorWorld = { x: anchorScreenPos.x, y: anchorScreenPos.y };
-    
+    p.x = local.x;
+    p.y = local.y;
     if (p.cOut && ref.outLine) {
-      // Position de la poignÃ©e cOut en document : p.x + p.cOut.x, p.y + p.cOut.y (relatif au node)
-      // En Ã©cran : (node.x() + p.x + p.cOut.x) * stageScale.x
-      const tipScreen = {
-        x: (node.x() + p.x + p.cOut.x) * stageScale.x,
-        y: (node.y() + p.y + p.cOut.y) * stageScale.y,
-      };
-      ref.outCircle.position(tipScreen);
-      ref.outLine.points([anchorWorld.x, anchorWorld.y, tipScreen.x, tipScreen.y]);
+      const tip = transform.point({ x: p.x + p.cOut.x, y: p.y + p.cOut.y });
+      ref.outCircle.position(tip);
+      ref.outLine.points([ref.anchor.x(), ref.anchor.y(), tip.x, tip.y]);
     }
     if (p.cIn && ref.inLine) {
-      const tipScreen = {
-        x: (node.x() + p.x + p.cIn.x) * stageScale.x,
-        y: (node.y() + p.y + p.cIn.y) * stageScale.y,
-      };
-      ref.inCircle.position(tipScreen);
-      ref.inLine.points([anchorWorld.x, anchorWorld.y, tipScreen.x, tipScreen.y]);
+      const tip = transform.point({ x: p.x + p.cIn.x, y: p.y + p.cIn.y });
+      ref.inCircle.position(tip);
+      ref.inLine.points([ref.anchor.x(), ref.anchor.y(), tip.x, tip.y]);
     }
     node.getLayer().batchDraw();
     overlayLayer.batchDraw();
   }
 
   function onHandleDrag(node, elData, i, which, ref) {
-    const stageScale = { x: konvaStage.scaleX(), y: konvaStage.scaleY() };
+    const transform = node.getAbsoluteTransform();
     const p = elData.points[i];
     const circle = which === 'cOut' ? ref.outCircle : ref.inCircle;
     const line = which === 'cOut' ? ref.outLine : ref.inLine;
+    const anchorRef = ref.anchor;
     
-    // circle.position() retourne des coordonnÃ©es Ã©cran
+    // circle.position() retourne des coordonnées écran (stage coordinates)
     const circleScreenPos = circle.position();
-    // Convertir en coordonnÃ©es document
-    const circleDoc = { x: circleScreenPos.x / stageScale.x, y: circleScreenPos.y / stageScale.y };
-    // Calculer la position locale relative au node
-    const localX = circleDoc.x - node.x();
-    const localY = circleDoc.y - node.y();
-    // Le vecteur est la diffÃ©rence entre la poignÃ©e et l'ancre
-    const vec = { x: localX - p.x, y: localY - p.y };
+    // Convertir en coordonnées locales du node
+    const local = transform.copy().invert().point(circleScreenPos);
+    // Le vecteur est la différence entre la poignée et l'ancre
+    const vec = { x: local.x - p.x, y: local.y - p.y };
     p[which] = vec;
     
-    const anchorWorld = { x: (node.x() + p.x) * stageScale.x, y: (node.y() + p.y) * stageScale.y };
-    line.points([anchorWorld.x, anchorWorld.y, circleScreenPos.x, circleScreenPos.y]);
+    // Mettre à jour la ligne : de l'ancre au circle, en coordonnées écran
+    line.points([anchorRef.x(), anchorRef.y(), circleScreenPos.x, circleScreenPos.y]);
 
     if (p.smooth) {
       const other = which === 'cOut' ? 'cIn' : 'cOut';
@@ -567,13 +537,11 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const otherCircle = which === 'cOut' ? ref.inCircle : ref.outCircle;
       const otherLine = which === 'cOut' ? ref.inLine : ref.outLine;
       if (otherCircle && otherLine) {
-        // Position de l'autre poignÃ©e en Ã©cran
-        const otherTipScreen = {
-          x: (node.x() + p.x + p[other].x) * stageScale.x,
-          y: (node.y() + p.y + p[other].y) * stageScale.y,
-        };
+        // Position de l'autre poignée en écran
+        const otherTipLocal = { x: p.x + p[other].x, y: p.y + p[other].y };
+        const otherTipScreen = transform.point(otherTipLocal);
         otherCircle.position(otherTipScreen);
-        otherLine.points([anchorWorld.x, anchorWorld.y, otherTipScreen.x, otherTipScreen.y]);
+        otherLine.points([anchorRef.x(), anchorRef.y(), otherTipScreen.x, otherTipScreen.y]);
       }
     }
     node.getLayer().batchDraw();
@@ -894,6 +862,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
     
     overlayLayer.draw();
+    // Réinitialiser l'outil à select après validation
+    state.currentTool = 'select';
+    state.selectedElementIds = bones.map(b => b.id);
+    notify(state);
     updateBoneChainActions();
   }
 
@@ -945,6 +917,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     updatePenActions();
     drawState = null;
     addElement(el);
+    // Réinitialiser l'outil à select après validation
+    state.currentTool = 'select';
+    notify(state);
   }
 
   function cancelDraw() {

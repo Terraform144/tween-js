@@ -132,6 +132,20 @@ export function getChildBones(kf, parentBoneId) {
   return getBonesFromKeyframe(kf).filter((bone) => bone.parentBoneId === parentBoneId);
 }
 
+// Retourne tous les descendants d'un bone dans une keyframe (récursif)
+export function getAllChildBones(kf, parentBoneId) {
+  const allChildren = [];
+  const children = getChildBones(kf, parentBoneId);
+  for (const child of children) {
+    allChildren.push(child);
+    // Ajouter récursivement les enfants des enfants
+    allChildren.push(...getAllChildBones(kf, child.id));
+  }
+  return allChildren;
+}
+
+
+
 // Retourne le parent d'un bone dans une keyframe
 export function getParentBone(kf, boneId) {
   return getBonesFromKeyframe(kf).find((bone) => bone.id === boneId);
@@ -164,43 +178,93 @@ export function getGlobalBoneTransform(kf, bone, layers) {
 }
 
 // RÃ©sout l'IK pour une chaÃ®ne de bones (max 2 bones pour l'instant)
-// Si on dÃ©place la queue d'un bone enfant, recalcule la rotation du parent
-export function solveIK(kf, movedBoneId, newTailX, newTailY) {
+// Résout l'IK pour une chaîne de bones en utilisant l'algorithme CCD (Cyclic Coordinate Descent)
+// Gère des chaînes de bones de n'importe quelle longueur
+export function solveIK(kf, movedBoneId, newTailX, newTailY, iterations = 10) {
   const bones = getBonesFromKeyframe(kf);
   const movedBone = bones.find((b) => b.id === movedBoneId);
   if (!movedBone) return;
   
-  // Cas 1 : le bone dÃ©placÃ© a un parent (chaÃ®ne de 2 bones)
-  if (movedBone.parentBoneId) {
-    const parentBone = bones.find((b) => b.id === movedBone.parentBoneId);
-    if (!parentBone) return;
+  // Obtenir toute la chaîne de bones du parent jusqu'à l'enfant déplacé
+  const chain = [];
+  let current = movedBone;
+  while (current) {
+    chain.unshift(current); // Ajouter au début pour avoir parent -> enfant
+    current = bones.find((b) => b.id === current.parentBoneId);
+  }
+  
+  // Si chaîne de 1 bone : simplement le redimensionner
+  if (chain.length === 1) {
+    const dx = newTailX - chain[0].x;
+    const dy = newTailY - chain[0].y;
+    chain[0].length = Math.sqrt(dx * dx + dy * dy);
+    chain[0].rotation = Math.atan2(dy, dx) * 180 / Math.PI;
+    return;
+  }
+  
+  // CCD : itérer pour ajuster chaque articulation
+  for (let iter = 0; iter < iterations; iter++) {
+    // De l'enfant vers le parent (sauf le premier)
+    for (let i = chain.length - 1; i >= 1; i--) {
+      const bone = chain[i];
+      const parent = chain[i - 1];
+      
+      // Position de la queue du parent = tête de l'enfant
+      const parentTailX = parent.x + parent.length * Math.cos(parent.rotation * Math.PI / 180);
+      const parentTailY = parent.y + parent.length * Math.sin(parent.rotation * Math.PI / 180);
+      
+      // Calculer la rotation pour aligner bone vers la cible (ou vers la queue de l'enfant suivant)
+      const targetX = i === chain.length - 1 ? newTailX : 
+        bone.x + bone.length * Math.cos(bone.rotation * Math.PI / 180);
+      const targetY = i === chain.length - 1 ? newTailY : 
+        bone.y + bone.length * Math.sin(bone.rotation * Math.PI / 180);
+      
+      const dx = targetX - parentTailX;
+      const dy = targetY - parentTailY;
+      
+      if (dx === 0 && dy === 0) continue;
+      
+      const newRotation = Math.atan2(dy, dx) * 180 / Math.PI;
+      
+      // Mettre à jour la rotation du bone
+      bone.rotation = newRotation;
+      
+      // Repositionner la tête du bone à la queue du parent
+      bone.x = parentTailX;
+      bone.y = parentTailY;
+    }
     
-    // Calculer la nouvelle rotation du parent pour que sa queue soit Ã  la position dÃ©sirÃ©e
-    const dx = newTailX - parentBone.x;
-    const dy = newTailY - parentBone.y;
-    const newParentRotation = Math.atan2(dy, dx) * 180 / Math.PI;
-    
-    // Mettre Ã  jour la rotation du parent
-    parentBone.rotation = newParentRotation;
-    
-    // Recalculer la position et rotation de l'enfant
-    const parentTailX = parentBone.x + parentBone.length * Math.cos(parentBone.rotation * Math.PI / 180);
-    const parentTailY = parentBone.y + parentBone.length * Math.sin(parentBone.rotation * Math.PI / 180);
-    
-    // La queue du parent doit Ãªtre Ã  la position de la tÃªte de l'enfant
-    // Donc la tÃªte de l'enfant reste Ã  (parentTailX, parentTailY)
-    movedBone.x = parentTailX;
-    movedBone.y = parentTailY;
-    
-    // La rotation de l'enfant : de la tÃªte Ã  la queue (newTailX, newTailY)
-    const childDx = newTailX - movedBone.x;
-    const childDy = newTailY - movedBone.y;
-    movedBone.rotation = Math.atan2(childDy, childDx) * 180 / Math.PI;
-    
-    // Mettre Ã  jour la longueur de l'enfant si nÃ©cessaire
-    movedBone.length = Math.sqrt(childDx * childDx + childDy * childDy);
+    // Du parent vers l'enfant (sauf le dernier)
+    for (let i = 0; i < chain.length - 1; i++) {
+      const bone = chain[i];
+      const child = chain[i + 1];
+      
+      // Position de la queue du bone
+      const tailX = bone.x + bone.length * Math.cos(bone.rotation * Math.PI / 180);
+      const tailY = bone.y + bone.length * Math.sin(bone.rotation * Math.PI / 180);
+      
+      // Mettre à jour la tête de l'enfant
+      child.x = tailX;
+      child.y = tailY;
+    }
+  }
+  
+  // Après les itérations, s'assurer que la queue du dernier bone est à la position cible
+  const lastBone = chain[chain.length - 1];
+  const lastTailX = lastBone.x + lastBone.length * Math.cos(lastBone.rotation * Math.PI / 180);
+  const lastTailY = lastBone.y + lastBone.length * Math.sin(lastBone.rotation * Math.PI / 180);
+  
+  const dx = newTailX - lastTailX;
+  const dy = newTailY - lastTailY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  
+  // Si la distance est significative, ajuster la longueur du dernier bone
+  if (dist > 1 && chain.length > 1) {
+    lastBone.length = Math.sqrt(dx * dx + dy * dy);
+    lastBone.rotation = Math.atan2(dy, dx) * 180 / Math.PI;
   }
 }
+
 
 // Calcule la distance perpendiculaire d'un point Ã  une ligne (bone)
 // Retourne la distance signÃ©e (nÃ©gative d'un cÃ´tÃ©, positive de l'autre)
