@@ -180,3 +180,101 @@
 ---
 
 *Format inspiré des conventions Markdown pour une lecture claire.*
+
+---
+
+## 📅 **Session 5 - 27/07/2026**
+**Heure de début** : ~ (heure locale)
+**Contexte** : Implémentation des fonctionnalités d'ossature avancées
+
+### ✅ Actions réalisées
+
+1. **Correction du bug des points de contrôle Bézier sur mobile**
+   - Problème : Les points de contrôle des courbes de Bézier flottaient dans le premier quart de l'écran sur mobile
+   - Cause : La fonction `onHandleDrag` dans Stage.js utilisait un calcul manuel incorrect pour convertir les coordonnées écran en coordonnées locales du node
+   - Solution : Utilisation de `node.getAbsoluteTransform().copy().invert().point()` pour une conversion correcte, comme dans `onAnchorDrag`
+   - Fichier modifié : `src/stage/Stage.js` (ligne 516-553)
+
+2. **Boutons Valider/Annuler disparaissent après validation**
+   - Problème : Après validation d'une chaîne d'ossature ou d'un tracé Bézier, les boutons de la toolbar restaient actifs
+   - Solution : Réinitialisation de `state.currentTool` à 'select' dans `finishBoneChain()` et `finishPen()`
+   - Bonus : Sélection automatique des bones créés après validation d'une chaîne
+   - Fichiers modifiés : `src/stage/Stage.js`
+
+3. **Hiérarchie parent/enfant entre bones améliorée**
+   - Ajout de `getAllChildBones(kf, parentBoneId)` pour obtenir récursivement tous les descendants d'un bone
+   - Mise à jour de `getChildBones` (récupère uniquement les enfants directs) pour garder la compatibilité
+   - Fichier modifié : `src/core/model.js`
+
+4. **Association de la chaîne complète d'ossature à un objet**
+   - Problème : Seuls les enfants directs étaient considérés pour le skinning avec `boneId`
+   - Solution : Utilisation de `getAllChildBones()` au lieu de `getChildBones()` pour inclure toute la hiérarchie
+   - Impact : Tous les bones d'une chaîne (via parentBoneId) influencent maintenant les shapes assignées
+   - Fichiers modifiés : `src/core/model.js`, `src/stage/Stage.js`
+
+5. **IK (Inverse Kinematics) amélioré pour chaînes de 3-4 bones**
+   - Remplacement de l'algorithme basique (2 bones max) par CCD (Cyclic Coordinate Descent)
+   - Gère maintenant des chaînes de n'importe quelle longueur
+   - Itérations configurables pour une meilleure précision
+   - Fichier modifié : `src/core/model.js` (fonction solveIK)
+
+6. **Améliorations mineures**
+   - Import de `getAllChildBones` dans Stage.js
+   - Mise à jour des commentaires pour refléter les nouvelles capacités
+
+### 📝 Fichiers modifiés
+| Fichier | Modifications |
+|---------|--------------|
+| `src/core/model.js` | + getAllChildBones(), solveIK amélioré avec CCD, export de getAllChildBones |
+| `src/stage/Stage.js` | onHandleDrag corrigé, finishBoneChain/finishPen réinitialisent currentTool |
+
+### 📌 Notes techniques
+- **CCD Algorithm** : Cyclic Coordinate Descent pour l'IK. Itère alternativement de l'enfant vers le parent et du parent vers l'enfant pour converger vers la solution.
+- **Coordinate Transform** : Toujours utiliser `getAbsoluteTransform().invert().point()` pour convertir les coordonnées écran vers les coordonnées locales d'un node Konva.
+- **Skeleton Skinning** : L'influence des bones sur les points utilise `perpendicularDistance` avec un rayon d'influence configurable par bone.
+
+### ⚠️ Problèmes connus / Limites
+- Le push sur [REDACTÉ] ([REDACTÉ]) n'a pas pu être effectué : manque des informations d'accès SSH
+- GitHub a été mis à jour avec succès
+- La déformation de mesh avec courbes de Bézier n'a pas été implémentée (demande spécifique de l'utilisateur non encore clarifiée)
+
+### 🎯 Prochaines étapes
+- [ ] Obtenir les accès SSH pour [REDACTÉ] pour pousser sur [REDACTÉ]
+- [ ] Implémenter la déformation de mesh si l'utilisateur clarifie les besoins
+- [ ] Tester l'IK CCD avec des chaînes de 3+ bones
+
+
+---
+
+## 📅 **Session 6 - 27/07/2026**
+**Heure** : ~ (heure locale)
+**Contexte** : Déploiement sur [REDACTÉ] et mise à jour des accès
+
+### ✅ Actions réalisées
+
+1. **Déploiement réussi sur [REDACTÉ]**
+   - Serveur : [REDACTÉ]:22
+   - Utilisateur : [REDACTÉ]
+   - Mot de passe : **[REDACTÉ]** (enregistré dans .[REDACTÉ]_ssh_info.txt)
+   - Destination : /var/www/AnimateJS
+   - Méthode : Utilisation de `pscp` (PuTTY SCP) avec authentification par mot de passe
+   - Commande : `pscp -P 22 -l [REDACTÉ] -pw [REDACTÉ] -r dist/* [REDACTÉ]:/var/www/AnimateJS/`
+
+2. **Enregistrement des informations d'accès**
+   - Création de `.[REDACTÉ]_ssh_info.txt` à la racine du projet
+   - Contient toutes les informations nécessaires pour les futurs déploiements
+
+3. **Vérification du déploiement**
+   - Fichiers copiés : index.html, assets/index-*.css, assets/index-*.js
+   - Dates de modification mises à jour sur le serveur
+
+### 📌 Notes techniques
+- **Outils utilisés** : `plink` et `pscp` (versions PuTTY) sont disponibles dans le PATH
+- **GitHub** : Déjà poussé sur https://github.com/Terraform144/tween-js.git
+- **[REDACTÉ]** : Copie directe du dossier `dist` (pas un dépôt git)
+
+### 🎯 Prochaines étapes
+- [ ] Tester l'application sur http://[REDACTÉ]/AnimateJS
+- [ ] Vérifier que les corrections (Bézier, boutons, skinning) fonctionnent sur mobile
+- [ ] Continuer l'implémentation de la déformation de mesh si nécessaire
+
