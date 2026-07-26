@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint } from '../core/model.js';
+import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
 import { ICONS } from '../ui/icons.js';
@@ -115,6 +115,33 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     let node;
     if (el.kind === 'instance') {
       node = new Konva.Group({});
+    } else if (el.kind === 'bone') {
+      const group = new Konva.Group({});
+      const line = new Konva.Line({
+        points: [0, 0, el.length, 0],
+        stroke: el.color,
+        strokeWidth: el.strokeWidth,
+        lineCap: 'round',
+      });
+      const head = new Konva.Circle({
+        x: 0, y: 0,
+        radius: 6,
+        fill: el.color,
+        stroke: '#ffffff',
+        strokeWidth: 1,
+      });
+      const tail = new Konva.Circle({
+        x: el.length, y: 0,
+        radius: 4,
+        fill: el.color,
+        stroke: '#ffffff',
+        strokeWidth: 1,
+      });
+      group.add(line, head, tail);
+      node = group;
+      node.getSelfRect = function () {
+        return { x: 0, y: -6, width: el.length, height: 12 };
+      };
     } else {
       switch (el.shapeType) {
         case 'rect':
@@ -171,6 +198,11 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     node.setAttr('elShapeType', el.shapeType || null);
     node.setAttr('elLayerId', el.layerId);
     if (el.kind === 'instance') node.setAttr('symbolId', el.symbolId);
+    if (el.kind === 'bone') {
+      node.setAttr('boneLength', el.length);
+      node.setAttr('boneColor', el.color);
+      node.setAttr('boneStrokeWidth', el.strokeWidth);
+    }
     return node;
   }
 
@@ -470,6 +502,14 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       drawState.previewNode = node;
       overlayLayer.add(node);
       overlayLayer.draw();
+    } else if (tool === 'bone') {
+      drawState = { tool, start: p, last: null, dragging: true };
+      const previewLine = new Konva.Line({ points: [p.x, p.y, p.x, p.y], stroke: '#4a90d9', strokeWidth: 2, dash: [4, 4], listening: false });
+      const previewHead = new Konva.Circle({ x: p.x, y: p.y, radius: 6, fill: '#4a90d9', stroke: '#ffffff', strokeWidth: 1, listening: false });
+      drawState.previewNode = previewLine;
+      drawState.previewHead = previewHead;
+      overlayLayer.add(previewLine, previewHead);
+      overlayLayer.draw();
     } else if (tool === 'pen') {
       startOrContinuePen(p);
     } else if (tool === 'text') {
@@ -527,6 +567,11 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     } else if (drawState.tool === 'line') {
       drawState.previewNode.points([drawState.start.x, drawState.start.y, p.x, p.y]);
       drawState.last = p;
+    } else if (drawState.tool === 'bone' && drawState.dragging) {
+      drawState.previewNode.points([drawState.start.x, drawState.start.y, p.x, p.y]);
+      drawState.previewHead.position({ x: p.x, y: p.y });
+      drawState.last = p;
+      overlayLayer.batchDraw();
     } else if (drawState.tool === 'pen' && drawState.dragging) {
       const point = drawState.points[drawState.dragIndex];
       const start = { x: point.x, y: point.y };
@@ -612,8 +657,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   function finishDrag() {
-    const { tool, previewNode, last, start } = drawState;
+    const { tool, previewNode, previewHead, last, start } = drawState;
     previewNode.destroy();
+    if (previewHead) previewHead.destroy();
     overlayLayer.draw();
     drawState = null;
     if (!last) return;
@@ -631,6 +677,12 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const dx = last.x - start.x, dy = last.y - start.y;
       if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
       el = createShape('line', { x: start.x, y: start.y, points: [createPathPoint(0, 0), createPathPoint(dx, dy)], stroke: state.strokeColor, strokeWidth: state.strokeWidth, width: Math.abs(dx), height: Math.abs(dy) });
+    } else if (tool === 'bone') {
+      const dx = last.x - start.x, dy = last.y - start.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      if (length < 5) return;
+      const rotation = Math.atan2(dy, dx) * 180 / Math.PI;
+      el = createBone({ x: start.x, y: start.y, length, rotation });
     }
     if (el) addElement(el);
   }
@@ -654,7 +706,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function cancelDraw() {
     if (drawState && drawState.tool === 'pen') destroyPenPreview();
-    else if (drawState && drawState.previewNode) drawState.previewNode.destroy();
+    else if (drawState && drawState.previewNode) {
+      drawState.previewNode.destroy();
+      if (drawState.previewHead) drawState.previewHead.destroy();
+    }
     overlayLayer.draw();
     drawState = null;
     updatePenActions();

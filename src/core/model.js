@@ -97,6 +97,22 @@ export function createInstance(symbolId, props = {}) {
   return Object.assign(base, props);
 }
 
+export function createBone(props = {}) {
+  const base = {
+    kind: 'bone',
+    id: nextId('bone'),
+    x: 0, y: 0,
+    length: 60,
+    width: 60,
+    height: 12,
+    rotation: 0,
+    parentBoneId: null,
+    color: '#4a90d9',
+    strokeWidth: 2,
+  };
+  return Object.assign(base, props);
+}
+
 export function cloneElement(el, withNewId = false) {
   const copy = JSON.parse(JSON.stringify(el));
   if (withNewId) copy.id = nextId(el.kind === 'shape' ? 'shape' : 'inst');

@@ -7,11 +7,12 @@ const TOOLS = [
   { id: 'rect', icon: 'rect', title: 'Rectangle (R)' },
   { id: 'ellipse', icon: 'ellipse', title: 'Ellipse (O)' },
   { id: 'line', icon: 'line', title: 'Ligne (L)' },
+  { id: 'bone', icon: 'bone', title: 'Ossature — créer un os pour l\'animation (B)' },
   { id: 'pen', icon: 'pen', title: 'Plume — courbes de Bézier, clic = point anguleux, clic-glissé = point lisse (P)' },
   { id: 'text', icon: 'text', title: 'Texte (T)' },
 ];
 
-const SHORTCUTS = { v: 'select', a: 'subselect', r: 'rect', o: 'ellipse', l: 'line', p: 'pen', t: 'text' };
+const SHORTCUTS = { v: 'select', a: 'subselect', r: 'rect', o: 'ellipse', l: 'line', b: 'bone', p: 'pen', t: 'text' };
 
 export function mountToolbar(container, state, { onDelete } = {}) {
   container.innerHTML = '';
