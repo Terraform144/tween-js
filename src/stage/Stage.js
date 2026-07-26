@@ -457,7 +457,12 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function buildPointHandles(node, elData) {
     const pts = elData.points;
-    const worldOf = (local) => node.getAbsoluteTransform().point(local);
+    const stageScale = { x: konvaStage.scaleX(), y: konvaStage.scaleY() };
+    const worldOf = (local) => {
+      const abs = node.getAbsoluteTransform().point(local);
+      // Appliquer le scale du stage pour convertir en coordonnées écran
+      return { x: abs.x * stageScale.x, y: abs.y * stageScale.y };
+    };
 
     pts.forEach((p, i) => {
       const ref = {};
@@ -494,19 +499,25 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function onAnchorDrag(node, elData, i, ref) {
     const transform = node.getAbsoluteTransform();
-    const local = transform.copy().invert().point(ref.anchor.position());
+    const stageScale = { x: konvaStage.scaleX(), y: konvaStage.scaleY() };
+    // ref.anchor.position() retourne des coordonnées écran, il faut les convertir en local
+    const anchorScreenPos = ref.anchor.position();
+    const anchorAbs = { x: anchorScreenPos.x / stageScale.x, y: anchorScreenPos.y / stageScale.y };
+    const local = transform.copy().invert().point(anchorAbs);
     const p = elData.points[i];
     p.x = local.x;
     p.y = local.y;
     if (p.cOut && ref.outLine) {
       const tip = transform.point({ x: p.x + p.cOut.x, y: p.y + p.cOut.y });
-      ref.outCircle.position(tip);
-      ref.outLine.points([ref.anchor.x(), ref.anchor.y(), tip.x, tip.y]);
+      const tipScreen = { x: tip.x * stageScale.x, y: tip.y * stageScale.y };
+      ref.outCircle.position(tipScreen);
+      ref.outLine.points([ref.anchor.x(), ref.anchor.y(), tipScreen.x, tipScreen.y]);
     }
     if (p.cIn && ref.inLine) {
       const tip = transform.point({ x: p.x + p.cIn.x, y: p.y + p.cIn.y });
-      ref.inCircle.position(tip);
-      ref.inLine.points([ref.anchor.x(), ref.anchor.y(), tip.x, tip.y]);
+      const tipScreen = { x: tip.x * stageScale.x, y: tip.y * stageScale.y };
+      ref.inCircle.position(tipScreen);
+      ref.inLine.points([ref.anchor.x(), ref.anchor.y(), tipScreen.x, tipScreen.y]);
     }
     node.getLayer().batchDraw();
     overlayLayer.batchDraw();
@@ -514,10 +525,13 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function onHandleDrag(node, elData, i, which, ref) {
     const transform = node.getAbsoluteTransform();
+    const stageScale = { x: konvaStage.scaleX(), y: konvaStage.scaleY() };
     const p = elData.points[i];
     const circle = which === 'cOut' ? ref.outCircle : ref.inCircle;
     const line = which === 'cOut' ? ref.outLine : ref.inLine;
-    const local = transform.copy().invert().point(circle.position());
+    const circleScreenPos = circle.position();
+    const circleAbs = { x: circleScreenPos.x / stageScale.x, y: circleScreenPos.y / stageScale.y };
+    const local = transform.copy().invert().point(circleAbs);
     const vec = { x: local.x - p.x, y: local.y - p.y };
     p[which] = vec;
     line.points([ref.anchor.x(), ref.anchor.y(), circle.x(), circle.y()]);
@@ -529,8 +543,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const otherLine = which === 'cOut' ? ref.inLine : ref.outLine;
       if (otherCircle && otherLine) {
         const otherTip = transform.point({ x: p.x + p[other].x, y: p.y + p[other].y });
-        otherCircle.position(otherTip);
-        otherLine.points([ref.anchor.x(), ref.anchor.y(), otherTip.x, otherTip.y]);
+        const otherTipScreen = { x: otherTip.x * stageScale.x, y: otherTip.y * stageScale.y };
+        otherCircle.position(otherTipScreen);
+        otherLine.points([ref.anchor.x(), ref.anchor.y(), otherTipScreen.x, otherTipScreen.y]);
       }
     }
     node.getLayer().batchDraw();
