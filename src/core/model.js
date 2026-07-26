@@ -73,7 +73,8 @@ export function createShape(shapeType, props = {}) {
     strokeWidth: 2,
     closed: false,
     text: '', fontSize: 24, fontFamily: 'Arial',
-    boneId: null, // ID du bone auquel cette forme est attachée (skinning)
+    skeletonId: null, // ID du squelette qui influence cette forme
+    boneId: null, // Gardé pour rétrocompatibilité, mais skeletonId est prioritaire
   };
   return Object.assign(base, props);
 }
@@ -108,11 +109,17 @@ export function createBone(props = {}) {
     height: 12,
     rotation: 0,
     parentBoneId: null,
+    skeletonId: null, // ID du squelette auquel ce bone appartient (null = bone isolé)
     color: '#4a90d9',
     strokeWidth: 2,
     influenceRadius: 80, // Rayon d'influence en pixels
   };
   return Object.assign(base, props);
+}
+
+// Génère un ID unique pour un squelette
+export function nextSkeletonId() {
+  return `skel${idCounter++}`;
 }
 
 // Retourne tous les bones d'une keyframe
@@ -218,6 +225,11 @@ function perpendicularDistance(px, py, x1, y1, x2, y2) {
   
   // Distance du point à sa projection
   return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
+}
+
+// Retourne tous les bones d'un squelette dans une keyframe
+export function getSkeletonBones(kf, skeletonId) {
+  return getBonesFromKeyframe(kf).filter((bone) => bone.skeletonId === skeletonId);
 }
 
 // Calcule les poids d'influence de tous les bones sur un point

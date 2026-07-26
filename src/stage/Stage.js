@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint } from '../core/model.js';
+import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
 import { ICONS } from '../ui/icons.js';
@@ -216,23 +216,42 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const allBones = elements.filter((el) => el.kind === 'bone');
     
     for (const el of elements) {
-      // Appliquer la déformation aux paths si un bone leur est assigné
+      // Appliquer la déformation aux paths si un squelette leur est assigné
       let deformedEl = el;
-      if (el.kind === 'shape' && (el.shapeType === 'path' || el.shapeType === 'line') && el.boneId && allBones.length > 0) {
+      
+      // Vérifier si l'élément a un skeletonId ou un boneId (rétrocompatibilité)
+      const hasSkeleton = el.skeletonId && allBones.some((b) => b.skeletonId === el.skeletonId);
+      const hasBoneId = el.boneId && allBones.some((b) => b.id === el.boneId);
+      
+      if (el.kind === 'shape' && (el.shapeType === 'path' || el.shapeType === 'line') && (hasSkeleton || hasBoneId)) {
         // Cloner l'élément pour ne pas modifier l'original
         deformedEl = JSON.parse(JSON.stringify(el));
         
-        // Trouver le bone assigné
-        const assignedBone = allBones.find((b) => b.id === el.boneId);
-        if (assignedBone) {
-          // Calculer les poids pour chaque point en considérant tous les bones
-          // (pour permettre les enveloppes multiples)
+        // Obtenir les bones à considérer
+        let bonesToUse = allBones;
+        if (hasSkeleton) {
+          // Utiliser tous les bones du squelette
+          bonesToUse = allBones.filter((b) => b.skeletonId === el.skeletonId);
+        } else if (hasBoneId) {
+          // Rétrocompatibilité : utiliser le bone unique + ses enfants
+          const rootBone = allBones.find((b) => b.id === el.boneId);
+          if (rootBone) {
+            // Trouver tous les bones enfants récursivement
+            bonesToUse = [rootBone];
+            const children = getChildBones(kf, rootBone.id);
+            // Ajouter les enfants (1 niveau pour l'instant)
+            bonesToUse.push(...children);
+          }
+        }
+        
+        if (bonesToUse.length > 0) {
+          // Calculer les poids pour chaque point en considérant les bones du squelette
           for (let i = 0; i < deformedEl.points.length; i++) {
             const point = deformedEl.points[i];
-            const weights = calculateBoneWeightsForPoint(point, allBones);
+            const weights = calculateBoneWeightsForPoint(point, bonesToUse);
             if (weights.length > 0) {
               // Appliquer la transformation
-              const deformed = applyBoneTransformToPoint(point, allBones, weights);
+              const deformed = applyBoneTransformToPoint(point, bonesToUse, weights);
               deformedEl.points[i] = { ...point, x: deformed.x, y: deformed.y };
             }
           }
@@ -817,7 +836,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     
     const points = drawState.points;
     const bones = [];
-    const segmentLength = distance(points[0], points[1]); // Utiliser la longueur du premier segment comme référence
+    const skeletonId = nextSkeletonId(); // ID unique pour ce squelette
     
     // Créer les bones de la chaîne
     for (let i = 0; i < points.length - 1; i++) {
@@ -831,8 +850,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         y: points[i].y,
         length: length,
         rotation: rotation,
-        // Le parent est le bone précédent
         parentBoneId: i > 0 ? bones[i - 1].id : null,
+        skeletonId: skeletonId, // Tous les bones de la chaîne partagent le même skeletonId
       });
       bones.push(bone);
       addElement(bone);

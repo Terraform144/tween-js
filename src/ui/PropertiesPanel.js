@@ -1,4 +1,4 @@
-import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones } from '../core/model.js';
+import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones } from '../core/model.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 
@@ -86,6 +86,28 @@ export function mountPropertiesPanel(container, state) {
     return select;
   }
 
+  // Helper pour obtenir la liste des squelettes (groupes de bones) dans une keyframe
+  function getSkeletonsFromKeyframe(kf) {
+    const skeletons = new Map(); // skeletonId -> { id, boneIds, name }
+    const bones = kf.elements.filter((e) => e.kind === 'bone');
+    
+    for (const bone of bones) {
+      if (bone.skeletonId) {
+        if (!skeletons.has(bone.skeletonId)) {
+          skeletons.set(bone.skeletonId, {
+            id: bone.skeletonId,
+            boneIds: [],
+            // Nom : utiliser le premier bone comme référence
+            name: `Squelette ${bone.skeletonId}`,
+          });
+        }
+        skeletons.get(bone.skeletonId).boneIds.push(bone.id);
+      }
+    }
+    
+    return Array.from(skeletons.values());
+  }
+
   function renderTweenSection() {
     const layer = selectedLayer();
     if (!layer) return;
@@ -160,15 +182,19 @@ export function mountPropertiesPanel(container, state) {
         numberRow('Taille police', el.fontSize, (v) => mutateSelectedElement((e) => (e.fontSize = Math.max(1, v))));
       }
       
-      // Sélecteur de bone pour le skinning
+      // Sélecteur de squelette pour le skinning
       const layer = selectedLayer();
       const kf = getActiveKeyframe(layer, state.currentFrame);
       if (kf) {
-        const allBones = kf.elements.filter((e) => e.kind === 'bone');
-        if (allBones.length > 0) {
-          const boneOptions = allBones.map((bone) => ({ value: bone.id, text: bone.id }));
-          selectRow('Bone parent', el.boneId, boneOptions, (boneId) => {
-            mutateSelectedElement((e) => (e.boneId = boneId === null ? null : boneId));
+        const skeletons = getSkeletonsFromKeyframe(kf);
+        if (skeletons.length > 0) {
+          const skeletonOptions = skeletons.map((skel) => ({ value: skel.id, text: skel.name }));
+          selectRow('Squelette', el.skeletonId, skeletonOptions, (skeletonId) => {
+            mutateSelectedElement((e) => (e.skeletonId = skeletonId));
+            // Effacer le boneId ancien si on utilise skeletonId
+            if (skeletonId) {
+              mutateSelectedElement((e) => (e.boneId = null));
+            }
           });
         }
       }
@@ -184,6 +210,14 @@ export function mountPropertiesPanel(container, state) {
       colorRow('Couleur', el.color, (v) => mutateSelectedElement((e) => (e.color = v)));
       numberRow('Ép. trait', el.strokeWidth, (v) => mutateSelectedElement((e) => (e.strokeWidth = Math.max(1, v))));
       numberRow('Rayon influence', el.influenceRadius, (v) => mutateSelectedElement((e) => (e.influenceRadius = Math.max(1, v))));
+      
+      // Afficher le squelette auquel ce bone appartient (lecture seule)
+      if (el.skeletonId) {
+        const row = document.createElement('div');
+        row.className = 'prop-row';
+        row.innerHTML = `<label>Squelette</label><div>${el.skeletonId}</div>`;
+        body.appendChild(row);
+      }
       
       // Sélecteur de parent
       const layer = selectedLayer();
