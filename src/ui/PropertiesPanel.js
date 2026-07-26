@@ -183,6 +183,7 @@ export function mountPropertiesPanel(container, state) {
       numberRow('Longueur', el.length, (v) => mutateSelectedElement((e) => (e.length = Math.max(1, v))));
       colorRow('Couleur', el.color, (v) => mutateSelectedElement((e) => (e.color = v)));
       numberRow('Ép. trait', el.strokeWidth, (v) => mutateSelectedElement((e) => (e.strokeWidth = Math.max(1, v))));
+      numberRow('Rayon influence', el.influenceRadius, (v) => mutateSelectedElement((e) => (e.influenceRadius = Math.max(1, v))));
       
       // Sélecteur de parent
       const layer = selectedLayer();

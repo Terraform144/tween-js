@@ -110,6 +110,7 @@ export function createBone(props = {}) {
     parentBoneId: null,
     color: '#4a90d9',
     strokeWidth: 2,
+    influenceRadius: 80, // Rayon d'influence en pixels
   };
   return Object.assign(base, props);
 }
@@ -192,6 +193,105 @@ export function solveIK(kf, movedBoneId, newTailX, newTailY) {
     // Mettre à jour la longueur de l'enfant si nécessaire
     movedBone.length = Math.sqrt(childDx * childDx + childDy * childDy);
   }
+}
+
+// Calcule la distance perpendiculaire d'un point à une ligne (bone)
+// Retourne la distance signée (négative d'un côté, positive de l'autre)
+function perpendicularDistance(px, py, x1, y1, x2, y2) {
+  // Vecteur de la ligne
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  
+  // Éviter la division par zéro
+  const lineLengthSq = dx * dx + dy * dy;
+  if (lineLengthSq === 0) {
+    // La ligne est un point, distance simple
+    return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+  }
+  
+  // Calcul du paramètre t (projection du point sur la ligne)
+  const t = ((px - x1) * dx + (py - y1) * dy) / lineLengthSq;
+  
+  // Point de projection sur la ligne
+  const projX = x1 + t * dx;
+  const projY = y1 + t * dy;
+  
+  // Distance du point à sa projection
+  return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
+}
+
+// Calcule les poids d'influence de tous les bones sur un point
+// Retourne un tableau de { boneId, weight }
+export function calculateBoneWeightsForPoint(point, bones) {
+  const weights = [];
+  
+  for (const bone of bones) {
+    // Coordonnées de la tête et de la queue du bone
+    const headX = bone.x;
+    const headY = bone.y;
+    const tailX = bone.x + bone.length * Math.cos(bone.rotation * Math.PI / 180);
+    const tailY = bone.y + bone.length * Math.sin(bone.rotation * Math.PI / 180);
+    
+    // Distance perpendiculaire du point à la ligne du bone
+    const dist = perpendicularDistance(point.x, point.y, headX, headY, tailX, tailY);
+    
+    // Si la distance est supérieure au rayon d'influence, poids = 0
+    if (dist > bone.influenceRadius) continue;
+    
+    // Calcul du poids : plus proche = plus fort
+    // Utilisation d'une falloff quadratique pour un effet plus doux
+    const normalizedDist = dist / bone.influenceRadius;
+    const weight = 1 - normalizedDist * normalizedDist; // Falloff quadratique
+    
+    if (weight > 0) {
+      weights.push({ boneId: bone.id, weight });
+    }
+  }
+  
+  // Normaliser les poids pour que leur somme = 1
+  if (weights.length === 0) return [];
+  
+  const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
+  if (totalWeight > 0) {
+    for (const w of weights) {
+      w.weight /= totalWeight;
+    }
+  }
+  
+  return weights;
+}
+
+// Applique la transformation des bones à un point avec des poids
+export function applyBoneTransformToPoint(point, bones, weights) {
+  if (weights.length === 0) return { x: point.x, y: point.y };
+  
+  let finalX = 0, finalY = 0;
+  
+  for (const w of weights) {
+    const bone = bones.find((b) => b.id === w.boneId);
+    if (!bone) continue;
+    
+    // Calculer la matrice de transformation du bone (position + rotation)
+    const angleRad = bone.rotation * Math.PI / 180;
+    const cosA = Math.cos(angleRad);
+    const sinA = Math.sin(angleRad);
+    
+    // Position locale du point par rapport au bone (tête du bone = origine)
+    // Pour l'instant, on utilise la position absolue du point
+    // Dans une version plus avancée, on stocke la position locale
+    
+    // Appliquer la transformation du bone
+    // Rotation : (x * cos - y * sin, x * sin + y * cos)
+    // Translation : + bone.x, bone.y
+    const transformedX = bone.x + point.x * cosA - point.y * sinA;
+    const transformedY = bone.y + point.x * sinA + point.y * cosA;
+    
+    // Pondérer par le poids
+    finalX += transformedX * w.weight;
+    finalY += transformedY * w.weight;
+  }
+  
+  return { x: finalX, y: finalY };
 }
 
 export function cloneElement(el, withNewId = false) {

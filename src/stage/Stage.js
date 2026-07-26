@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, solveIK } from '../core/model.js';
+import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
 import { ICONS } from '../ui/icons.js';
@@ -212,8 +212,31 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // il faut double-cliquer pour entrer dans ce symbole et l'éditer lui-même.
   function renderInto(parent, layers, frameIndex, tick, depth = 0) {
     const elements = resolveLayersAtFrame(layers, frameIndex);
+    // Collecter tous les bones de cette frame pour le skinning
+    const allBones = elements.filter((el) => el.kind === 'bone');
+    
     for (const el of elements) {
-      const node = buildNode(el);
+      // Appliquer la déformation aux paths si des bones sont présents
+      let deformedEl = el;
+      if (el.kind === 'shape' && (el.shapeType === 'path' || el.shapeType === 'line') && allBones.length > 0) {
+        // Cloner l'élément pour ne pas modifier l'original
+        deformedEl = JSON.parse(JSON.stringify(el));
+        
+        // Calculer les poids et déformer chaque point
+        for (let i = 0; i < deformedEl.points.length; i++) {
+          const point = deformedEl.points[i];
+          const weights = calculateBoneWeightsForPoint(point, allBones);
+          if (weights.length > 0) {
+            // Appliquer la transformation
+            const deformed = applyBoneTransformToPoint(point, allBones, weights);
+            // Mettre à jour le point avec la position déformée
+            // Pour l'instant, on met à jour x et y, mais pas cIn/cOut
+            deformedEl.points[i] = { ...point, x: deformed.x, y: deformed.y };
+          }
+        }
+      }
+      
+      const node = buildNode(deformedEl);
       parent.add(node);
       if (depth === 0) attachInteraction(node, el);
       if (el.kind === 'instance') {
