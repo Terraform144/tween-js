@@ -1,0 +1,141 @@
+{
+  "id": "button_standard",
+  "name": "Button",
+  "type": "movieclip",
+  "description": "Bouton standard avec états Up, Over, Down, Disabled",
+  "frameRate": 24,
+  "frameCount": 12,
+  "width": 150,
+  "height": 50,
+  "frameLabels": {
+    "0": "up",
+    "4": "over",
+    "8": "down",
+    "11": "disabled"
+  },
+  "layers": [
+    {
+      "id": "layer_bg",
+      "name": "Background",
+      "visible": true,
+      "locked": false,
+      "keyframes": [
+        {
+          "index": 0,
+          "elements": [
+            {
+              "kind": "shape",
+              "id": "shape_bg_up",
+              "shapeType": "rect",
+              "x": 0,
+              "y": 0,
+              "width": 150,
+              "height": 50,
+              "fill": "#4a90d9",
+              "stroke": "#2a70b9",
+              "strokeWidth": 2,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "elements": [
+            {
+              "kind": "shape",
+              "id": "shape_bg_over",
+              "shapeType": "rect",
+              "x": 0,
+              "y": 0,
+              "width": 150,
+              "height": 50,
+              "fill": "#5fa8e8",
+              "stroke": "#2a70b9",
+              "strokeWidth": 2,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "elements": [
+            {
+              "kind": "shape",
+              "id": "shape_bg_down",
+              "shapeType": "rect",
+              "x": 2,
+              "y": 2,
+              "width": 146,
+              "height": 46,
+              "fill": "#2a70b9",
+              "stroke": "#1a5089",
+              "strokeWidth": 2,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "elements": [
+            {
+              "kind": "shape",
+              "id": "shape_bg_disabled",
+              "shapeType": "rect",
+              "x": 0,
+              "y": 0,
+              "width": 150,
+              "height": 50,
+              "fill": "#cccccc",
+              "stroke": "#999999",
+              "strokeWidth": 2,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 0.7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layer_label",
+      "name": "Label",
+      "visible": true,
+      "locked": false,
+      "keyframes": [
+        {
+          "index": 0,
+          "elements": [
+            {
+              "kind": "shape",
+              "id": "text_label",
+              "shapeType": "text",
+              "x": 0,
+              "y": 0,
+              "text": "Button",
+              "fontSize": 18,
+              "fontFamily": "Arial",
+              "fill": "#ffffff",
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "symbols": {},
+  "exportDate": "2026-07-31",
+  "version": "1.0"
+}
