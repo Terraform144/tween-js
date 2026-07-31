@@ -1,0 +1,26 @@
+{
+  "format": "tweenjs-shared-manifest",
+  "version": "1.0",
+  "name": "TweenJS Shared Library - Starter Pack",
+  "description": "Bibliothèque de symboles partagés de base pour TweenJS",
+  "author": "TweenJS Team",
+  "license": "AGPL-3.0-or-later",
+  "symbols": [
+    {
+      "id": "button_standard",
+      "name": "Button",
+      "description": "Bouton standard avec 4 états (Up, Over, Down, Disabled)",
+      "url": "Button.json",
+      "tags": ["ui", "button", "interactive"],
+      "frameCount": 12,
+      "width": 150,
+      "height": 50
+    }
+  ],
+  "categories": {
+    "ui": {
+      "name": "Interface Utilisateur",
+      "symbols": ["button_standard"]
+    }
+  }
+}
