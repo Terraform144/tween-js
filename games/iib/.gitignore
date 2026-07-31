@@ -1,0 +1,30 @@
+# Dossier de build
+dist/
+
+# Fichiers temporaires
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Node modules local (si installé)
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Fichiers de données temporaires
+*.bin
+*.cache
+
+# Fichiers de backup
+*.bak
+*.backup

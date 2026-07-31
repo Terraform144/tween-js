@@ -1,0 +1,27 @@
+# AIR SDK
+AIRSDK/
+
+# Build output
+bin/
+*.swf
+*.exe
+*.air
+*.apk
+*.ipa
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temp
+*.tmp
+*.temp

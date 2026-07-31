@@ -1,0 +1,19 @@
+{
+  "name": "iib-game",
+  "version": "1.0.0",
+  "description": "Jeu IIB converti depuis SWF",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "convert": "node convert-from-editor.js"
+  },
+  "dependencies": {
+    "konva": "^9.3.16"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}

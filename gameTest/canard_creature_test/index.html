@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Iaido is back - Canard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1a3c42; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+    #game-container { position: relative; width: 800px; height: 600px; background: #0a2428; border: 4px solid #073642; }
+    canvas { display: block; }
+    #ui { position: absolute; top: 20px; left: 20px; color: #fff; font-family: monospace; text-shadow: 0 0 5px #fff; }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="ui">Chargement...</div>
+  
+  <script>
+// ============ RUNTIME ============
+function lerp(a, b, t) { return a + (b - a) * t; }
+function applyEasing(t, easing) {
+  if (easing === 'easeIn') return t * t;
+  if (easing === 'easeOut') return 1 - (1 - t) * (1 - t);
+  if (easing === 'easeInOut') return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  return t;
+}
+function getActiveKeyframe(layer, frameIndex) {
+  let active = layer.keyframes[0];
+  for (const kf of layer.keyframes) {
+    if (kf.index <= frameIndex) active = kf; else break;
+  }
+  return active;
+}
+function getNextKeyframe(layer, kf) {
+  const idx = layer.keyframes.indexOf(kf);
+  return layer.keyframes[idx + 1] || null;
+}
+function resolveLayerAtFrame(layer, frameIndex) {
+  const kf = getActiveKeyframe(layer, frameIndex);
+  if (!kf) return [];
+  if (!kf.tween) return kf.elements;
+  const next = getNextKeyframe(layer, kf);
+  if (!next || next.index === kf.index) return kf.elements;
+  const span = next.index - kf.index;
+  const raw = Math.min(1, Math.max(0, (frameIndex - kf.index) / span));
+  const t = applyEasing(raw, kf.tween.easing);
+  return kf.elements.map(el => {
+    const target = next.elements.find(e => e.id === el.id);
+    return interpolateElement(el, target, t);
+  });
+}
+function interpolateElement(a, b, t) {
+  if (!b) return { ...a };
+  const out = { ...a };
+  ['x','y','rotation','scaleX','scaleY','opacity'].forEach(p => {
+    if (typeof a[p] === 'number' && typeof b[p] === 'number') out[p] = lerp(a[p], b[p], t);
+  });
+  return out;
+}
+function drawShape(ctx, el) {
+  ctx.save();
+  ctx.translate(el.x || 0, el.y || 0);
+  ctx.rotate((el.rotation || 0) * Math.PI / 180);
+  ctx.scale(el.scaleX || 1, el.scaleY || 1);
+  ctx.globalAlpha *= (el.opacity == null ? 1 : el.opacity);
+  ctx.fillStyle = el.fill || '#000';
+  ctx.strokeStyle = el.stroke || '#000';
+  ctx.lineWidth = el.strokeWidth || 0;
+  if (el.shapeType === 'rect') {
+    ctx.beginPath();
+    ctx.rect(-el.width / 2, -el.height / 2, el.width, el.height);
+    if (el.fill) ctx.fill();
+    if (el.strokeWidth) ctx.stroke();
+  } else if (el.shapeType === 'ellipse') {
+    ctx.beginPath();
+    ctx.ellipse(0, 0, Math.max(0, el.width / 2), Math.max(0, el.height / 2), 0, 0, Math.PI * 2);
+    if (el.fill) ctx.fill();
+    if (el.strokeWidth) ctx.stroke();
+  }
+  ctx.restore();
+}
+class MovieClip {
+  constructor(data, props = {}) {
+    this.data = data;
+    this.x = props.x || 0;
+    this.y = props.y || 0;
+    this.rotation = props.rotation || 0;
+    this.scaleX = props.scaleX != null ? props.scaleX : 1;
+    this.scaleY = props.scaleY != null ? props.scaleY : 1;
+    this.opacity = props.opacity != null ? props.opacity : 1;
+    this.visible = true;
+    this.loop = props.loop !== false;
+    this.isPlaying = true;
+    this._frame = 0;
+    this._acc = 0;
+  }
+  gotoAndPlay(frameOrLabel) {
+    this._goto(frameOrLabel);
+    this.isPlaying = true;
+  }
+  gotoAndStop(frameOrLabel) {
+    this._goto(frameOrLabel);
+    this.isPlaying = false;
+  }
+  _goto(frameOrLabel) {
+    if (typeof frameOrLabel === 'string') {
+      const idx = this.data.frameLabels?.[frameOrLabel];
+      if (idx == null) { console.warn(`Label introuvable: ${frameOrLabel}`); return; }
+      this._frame = idx;
+    } else {
+      this._frame = Math.max(0, Math.min(this.data.frameCount - 1, frameOrLabel | 0));
+    }
+    this._acc = 0;
+  }
+  update(dt) {
+    if (!this.isPlaying) return;
+    const frameDuration = 1000 / (this.data.frameRate || 24);
+    this._acc += dt;
+    while (this._acc >= frameDuration) {
+      this._acc -= frameDuration;
+      if (++this._frame >= this.data.frameCount) {
+        if (this.loop) this._frame = 0;
+        else { this._frame = this.data.frameCount - 1; this.isPlaying = false; }
+      }
+    }
+  }
+  draw(ctx) {
+    if (!this.visible) return;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate((this.rotation || 0) * Math.PI / 180);
+    ctx.scale(this.scaleX, this.scaleY);
+    ctx.globalAlpha *= this.opacity;
+    for (const layer of this.data.layers) {
+      if (!layer.visible) continue;
+      for (const el of resolveLayerAtFrame(layer, this._frame)) {
+        if (el.kind === 'shape') drawShape(ctx, el);
+      }
+    }
+    ctx.restore();
+  }
+}
+function createMovieClip(data, props) { return new MovieClip(data, props); }
+// ============ FIN RUNTIME ============
+  </script>
+  
+  <script>
+// ============ DONNEES CANARD ============
+// Adaptees depuis canard.js
+const canardData = {
+  frameRate: 24,
+  frameCount: 24,
+  frameLabels: {},
+  symbols: {},
+  width: 800,
+  height: 600,
+  layers: [
+    // Corps (ellipse verte)
+    {
+      id: 'corps_layer',
+      visible: true,
+      locked: false,
+      keyframes: [
+        { index: 0, elements: [
+          { kind: 'shape', id: 'corps', shapeType: 'ellipse', x: 0, y: 0, width: 80, height: 75, fill: '#2a7473', stroke: '#073642', strokeWidth: 2 }
+        ]},
+        { index: 12, elements: [
+          { kind: 'shape', id: 'corps', shapeType: 'ellipse', x: 0, y: -24, width: 80, height: 75, fill: '#2a7473', stroke: '#073642', strokeWidth: 2, scaleY: 1.6233766233766231 }
+        ], tween: { easing: 'linear' }},
+        { index: 22, elements: [
+          { kind: 'shape', id: 'corps', shapeType: 'ellipse', x: 23, y: 0, width: 80, height: 75, fill: '#2a7473', stroke: '#073642', strokeWidth: 2, scaleX: 1.5609756097560974 }
+        ], tween: null }
+      ]
+    },
+    // Bec (rectangle orange)
+    {
+      id: 'bec_layer',
+      visible: true,
+      locked: false,
+      keyframes: [
+        { index: 0, elements: [
+          { kind: 'shape', id: 'bec', shapeType: 'rect', x: 1.5, y: 55, width: 82, height: 89, fill: '#cb4b16', stroke: '#073642', strokeWidth: 2 }
+        ]},
+        { index: 12, elements: [
+          { kind: 'shape', id: 'bec', shapeType: 'rect', x: 33.5, y: 55, width: 82, height: 89, fill: '#cb4b16', stroke: '#073642', strokeWidth: 2, scaleX: 1.7976190476190466 }
+        ], tween: { easing: 'linear' }},
+        { index: 22, elements: [
+          { kind: 'shape', id: 'bec', shapeType: 'rect', x: 16.5, y: 55, width: 82, height: 89, fill: '#cb4b16', stroke: '#073642', strokeWidth: 2, scaleX: 1.3690476190476173 }
+        ], tween: null }
+      ]
+    }
+  ]
+};
+
+// ============ DEMO ============
+const W = 800, H = 600;
+// Position initiale: centre du canard au centre de la scene
+// Barycentre reel: (33.5, 7.31) dans le repere du movieclip
+const state = { x: W/2 - 33.5, y: H/2 - 7.31, speed: 3 };
+const keys = {};
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = W; canvas.height = H;
+document.getElementById('game-container').appendChild(canvas);
+
+const canard = createMovieClip(canardData, { x: state.x, y: state.y, loop: true });
+canard.gotoAndStop(0);
+
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') {
+    canard.isPlaying = !canard.isPlaying;
+    e.preventDefault();
+  }
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function update(dt) {
+  if (keys['ArrowLeft'] || keys['KeyA']) state.x -= state.speed;
+  if (keys['ArrowRight'] || keys['KeyD']) state.x += state.speed;
+  if (keys['ArrowUp'] || keys['KeyW']) state.y -= state.speed;
+  if (keys['ArrowDown'] || keys['KeyS']) state.y += state.speed;
+  // Limites calculees sur la bounding box exacte du canard
+  // BBox globale: minX=-40.202, maxX=107.202, minY=-84.877, maxY=144
+  // Barycentre: (33.5, 53.25) dans le repere du movieclip
+  state.x = Math.max(40.202, Math.min(W - 107.202, state.x));
+  state.y = Math.max(84.877, Math.min(H - 144, state.y));
+  canard.x = state.x; canard.y = state.y; canard.update(dt);
+}
+
+function draw() {
+  ctx.fillStyle = '#0a2428';
+  ctx.fillRect(0, 0, W, H);
+  canard.draw(ctx);
+}
+
+let last = performance.now();
+function loop(t) {
+  update(t - last); draw(); last = t;
+  requestAnimationFrame(loop);
+}
+loop();
+document.getElementById('ui').textContent = 'Canard | ESPACE = Play/Pause Loop | Fleches = Deplacement';
+  </script>
+</body>
+</html>

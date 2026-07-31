@@ -1,0 +1,224 @@
+{
+  "metadata": {
+    "game": "Iaido is back",
+    "description": "Dungeon crawler inspire de Dungeon Master (1987) - 4 creatures animees",
+    "version": "1.0.0",
+    "date": "2026-07-26"
+  },
+  
+  "stage": {
+    "width": 800,
+    "height": 600,
+    "frameRate": 24,
+    "backgroundColor": "#000000",
+    "frameCount": 100
+  },
+
+  "symbols": {
+    
+    "goblin_mc": {
+      "type": "movieclip",
+      "name": "Gobelin",
+      "frameCount": 6,
+      "frameLabels": {"0": "idle", "3": "attack"},
+      "layers": [{
+        "id": "body", "visible": true, "locked": false,
+        "keyframes": [
+          {"index": 0, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "rect", "x": 0, "y": 0, "width": 30, "height": 45, "fill": "#2E8B57", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -22, "width": 22, "height": 22, "fill": "#3CB371", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -5, "y": -25, "width": 4, "height": 4, "fill": "#FF0000"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 5, "y": -25, "width": 4, "height": 4, "fill": "#FF0000"}
+          ]},
+          {"index": 2, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "rect", "x": 0, "y": 1, "width": 30, "height": 45, "fill": "#2E8B57", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -23, "width": 22, "height": 22, "fill": "#3CB371", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -5, "y": -26, "width": 4, "height": 4, "fill": "#FF0000"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 5, "y": -26, "width": 4, "height": 4, "fill": "#FF0000"}
+          ], "tween": {"easing": "linear"}},
+          {"index": 3, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "rect", "x": 0, "y": 0, "width": 30, "height": 45, "fill": "#2E8B57", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -22, "width": 22, "height": 22, "fill": "#3CB371", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -5, "y": -25, "width": 4, "height": 4, "fill": "#FF0000"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 5, "y": -25, "width": 4, "height": 4, "fill": "#FF0000"},
+            {"kind": "shape", "id": "arm", "shapeType": "rect", "x": 18, "y": -12, "width": 20, "height": 6, "fill": "#2E8B57", "rotation": 45}
+          ]}
+        ]
+      }],
+      "properties": {"health": 20, "attack": 5, "defense": 2, "speed": 8, "experience": 15}
+    },
+
+    "skeleton_mc": {
+      "type": "movieclip",
+      "name": "Squelette",
+      "frameCount": 6,
+      "frameLabels": {"0": "idle", "3": "attack"},
+      "layers": [{
+        "id": "body", "visible": true, "locked": false,
+        "keyframes": [
+          {"index": 0, "elements": [
+            {"kind": "shape", "id": "skull", "shapeType": "ellipse", "x": 0, "y": -28, "width": 25, "height": 25, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -5, "y": -30, "width": 4, "height": 4, "fill": "#000000"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 5, "y": -30, "width": 4, "height": 4, "fill": "#000000"},
+            {"kind": "shape", "id": "ribs", "shapeType": "rect", "x": 0, "y": -8, "width": 20, "height": 28, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "pelvis", "shapeType": "ellipse", "x": 0, "y": 12, "width": 25, "height": 12, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "arm_left", "shapeType": "rect", "x": -18, "y": -6, "width": 15, "height": 5, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1, "rotation": -20},
+            {"kind": "shape", "id": "arm_right", "shapeType": "rect", "x": 18, "y": -6, "width": 15, "height": 5, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1, "rotation": 20}
+          ]},
+          {"index": 2, "elements": [
+            {"kind": "shape", "id": "skull", "shapeType": "ellipse", "x": 0, "y": -29, "width": 25, "height": 25, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -5, "y": -31, "width": 4, "height": 4, "fill": "#000000"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 5, "y": -31, "width": 4, "height": 4, "fill": "#000000"},
+            {"kind": "shape", "id": "ribs", "shapeType": "rect", "x": 0, "y": -9, "width": 20, "height": 28, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "pelvis", "shapeType": "ellipse", "x": 0, "y": 11, "width": 25, "height": 12, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "arm_left", "shapeType": "rect", "x": -18, "y": -5, "width": 15, "height": 5, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1, "rotation": -15},
+            {"kind": "shape", "id": "arm_right", "shapeType": "rect", "x": 18, "y": -5, "width": 15, "height": 5, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1, "rotation": 15}
+          ], "tween": {"easing": "linear"}},
+          {"index": 3, "elements": [
+            {"kind": "shape", "id": "skull", "shapeType": "ellipse", "x": 0, "y": -28, "width": 25, "height": 25, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -5, "y": -30, "width": 4, "height": 4, "fill": "#FF0000"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 5, "y": -30, "width": 4, "height": 4, "fill": "#FF0000"},
+            {"kind": "shape", "id": "ribs", "shapeType": "rect", "x": 0, "y": -8, "width": 20, "height": 28, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "pelvis", "shapeType": "ellipse", "x": 0, "y": 12, "width": 25, "height": 12, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1},
+            {"kind": "shape", "id": "arm_left", "shapeType": "rect", "x": -25, "y": -15, "width": 20, "height": 6, "fill": "#FFFFFF", "stroke": "#808080", "strokeWidth": 1, "rotation": -45},
+            {"kind": "shape", "id": "sword", "shapeType": "rect", "x": -35, "y": -18, "width": 25, "height": 4, "fill": "#C0C0C0", "rotation": 45}
+          ]}
+        ]
+      }],
+      "properties": {"health": 35, "attack": 8, "defense": 5, "speed": 4, "experience": 25}
+    },
+
+    "orc_mc": {
+      "type": "movieclip",
+      "name": "Orc",
+      "frameCount": 6,
+      "frameLabels": {"0": "idle", "3": "attack"},
+      "layers": [{
+        "id": "body", "visible": true, "locked": false,
+        "keyframes": [
+          {"index": 0, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "rect", "x": 0, "y": 0, "width": 45, "height": 65, "fill": "#228B22", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -32, "width": 32, "height": 32, "fill": "#32CD32", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -7, "y": -35, "width": 5, "height": 5, "fill": "#FF4500"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 7, "y": -35, "width": 5, "height": 5, "fill": "#FF4500"},
+            {"kind": "shape", "id": "arm_left", "shapeType": "rect", "x": -28, "y": -8, "width": 22, "height": 10, "fill": "#228B22", "stroke": "#006400", "strokeWidth": 1, "rotation": -15},
+            {"kind": "shape", "id": "arm_right", "shapeType": "rect", "x": 28, "y": -8, "width": 22, "height": 10, "fill": "#228B22", "stroke": "#006400", "strokeWidth": 1, "rotation": 15}
+          ]},
+          {"index": 2, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "rect", "x": 0, "y": 0, "width": 47, "height": 65, "fill": "#228B22", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -32, "width": 32, "height": 32, "fill": "#32CD32", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -7, "y": -35, "width": 5, "height": 5, "fill": "#FF4500"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 7, "y": -35, "width": 5, "height": 5, "fill": "#FF4500"},
+            {"kind": "shape", "id": "arm_left", "shapeType": "rect", "x": -28, "y": -7, "width": 22, "height": 10, "fill": "#228B22", "stroke": "#006400", "strokeWidth": 1, "rotation": -10},
+            {"kind": "shape", "id": "arm_right", "shapeType": "rect", "x": 28, "y": -7, "width": 22, "height": 10, "fill": "#228B22", "stroke": "#006400", "strokeWidth": 1, "rotation": 10}
+          ], "tween": {"easing": "linear"}},
+          {"index": 3, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "rect", "x": 0, "y": 0, "width": 45, "height": 65, "fill": "#228B22", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -32, "width": 32, "height": 32, "fill": "#32CD32", "stroke": "#006400", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -7, "y": -35, "width": 5, "height": 5, "fill": "#FF0000"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 7, "y": -35, "width": 5, "height": 5, "fill": "#FF0000"},
+            {"kind": "shape", "id": "arm_left", "shapeType": "rect", "x": -38, "y": -18, "width": 28, "height": 12, "fill": "#228B22", "stroke": "#006400", "strokeWidth": 1, "rotation": -60},
+            {"kind": "shape", "id": "axe", "shapeType": "rect", "x": -48, "y": -25, "width": 22, "height": 6, "fill": "#8B4513", "rotation": 45}
+          ]}
+        ]
+      }],
+      "properties": {"health": 60, "attack": 15, "defense": 8, "speed": 5, "experience": 40}
+    },
+
+    "drake_mc": {
+      "type": "movieclip",
+      "name": "Dragonnet",
+      "frameCount": 8,
+      "frameLabels": {"0": "idle", "2": "fly", "4": "attack"},
+      "layers": [
+        {"id": "wings", "visible": true, "locked": false,
+        "keyframes": [
+          {"index": 0, "elements": [
+            {"kind": "shape", "id": "wing_left", "shapeType": "path", "x": -18, "y": -8, "points": [0,0,35,-12,30,0,0,4], "fill": "#8B0000", "stroke": "#000000", "strokeWidth": 1, "rotation": -15},
+            {"kind": "shape", "id": "wing_right", "shapeType": "path", "x": 18, "y": -8, "points": [0,0,-35,-12,-30,0,0,4], "fill": "#8B0000", "stroke": "#000000", "strokeWidth": 1, "rotation": 15}
+          ]},
+          {"index": 2, "elements": [
+            {"kind": "shape", "id": "wing_left", "shapeType": "path", "x": -20, "y": -12, "points": [0,0,40,-20,35,-2,0,6], "fill": "#8B0000", "stroke": "#000000", "strokeWidth": 1, "rotation": -30},
+            {"kind": "shape", "id": "wing_right", "shapeType": "path", "x": 20, "y": -12, "points": [0,0,-40,-20,-35,-2,0,6], "fill": "#8B0000", "stroke": "#000000", "strokeWidth": 1, "rotation": 30}
+          ], "tween": {"easing": "easeInQuad"}},
+          {"index": 4, "elements": [
+            {"kind": "shape", "id": "wing_left", "shapeType": "path", "x": -22, "y": -6, "points": [0,0,45,-8,40,6,0,10], "fill": "#A00000", "stroke": "#000000", "strokeWidth": 1, "rotation": -10},
+            {"kind": "shape", "id": "wing_right", "shapeType": "path", "x": 22, "y": -6, "points": [0,0,-45,-8,-40,6,0,10], "fill": "#A00000", "stroke": "#000000", "strokeWidth": 1, "rotation": 10}
+          ], "tween": {"easing": "easeOutQuad"}},
+          {"index": 6, "elements": [
+            {"kind": "shape", "id": "wing_left", "shapeType": "path", "x": -18, "y": 0, "points": [0,0,35,4,30,-8,0,-4], "fill": "#8B0000", "stroke": "#000000", "strokeWidth": 1, "rotation": 10},
+            {"kind": "shape", "id": "wing_right", "shapeType": "path", "x": 18, "y": 0, "points": [0,0,-35,4,-30,-8,0,-4], "fill": "#8B0000", "stroke": "#000000", "strokeWidth": 1, "rotation": -10}
+          ], "tween": {"easing": "easeInQuad"}}
+        ]},
+        {"id": "body", "visible": true, "locked": false,
+        "keyframes": [
+          {"index": 0, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "ellipse", "x": 0, "y": 0, "width": 40, "height": 55, "fill": "#DC143C", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -28, "width": 30, "height": 25, "fill": "#B22222", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -7, "y": -32, "width": 6, "height": 6, "fill": "#FFD700"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 7, "y": -32, "width": 6, "height": 6, "fill": "#FFD700"},
+            {"kind": "shape", "id": "pupil_left", "shapeType": "ellipse", "x": -7, "y": -32, "width": 3, "height": 3, "fill": "#000000"},
+            {"kind": "shape", "id": "pupil_right", "shapeType": "ellipse", "x": 7, "y": -32, "width": 3, "height": 3, "fill": "#000000"},
+            {"kind": "shape", "id": "horn_left", "shapeType": "path", "x": -12, "y": -35, "points": [0,0,8,-12,4,0,0,0], "fill": "#8B4513"},
+            {"kind": "shape", "id": "horn_right", "shapeType": "path", "x": 12, "y": -35, "points": [0,0,-8,-12,-4,0,0,0], "fill": "#8B4513"},
+            {"kind": "shape", "id": "mouth", "shapeType": "rect", "x": 0, "y": -22, "width": 8, "height": 3, "fill": "#8B0000"},
+            {"kind": "shape", "id": "tail", "shapeType": "path", "x": 0, "y": 28, "points": [0,0,25,-8,20,8,0,12], "fill": "#DC143C", "stroke": "#8B0000", "strokeWidth": 1}
+          ]},
+          {"index": 2, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "ellipse", "x": 0, "y": -1, "width": 40, "height": 55, "fill": "#DC143C", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -29, "width": 30, "height": 25, "fill": "#B22222", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -7, "y": -33, "width": 6, "height": 6, "fill": "#FFD700"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 7, "y": -33, "width": 6, "height": 6, "fill": "#FFD700"},
+            {"kind": "shape", "id": "pupil_left", "shapeType": "ellipse", "x": -7, "y": -33, "width": 3, "height": 3, "fill": "#000000"},
+            {"kind": "shape", "id": "pupil_right", "shapeType": "ellipse", "x": 7, "y": -33, "width": 3, "height": 3, "fill": "#000000"},
+            {"kind": "shape", "id": "horn_left", "shapeType": "path", "x": -12, "y": -35, "points": [0,0,8,-12,4,0,0,0], "fill": "#8B4513"},
+            {"kind": "shape", "id": "horn_right", "shapeType": "path", "x": 12, "y": -35, "points": [0,0,-8,-12,-4,0,0,0], "fill": "#8B4513"},
+            {"kind": "shape", "id": "mouth", "shapeType": "rect", "x": 0, "y": -23, "width": 10, "height": 3, "fill": "#8B0000"},
+            {"kind": "shape", "id": "tail", "shapeType": "path", "x": 0, "y": 28, "points": [0,0,25,-6,20,10,0,12], "fill": "#DC143C", "stroke": "#8B0000", "strokeWidth": 1}
+          ], "tween": {"easing": "linear"}},
+          {"index": 4, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "ellipse", "x": 0, "y": 0, "width": 45, "height": 60, "fill": "#FF0000", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -28, "width": 35, "height": 30, "fill": "#CC0000", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -8, "y": -33, "width": 7, "height": 7, "fill": "#FFFF00"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 8, "y": -33, "width": 7, "height": 7, "fill": "#FFFF00"},
+            {"kind": "shape", "id": "pupil_left", "shapeType": "ellipse", "x": -8, "y": -33, "width": 3, "height": 3, "fill": "#000000"},
+            {"kind": "shape", "id": "pupil_right", "shapeType": "ellipse", "x": 8, "y": -33, "width": 3, "height": 3, "fill": "#000000"},
+            {"kind": "shape", "id": "horn_left", "shapeType": "path", "x": -14, "y": -36, "points": [0,0,10,-14,5,0,0,0], "fill": "#8B4513"},
+            {"kind": "shape", "id": "horn_right", "shapeType": "path", "x": 14, "y": -36, "points": [0,0,-10,-14,-5,0,0,0], "fill": "#8B4513"},
+            {"kind": "shape", "id": "mouth", "shapeType": "ellipse", "x": 0, "y": -20, "width": 18, "height": 10, "fill": "#FF4500", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "fireball", "shapeType": "ellipse", "x": 22, "y": -22, "width": 10, "height": 10, "fill": "#FF8C00", "stroke": "#FF4500", "strokeWidth": 1},
+            {"kind": "shape", "id": "tail", "shapeType": "path", "x": 0, "y": 28, "points": [0,0,25,-8,20,8,0,12], "fill": "#DC143C", "stroke": "#8B0000", "strokeWidth": 1}
+          ]},
+          {"index": 6, "elements": [
+            {"kind": "shape", "id": "body", "shapeType": "ellipse", "x": 0, "y": 0, "width": 40, "height": 55, "fill": "#DC143C", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "head", "shapeType": "ellipse", "x": 0, "y": -28, "width": 30, "height": 25, "fill": "#B22222", "stroke": "#8B0000", "strokeWidth": 1},
+            {"kind": "shape", "id": "eye_left", "shapeType": "ellipse", "x": -7, "y": -32, "width": 6, "height": 6, "fill": "#FFD700"},
+            {"kind": "shape", "id": "eye_right", "shapeType": "ellipse", "x": 7, "y": -32, "width": 6, "height": 6, "fill": "#FFD700"},
+            {"kind": "shape", "id": "pupil_left", "shapeType": "ellipse", "x": -7, "y": -32, "width": 3, "height": 3, "fill": "#000000"},
+            {"kind": "shape", "id": "pupil_right", "shapeType": "ellipse", "x": 7, "y": -32, "width": 3, "height": 3, "fill": "#000000"},
+            {"kind": "shape", "id": "horn_left", "shapeType": "path", "x": -12, "y": -35, "points": [0,0,8,-12,4,0,0,0], "fill": "#8B4513"},
+            {"kind": "shape", "id": "horn_right", "shapeType": "path", "x": 12, "y": -35, "points": [0,0,-8,-12,-4,0,0,0], "fill": "#8B4513"},
+            {"kind": "shape", "id": "mouth", "shapeType": "rect", "x": 0, "y": -22, "width": 8, "height": 3, "fill": "#8B0000"},
+            {"kind": "shape", "id": "tail", "shapeType": "path", "x": 0, "y": 28, "points": [0,0,25,-8,20,8,0,12], "fill": "#DC143C", "stroke": "#8B0000", "strokeWidth": 1}
+          ], "tween": {"easing": "easeOutQuad"}}
+        ]
+      }],
+      "properties": {"health": 100, "attack": 25, "defense": 5, "speed": 10, "experience": 100, "flying": true, "ranged": true, "attackRange": 200}
+    }
+  },
+
+  "mainTimeline": {
+    "layers": [{
+      "id": "creatures", "visible": true, "locked": false,
+      "keyframes": [{
+        "index": 0,
+        "elements": [
+          {"kind": "instance", "id": "goblin", "symbolId": "goblin_mc", "x": 150, "y": 450, "scaleX": 1, "scaleY": 1, "opacity": 1},
+          {"kind": "instance", "id": "skeleton", "symbolId": "skeleton_mc", "x": 350, "y": 450, "scaleX": 1, "scaleY": 1, "opacity": 1},
+          {"kind": "instance", "id": "orc", "symbolId": "orc_mc", "x": 550, "y": 450, "scaleX": 1, "scaleY": 1, "opacity": 1},
+          {"kind": "instance", "id": "drake", "symbolId": "drake_mc", "x": 400, "y": 200, "scaleX": 1, "scaleY": 1, "opacity": 1}
+        ]
+      }]
+    }]
+  }
+}
