@@ -1,9 +1,8 @@
 import Konva from 'konva';
-import { getContextLayers, getContextFrameCount, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, getActiveKeyframe } from '../core/model.js';
+import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
 import { ICONS } from '../ui/icons.js';
-import { ENABLE_BONES } from '../config.js';
 
 const HANDLE_DRAG_THRESHOLD = 3; // px, avant qu'un clic-glissé plume ne devienne un point lisse
 const CLOSE_PATH_THRESHOLD = 8; // px, distance au premier point pour fermer le tracé au clic
@@ -44,10 +43,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const konvaStage = new Konva.Stage({ container, width: initialDoc.width, height: initialDoc.height });
 
   const bgLayer = new Konva.Layer({ listening: false });
-  const onionLayer = new Konva.Layer({ listening: false });
   const contentLayer = new Konva.Layer();
   const overlayLayer = new Konva.Layer();
-  konvaStage.add(bgLayer, onionLayer, contentLayer, overlayLayer);
+  konvaStage.add(bgLayer, contentLayer, overlayLayer);
 
   const bgRect = new Konva.Rect({ x: 0, y: 0, width: initialDoc.width, height: initialDoc.height, fill: initialDoc.backgroundColor });
   bgLayer.add(bgRect);
@@ -239,64 +237,47 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // il faut double-cliquer pour entrer dans ce symbole et l'éditer lui-même.
   function renderInto(parent, layers, frameIndex, tick, depth = 0) {
     const elements = resolveLayersAtFrame(layers, frameIndex);
-    
-    // Build a map of layerId -> keyframe for the current frameIndex (needed for bones)
-    const layerKeyframes = new Map();
-    if (ENABLE_BONES) {
-      for (const layer of layers) {
-        const kf = getActiveKeyframe(layer, frameIndex);
-        if (kf) layerKeyframes.set(layer.id, kf);
-      }
-    }
-    
     // Collecter tous les bones de cette frame pour le skinning
-    const allBones = ENABLE_BONES ? elements.filter((el) => el.kind === 'bone') : [];
+    const allBones = elements.filter((el) => el.kind === 'bone');
     
     for (const el of elements) {
       // Appliquer la déformation aux paths si un squelette leur est assigné
       let deformedEl = el;
       
-      if (ENABLE_BONES && el.kind === 'shape' && (el.shapeType === 'path' || el.shapeType === 'line')) {
-        // Vérifier si l'élément a un skeletonId ou un boneId (rétrocompatibilité)
-        const hasSkeleton = el.skeletonId && allBones.some((b) => b.skeletonId === el.skeletonId);
-        const hasBoneId = el.boneId && allBones.some((b) => b.id === el.boneId);
+      // Vérifier si l'élément a un skeletonId ou un boneId (rétrocompatibilité)
+      const hasSkeleton = el.skeletonId && allBones.some((b) => b.skeletonId === el.skeletonId);
+      const hasBoneId = el.boneId && allBones.some((b) => b.id === el.boneId);
+      
+      if (el.kind === 'shape' && (el.shapeType === 'path' || el.shapeType === 'line') && (hasSkeleton || hasBoneId)) {
+        // Cloner l'élément pour ne pas modifier l'original
+        deformedEl = JSON.parse(JSON.stringify(el));
         
-        if (hasSkeleton || hasBoneId) {
-          // Cloner l'élément pour ne pas modifier l'original
-          deformedEl = JSON.parse(JSON.stringify(el));
-          
-          // Obtenir les bones à considérer
-          let bonesToUse = allBones;
-          if (hasSkeleton) {
-            // Utiliser tous les bones du squelette
-            bonesToUse = allBones.filter((b) => b.skeletonId === el.skeletonId);
-          } else if (hasBoneId) {
-            // Rétrocompatibilité : utiliser le bone unique + ses enfants
-            const rootBone = allBones.find((b) => b.id === el.boneId);
-            if (rootBone) {
-              // Trouver la keyframe qui contient ce bone
-              const layerId = rootBone.layerId;
-              const kf = layerKeyframes.get(layerId);
-              if (kf) {
-                // Trouver tous les bones enfants récursivement
-                bonesToUse = [rootBone];
-                const allChildren = getAllChildBones(kf, rootBone.id);
-                // Ajouter tous les descendants récursivement
-                bonesToUse.push(...allChildren);
-              }
-            }
+        // Obtenir les bones à considérer
+        let bonesToUse = allBones;
+        if (hasSkeleton) {
+          // Utiliser tous les bones du squelette
+          bonesToUse = allBones.filter((b) => b.skeletonId === el.skeletonId);
+        } else if (hasBoneId) {
+          // Rétrocompatibilité : utiliser le bone unique + ses enfants
+          const rootBone = allBones.find((b) => b.id === el.boneId);
+          if (rootBone) {
+            // Trouver tous les bones enfants récursivement
+            bonesToUse = [rootBone];
+            const allChildren = getAllChildBones(kf, rootBone.id);
+            // Ajouter tous les descendants r�cursivement
+            bonesToUse.push(...allChildren);
           }
-          
-          if (bonesToUse.length > 0) {
-            // Calculer les poids pour chaque point en considérant les bones du squelette
-            for (let i = 0; i < deformedEl.points.length; i++) {
-              const point = deformedEl.points[i];
-              const weights = calculateBoneWeightsForPoint(point, bonesToUse);
-              if (weights.length > 0) {
-                // Appliquer la transformation
-                const deformed = applyBoneTransformToPoint(point, bonesToUse, weights);
-                deformedEl.points[i] = { ...point, x: deformed.x, y: deformed.y };
-              }
+        }
+        
+        if (bonesToUse.length > 0) {
+          // Calculer les poids pour chaque point en considérant les bones du squelette
+          for (let i = 0; i < deformedEl.points.length; i++) {
+            const point = deformedEl.points[i];
+            const weights = calculateBoneWeightsForPoint(point, bonesToUse);
+            if (weights.length > 0) {
+              // Appliquer la transformation
+              const deformed = applyBoneTransformToPoint(point, bonesToUse, weights);
+              deformedEl.points[i] = { ...point, x: deformed.x, y: deformed.y };
             }
           }
         }
@@ -317,39 +298,6 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
   }
 
-  // Render onion skinning - affiche les frames précédentes et suivantes avec transparence
-  function renderOnionSkin() {
-    onionLayer.destroyChildren();
-    
-    const layers = currentLayers();
-    const currentFrame = state.currentFrame;
-    const prevFrames = state.onionSkinPreviousFrames || 0;
-    const nextFrames = state.onionSkinNextFrames || 0;
-    const prevOpacity = state.onionSkinPrevOpacity || 0.3;
-    const nextOpacity = state.onionSkinNextOpacity || 0.3;
-    
-    // Render previous frames
-    for (let i = 1; i <= prevFrames; i++) {
-      const frameIndex = currentFrame - i;
-      if (frameIndex >= 0) {
-        const layerGroup = new Konva.Group({ opacity: prevOpacity });
-        renderInto(layerGroup, layers, frameIndex, tick, 0);
-        onionLayer.add(layerGroup);
-      }
-    }
-    
-    // Render next frames
-    for (let i = 1; i <= nextFrames; i++) {
-      const frameIndex = currentFrame + i;
-      const frameCount = getContextFrameCount(state.doc, state.editPath);
-      if (frameIndex < frameCount) {
-        const layerGroup = new Konva.Group({ opacity: nextOpacity });
-        renderInto(layerGroup, layers, frameIndex, tick, 0);
-        onionLayer.add(layerGroup);
-      }
-    }
-  }
-
   function render(tick = 0) {
     // Changer d'outil en pleine plume ou chaîne de bones abandonnait un tracé fantôme
     if (drawState && drawState.tool === 'pen' && state.currentTool !== 'pen') cancelDraw();
@@ -364,14 +312,6 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     refreshPointHandles();
     contentLayer.draw();
     overlayLayer.batchDraw();
-    
-    // Render onion skinning
-    if (state.onionSkinEnabled) {
-      renderOnionSkin();
-    } else {
-      onionLayer.destroyChildren();
-    }
-    onionLayer.batchDraw();
   }
 
   function refreshSelectionVisuals() {
@@ -580,15 +520,15 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const line = which === 'cOut' ? ref.outLine : ref.inLine;
     const anchorRef = ref.anchor;
     
-    // circle.position() retourne des coordonn�es �cran (stage coordinates)
+    // circle.position() retourne des coordonn�es �cran (stage coordinates)
     const circleScreenPos = circle.position();
-    // Convertir en coordonn�es locales du node
+    // Convertir en coordonn�es locales du node
     const local = transform.copy().invert().point(circleScreenPos);
-    // Le vecteur est la diff�rence entre la poign�e et l'ancre
+    // Le vecteur est la diff�rence entre la poign�e et l'ancre
     const vec = { x: local.x - p.x, y: local.y - p.y };
     p[which] = vec;
     
-    // Mettre � jour la ligne : de l'ancre au circle, en coordonn�es �cran
+    // Mettre � jour la ligne : de l'ancre au circle, en coordonn�es �cran
     line.points([anchorRef.x(), anchorRef.y(), circleScreenPos.x, circleScreenPos.y]);
 
     if (p.smooth) {
@@ -597,7 +537,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const otherCircle = which === 'cOut' ? ref.inCircle : ref.outCircle;
       const otherLine = which === 'cOut' ? ref.inLine : ref.outLine;
       if (otherCircle && otherLine) {
-        // Position de l'autre poign�e en �cran
+        // Position de l'autre poign�e en �cran
         const otherTipLocal = { x: p.x + p[other].x, y: p.y + p[other].y };
         const otherTipScreen = transform.point(otherTipLocal);
         otherCircle.position(otherTipScreen);
@@ -922,7 +862,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
     
     overlayLayer.draw();
-    // R�initialiser l'outil � select apr�s validation
+    // R�initialiser l'outil � select apr�s validation
     state.currentTool = 'select';
     state.selectedElementIds = bones.map(b => b.id);
     notify(state);
@@ -977,7 +917,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     updatePenActions();
     drawState = null;
     addElement(el);
-    // R�initialiser l'outil � select apr�s validation
+    // R�initialiser l'outil � select apr�s validation
     state.currentTool = 'select';
     notify(state);
   }

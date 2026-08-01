@@ -15,12 +15,6 @@ export function createEditorState(doc) {
     strokeColor: '#073642',
     strokeWidth: 2,
     zoom: 1,
-    // Onion Skinning
-    onionSkinEnabled: true,
-    onionSkinPreviousFrames: 2,  // Nombre de frames précédentes à afficher
-    onionSkinNextFrames: 1,     // Nombre de frames suivantes à afficher
-    onionSkinPrevOpacity: 0.3,  // Opacité des frames précédentes
-    onionSkinNextOpacity: 0.3,  // Opacité des frames suivantes
     listeners: new Set(),
   };
 }

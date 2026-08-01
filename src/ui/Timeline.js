@@ -30,7 +30,6 @@ export function mountTimeline(container, state) {
   const btnKeyframe = iconButton('F6', 'Insérer une image clé');
   const btnBlank = iconButton('F7', 'Insérer une image clé vide');
   const btnTween = svgButton('tween', 'Activer/désactiver le tween de mouvement');
-  const btnOnionSkin = svgButton('onionSkin', 'Activer-désactiver onion skinning');
   const btnRemoveKf = svgButton('close', 'Supprimer l\'image clé');
   const btnPlay = svgButton('play', 'Lecture / Pause (Entrée)');
 
@@ -64,7 +63,7 @@ export function mountTimeline(container, state) {
   });
   applyCollapsed();
 
-  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnOnionSkin, btnRemoveKf, sep(), labelInput, sep(), btnPlay, frameInfo, btnCollapse);
+  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, frameInfo, btnCollapse);
   enableDragScroll(toolbar);
 
   const body = document.createElement('div');
@@ -181,35 +180,16 @@ export function mountTimeline(container, state) {
 
   function editableLayer() {
     const layer = selectedLayer();
-    if (layer && !layer.locked) return layer;
-    // Fallback: return first unlocked layer if selected is invalid/locked
-    const layers = layersInContext();
-    return layers.find(l => !l.locked) || layers[0] || null;
+    return layer && !layer.locked ? layer : null;
   }
 
   btnKeyframe.addEventListener('click', () => {
     const layer = editableLayer();
-    if (layer) {
-      const index = state.currentFrame;
-      const existing = getKeyframeAt(layer, index);
-      if (existing) {
-        // F6 behavior: update existing keyframe with current active content
-        const active = getActiveKeyframe(layer, index);
-        if (active) {
-          existing.elements = active.elements.map(el => ({...el}));
-        }
-      } else {
-        insertKeyframe(layer, index);
-      }
-      notify(state);
-    }
+    if (layer) { insertKeyframe(layer, state.currentFrame); notify(state); }
   });
   btnBlank.addEventListener('click', () => {
     const layer = editableLayer();
-    if (layer) {
-      insertBlankKeyframe(layer, state.currentFrame);
-      notify(state);
-    }
+    if (layer) { insertBlankKeyframe(layer, state.currentFrame); notify(state); }
   });
   btnTween.addEventListener('click', () => {
     const layer = editableLayer();
@@ -252,13 +232,7 @@ export function mountTimeline(container, state) {
     const kf = getActiveKeyframe(layer, state.currentFrame);
     if (kf && removeKeyframe(layer, kf)) notify(state);
   });
-  
-
-  btnOnionSkin.addEventListener('click', () => {
-    state.onionSkinEnabled = !state.onionSkinEnabled;
-    notify(state);
-  });
-btnPlay.addEventListener('click', () => {
+  btnPlay.addEventListener('click', () => {
     state.playing = !state.playing;
     notify(state);
   });
@@ -266,31 +240,13 @@ btnPlay.addEventListener('click', () => {
   window.addEventListener('keydown', (e) => {
     if (isTypingTarget(e.target)) return;
     const layer = editableLayer();
-    if (e.key === 'F6' && layer) {
-      e.preventDefault();
-      const index = state.currentFrame;
-      const existing = getKeyframeAt(layer, index);
-      if (existing) {
-        const active = getActiveKeyframe(layer, index);
-        if (active) {
-          existing.elements = active.elements.map(el => ({...el}));
-        }
-      } else {
-        insertKeyframe(layer, index);
-      }
-      notify(state);
-    }
+    if (e.key === 'F6' && layer) { e.preventDefault(); insertKeyframe(layer, state.currentFrame); notify(state); }
     if (e.key === 'F7' && layer) { e.preventDefault(); insertBlankKeyframe(layer, state.currentFrame); notify(state); }
     if (e.code === 'Space') { e.preventDefault(); state.playing = !state.playing; notify(state); }
   });
 
   function layersInContext() { return getContextLayers(state.doc, state.editPath); }
-  function selectedLayer() {
-    const layers = layersInContext();
-    const found = layers.find((l) => l.id === state.selectedLayerId);
-    // Fallback to first layer if selected is invalid
-    return found || layers[0] || null;
-  }
+  function selectedLayer() { return layersInContext().find((l) => l.id === state.selectedLayerId); }
   function frameCount() { return getContextFrameCount(state.doc, state.editPath); }
 
   function buildRuler() {
@@ -407,9 +363,7 @@ btnPlay.addEventListener('click', () => {
     const locked = !layer || !!layer.locked;
     const kfHere = layer && getKeyframeAt(layer, state.currentFrame);
     btnTween.classList.toggle('active', !!(kfHere && kfHere.tween));
-    btnOnionSkin.classList.toggle('active', state.onionSkinEnabled);
     btnTween.disabled = locked;
-    btnOnionSkin.disabled = false;
     btnKeyframe.disabled = locked;
     btnBlank.disabled = locked;
     // Un calque ne peut jamais se retrouver sans aucune keyframe : rien à

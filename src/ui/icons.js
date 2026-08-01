@@ -41,7 +41,6 @@ export const ICONS = {
   newDoc: svg('<path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/>'),
   folderOpen: svg('<path d="M3.5 8V6a1.5 1.5 0 0 1 1.5-1.5h4l2 2H19A1.5 1.5 0 0 1 20.5 8"/><path d="M3.5 8h16.7a1 1 0 0 1 1 1.2l-1.6 8A1.5 1.5 0 0 1 18.1 18.5H5.4a1.5 1.5 0 0 1-1.47-1.2l-1.6-8A1 1 0 0 1 3.3 8Z"/>'),
   importSvg: svg('<path d="M3 17l4-4 4 4 4-4"/><path d="M17 13V6a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v7"/><path d="M8 17l4-4-4-4"/>'),
-  onionSkin: svg('<circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="12" stroke-dasharray="2 2"/>'),
   save: svg('<path d="M5 4.5h11L20 8.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z"/><path d="M8 4.5V10h7V4.5"/><path d="M8 14h8v6H8Z"/>'),
   exportHtml: svg('<rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/><path d="M8.5 8.2 6.3 10.4l2.2 2.2M15.5 8.2l2.2 2.2-2.2 2.2M13 7.5l-2 9"/>'),};
 
