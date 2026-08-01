@@ -189,11 +189,27 @@ export function mountTimeline(container, state) {
 
   btnKeyframe.addEventListener('click', () => {
     const layer = editableLayer();
-    if (layer) { insertKeyframe(layer, state.currentFrame); notify(state); }
+    if (layer) {
+      const index = state.currentFrame;
+      const existing = getKeyframeAt(layer, index);
+      if (existing) {
+        // F6 behavior: update existing keyframe with current active content
+        const active = getActiveKeyframe(layer, index);
+        if (active) {
+          existing.elements = active.elements.map(el => ({...el}));
+        }
+      } else {
+        insertKeyframe(layer, index);
+      }
+      notify(state);
+    }
   });
   btnBlank.addEventListener('click', () => {
     const layer = editableLayer();
-    if (layer) { insertBlankKeyframe(layer, state.currentFrame); notify(state); }
+    if (layer) {
+      insertBlankKeyframe(layer, state.currentFrame);
+      notify(state);
+    }
   });
   btnTween.addEventListener('click', () => {
     const layer = editableLayer();
@@ -250,7 +266,20 @@ btnPlay.addEventListener('click', () => {
   window.addEventListener('keydown', (e) => {
     if (isTypingTarget(e.target)) return;
     const layer = editableLayer();
-    if (e.key === 'F6' && layer) { e.preventDefault(); insertKeyframe(layer, state.currentFrame); notify(state); }
+    if (e.key === 'F6' && layer) {
+      e.preventDefault();
+      const index = state.currentFrame;
+      const existing = getKeyframeAt(layer, index);
+      if (existing) {
+        const active = getActiveKeyframe(layer, index);
+        if (active) {
+          existing.elements = active.elements.map(el => ({...el}));
+        }
+      } else {
+        insertKeyframe(layer, index);
+      }
+      notify(state);
+    }
     if (e.key === 'F7' && layer) { e.preventDefault(); insertBlankKeyframe(layer, state.currentFrame); notify(state); }
     if (e.code === 'Space') { e.preventDefault(); state.playing = !state.playing; notify(state); }
   });
