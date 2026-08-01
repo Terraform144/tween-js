@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
+import { getContextLayers, getContextFrameCount, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
 import { ICONS } from '../ui/icons.js';
@@ -43,6 +43,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const konvaStage = new Konva.Stage({ container, width: initialDoc.width, height: initialDoc.height });
 
   const bgLayer = new Konva.Layer({ listening: false });
+  const onionLayer = new Konva.Layer({ listening: false });
   const contentLayer = new Konva.Layer();
   const overlayLayer = new Konva.Layer();
   konvaStage.add(bgLayer, onionLayer, contentLayer, overlayLayer);
@@ -298,6 +299,39 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
   }
 
+  // Render onion skinning - affiche les frames précédentes et suivantes avec transparence
+  function renderOnionSkin() {
+    onionLayer.destroyChildren();
+    
+    const layers = currentLayers();
+    const currentFrame = state.currentFrame;
+    const prevFrames = state.onionSkinPreviousFrames || 0;
+    const nextFrames = state.onionSkinNextFrames || 0;
+    const prevOpacity = state.onionSkinPrevOpacity || 0.3;
+    const nextOpacity = state.onionSkinNextOpacity || 0.3;
+    
+    // Render previous frames
+    for (let i = 1; i <= prevFrames; i++) {
+      const frameIndex = currentFrame - i;
+      if (frameIndex >= 0) {
+        const layerGroup = new Konva.Group({ opacity: prevOpacity });
+        renderInto(layerGroup, layers, frameIndex, tick, 0);
+        onionLayer.add(layerGroup);
+      }
+    }
+    
+    // Render next frames
+    for (let i = 1; i <= nextFrames; i++) {
+      const frameIndex = currentFrame + i;
+      const frameCount = getContextFrameCount(state.doc, state.editPath);
+      if (frameIndex < frameCount) {
+        const layerGroup = new Konva.Group({ opacity: nextOpacity });
+        renderInto(layerGroup, layers, frameIndex, tick, 0);
+        onionLayer.add(layerGroup);
+      }
+    }
+  }
+
   function render(tick = 0) {
     // Changer d'outil en pleine plume ou chaîne de bones abandonnait un tracé fantôme
     if (drawState && drawState.tool === 'pen' && state.currentTool !== 'pen') cancelDraw();
@@ -312,6 +346,14 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     refreshPointHandles();
     contentLayer.draw();
     overlayLayer.batchDraw();
+    
+    // Render onion skinning
+    if (state.onionSkinEnabled) {
+      renderOnionSkin();
+    } else {
+      onionLayer.destroyChildren();
+    }
+    onionLayer.batchDraw();
   }
 
   function refreshSelectionVisuals() {
