@@ -30,6 +30,7 @@ export function mountTimeline(container, state) {
   const btnKeyframe = iconButton('F6', 'Insérer une image clé');
   const btnBlank = iconButton('F7', 'Insérer une image clé vide');
   const btnTween = svgButton('tween', 'Activer/désactiver le tween de mouvement');
+  const btnOnionSkin = svgButton('onionSkin', 'Activer-désactiver onion skinning');
   const btnRemoveKf = svgButton('close', 'Supprimer l\'image clé');
   const btnPlay = svgButton('play', 'Lecture / Pause (Entrée)');
 
@@ -63,7 +64,7 @@ export function mountTimeline(container, state) {
   });
   applyCollapsed();
 
-  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, frameInfo, btnCollapse);
+  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnOnionSkin, btnRemoveKf, sep(), labelInput, sep(), btnPlay, frameInfo, btnCollapse);
   enableDragScroll(toolbar);
 
   const body = document.createElement('div');
@@ -232,7 +233,13 @@ export function mountTimeline(container, state) {
     const kf = getActiveKeyframe(layer, state.currentFrame);
     if (kf && removeKeyframe(layer, kf)) notify(state);
   });
-  btnPlay.addEventListener('click', () => {
+  
+
+  btnOnionSkin.addEventListener('click', () => {
+    state.onionSkinEnabled = !state.onionSkinEnabled;
+    notify(state);
+  });
+btnPlay.addEventListener('click', () => {
     state.playing = !state.playing;
     notify(state);
   });
@@ -363,7 +370,9 @@ export function mountTimeline(container, state) {
     const locked = !layer || !!layer.locked;
     const kfHere = layer && getKeyframeAt(layer, state.currentFrame);
     btnTween.classList.toggle('active', !!(kfHere && kfHere.tween));
+    btnOnionSkin.classList.toggle('active', state.onionSkinEnabled);
     btnTween.disabled = locked;
+    btnOnionSkin.disabled = false;
     btnKeyframe.disabled = locked;
     btnBlank.disabled = locked;
     // Un calque ne peut jamais se retrouver sans aucune keyframe : rien à
