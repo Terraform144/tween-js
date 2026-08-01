@@ -181,7 +181,10 @@ export function mountTimeline(container, state) {
 
   function editableLayer() {
     const layer = selectedLayer();
-    return layer && !layer.locked ? layer : null;
+    if (layer && !layer.locked) return layer;
+    // Fallback: return first unlocked layer if selected is invalid/locked
+    const layers = layersInContext();
+    return layers.find(l => !l.locked) || layers[0] || null;
   }
 
   btnKeyframe.addEventListener('click', () => {
@@ -253,7 +256,12 @@ btnPlay.addEventListener('click', () => {
   });
 
   function layersInContext() { return getContextLayers(state.doc, state.editPath); }
-  function selectedLayer() { return layersInContext().find((l) => l.id === state.selectedLayerId); }
+  function selectedLayer() {
+    const layers = layersInContext();
+    const found = layers.find((l) => l.id === state.selectedLayerId);
+    // Fallback to first layer if selected is invalid
+    return found || layers[0] || null;
+  }
   function frameCount() { return getContextFrameCount(state.doc, state.editPath); }
 
   function buildRuler() {
