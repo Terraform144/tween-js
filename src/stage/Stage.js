@@ -45,7 +45,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const bgLayer = new Konva.Layer({ listening: false });
   const contentLayer = new Konva.Layer();
   const overlayLayer = new Konva.Layer();
-  konvaStage.add(bgLayer, contentLayer, overlayLayer);
+  konvaStage.add(bgLayer, onionLayer, contentLayer, overlayLayer);
 
   const bgRect = new Konva.Rect({ x: 0, y: 0, width: initialDoc.width, height: initialDoc.height, fill: initialDoc.backgroundColor });
   bgLayer.add(bgRect);
@@ -264,7 +264,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
             // Trouver tous les bones enfants rÃ©cursivement
             bonesToUse = [rootBone];
             const allChildren = getAllChildBones(kf, rootBone.id);
-            // Ajouter tous les descendants récursivement
+            // Ajouter tous les descendants rï¿½cursivement
             bonesToUse.push(...allChildren);
           }
         }
@@ -520,15 +520,15 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const line = which === 'cOut' ? ref.outLine : ref.inLine;
     const anchorRef = ref.anchor;
     
-    // circle.position() retourne des coordonnées écran (stage coordinates)
+    // circle.position() retourne des coordonnï¿½es ï¿½cran (stage coordinates)
     const circleScreenPos = circle.position();
-    // Convertir en coordonnées locales du node
+    // Convertir en coordonnï¿½es locales du node
     const local = transform.copy().invert().point(circleScreenPos);
-    // Le vecteur est la différence entre la poignée et l'ancre
+    // Le vecteur est la diffï¿½rence entre la poignï¿½e et l'ancre
     const vec = { x: local.x - p.x, y: local.y - p.y };
     p[which] = vec;
     
-    // Mettre à jour la ligne : de l'ancre au circle, en coordonnées écran
+    // Mettre ï¿½ jour la ligne : de l'ancre au circle, en coordonnï¿½es ï¿½cran
     line.points([anchorRef.x(), anchorRef.y(), circleScreenPos.x, circleScreenPos.y]);
 
     if (p.smooth) {
@@ -537,7 +537,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const otherCircle = which === 'cOut' ? ref.inCircle : ref.outCircle;
       const otherLine = which === 'cOut' ? ref.inLine : ref.outLine;
       if (otherCircle && otherLine) {
-        // Position de l'autre poignée en écran
+        // Position de l'autre poignï¿½e en ï¿½cran
         const otherTipLocal = { x: p.x + p[other].x, y: p.y + p[other].y };
         const otherTipScreen = transform.point(otherTipLocal);
         otherCircle.position(otherTipScreen);
@@ -862,7 +862,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
     
     overlayLayer.draw();
-    // Réinitialiser l'outil à select après validation
+    // Rï¿½initialiser l'outil ï¿½ select aprï¿½s validation
     state.currentTool = 'select';
     state.selectedElementIds = bones.map(b => b.id);
     notify(state);
@@ -917,7 +917,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     updatePenActions();
     drawState = null;
     addElement(el);
-    // Réinitialiser l'outil à select après validation
+    // Rï¿½initialiser l'outil ï¿½ select aprï¿½s validation
     state.currentTool = 'select';
     notify(state);
   }
