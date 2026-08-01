@@ -86,28 +86,6 @@ export function mountPropertiesPanel(container, state) {
     return select;
   }
 
-  // Helper pour obtenir la liste des squelettes (groupes de bones) dans une keyframe
-  function getSkeletonsFromKeyframe(kf) {
-    const skeletons = new Map(); // skeletonId -> { id, boneIds, name }
-    const bones = kf.elements.filter((e) => e.kind === 'bone');
-    
-    for (const bone of bones) {
-      if (bone.skeletonId) {
-        if (!skeletons.has(bone.skeletonId)) {
-          skeletons.set(bone.skeletonId, {
-            id: bone.skeletonId,
-            boneIds: [],
-            // Nom : utiliser le premier bone comme référence
-            name: `Squelette ${bone.skeletonId}`,
-          });
-        }
-        skeletons.get(bone.skeletonId).boneIds.push(bone.id);
-      }
-    }
-    
-    return Array.from(skeletons.values());
-  }
-
   function renderTweenSection() {
     const layer = selectedLayer();
     if (!layer) return;
