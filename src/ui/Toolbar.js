@@ -48,12 +48,16 @@ export function mountToolbar(container, state, { onDelete } = {}) {
   const fillInput = document.createElement('input');
   fillInput.type = 'color';
   fillInput.value = state.fillColor;
-  fillInput.addEventListener('input', () => { state.fillColor = fillInput.value; notify(state); });
+  // 'change' (et non 'input') : comme pour le panneau propriétés, 'input' est
+  // émis en continu pendant le choix dans le nuancier natif et re-déclencherait
+  // un rendu global à chaque événement (la couleur n'est lue qu'à la création
+  // d'une forme, pas en direct — rien ne justifie le rendu continu).
+  fillInput.addEventListener('change', () => { state.fillColor = fillInput.value; notify(state); });
 
   const strokeInput = document.createElement('input');
   strokeInput.type = 'color';
   strokeInput.value = state.strokeColor;
-  strokeInput.addEventListener('input', () => { state.strokeColor = strokeInput.value; notify(state); });
+  strokeInput.addEventListener('change', () => { state.strokeColor = strokeInput.value; notify(state); });
 
   colorRow.append(fillInput, strokeInput);
   container.appendChild(colorRow);

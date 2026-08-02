@@ -41,7 +41,10 @@ export function mountPropertiesPanel(container, state) {
     const input = document.createElement('input');
     input.type = 'color';
     input.value = value || '#000000';
-    input.addEventListener('input', () => onChange(input.value));
+    // 'change' (et non 'input') : le nuancier natif émet 'input' en continu
+    // pendant que l'on choisit la couleur — un re-rendu à chaque événement
+    // détruirait l'élément et refermerait le nuancier avant confirmation.
+    input.addEventListener('change', () => onChange(input.value));
     row.append(l, input);
     body.appendChild(row);
   }
