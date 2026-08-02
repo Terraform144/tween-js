@@ -132,13 +132,13 @@ export function getChildBones(kf, parentBoneId) {
   return getBonesFromKeyframe(kf).filter((bone) => bone.parentBoneId === parentBoneId);
 }
 
-// Retourne tous les descendants d'un bone dans une keyframe (récursif)
+// Retourne tous les descendants d'un bone dans une keyframe (rï¿½cursif)
 export function getAllChildBones(kf, parentBoneId) {
   const allChildren = [];
   const children = getChildBones(kf, parentBoneId);
   for (const child of children) {
     allChildren.push(child);
-    // Ajouter récursivement les enfants des enfants
+    // Ajouter rï¿½cursivement les enfants des enfants
     allChildren.push(...getAllChildBones(kf, child.id));
   }
   return allChildren;
@@ -178,22 +178,22 @@ export function getGlobalBoneTransform(kf, bone, layers) {
 }
 
 // RÃ©sout l'IK pour une chaÃ®ne de bones (max 2 bones pour l'instant)
-// Résout l'IK pour une chaîne de bones en utilisant l'algorithme CCD (Cyclic Coordinate Descent)
-// Gère des chaînes de bones de n'importe quelle longueur
+// Rï¿½sout l'IK pour une chaï¿½ne de bones en utilisant l'algorithme CCD (Cyclic Coordinate Descent)
+// Gï¿½re des chaï¿½nes de bones de n'importe quelle longueur
 export function solveIK(kf, movedBoneId, newTailX, newTailY, iterations = 10) {
   const bones = getBonesFromKeyframe(kf);
   const movedBone = bones.find((b) => b.id === movedBoneId);
   if (!movedBone) return;
   
-  // Obtenir toute la chaîne de bones du parent jusqu'à l'enfant déplacé
+  // Obtenir toute la chaï¿½ne de bones du parent jusqu'ï¿½ l'enfant dï¿½placï¿½
   const chain = [];
   let current = movedBone;
   while (current) {
-    chain.unshift(current); // Ajouter au début pour avoir parent -> enfant
+    chain.unshift(current); // Ajouter au dï¿½but pour avoir parent -> enfant
     current = bones.find((b) => b.id === current.parentBoneId);
   }
   
-  // Si chaîne de 1 bone : simplement le redimensionner
+  // Si chaï¿½ne de 1 bone : simplement le redimensionner
   if (chain.length === 1) {
     const dx = newTailX - chain[0].x;
     const dy = newTailY - chain[0].y;
@@ -202,14 +202,14 @@ export function solveIK(kf, movedBoneId, newTailX, newTailY, iterations = 10) {
     return;
   }
   
-  // CCD : itérer pour ajuster chaque articulation
+  // CCD : itï¿½rer pour ajuster chaque articulation
   for (let iter = 0; iter < iterations; iter++) {
     // De l'enfant vers le parent (sauf le premier)
     for (let i = chain.length - 1; i >= 1; i--) {
       const bone = chain[i];
       const parent = chain[i - 1];
       
-      // Position de la queue du parent = tête de l'enfant
+      // Position de la queue du parent = tï¿½te de l'enfant
       const parentTailX = parent.x + parent.length * Math.cos(parent.rotation * Math.PI / 180);
       const parentTailY = parent.y + parent.length * Math.sin(parent.rotation * Math.PI / 180);
       
@@ -226,10 +226,10 @@ export function solveIK(kf, movedBoneId, newTailX, newTailY, iterations = 10) {
       
       const newRotation = Math.atan2(dy, dx) * 180 / Math.PI;
       
-      // Mettre à jour la rotation du bone
+      // Mettre ï¿½ jour la rotation du bone
       bone.rotation = newRotation;
       
-      // Repositionner la tête du bone à la queue du parent
+      // Repositionner la tï¿½te du bone ï¿½ la queue du parent
       bone.x = parentTailX;
       bone.y = parentTailY;
     }
@@ -243,13 +243,13 @@ export function solveIK(kf, movedBoneId, newTailX, newTailY, iterations = 10) {
       const tailX = bone.x + bone.length * Math.cos(bone.rotation * Math.PI / 180);
       const tailY = bone.y + bone.length * Math.sin(bone.rotation * Math.PI / 180);
       
-      // Mettre à jour la tête de l'enfant
+      // Mettre ï¿½ jour la tï¿½te de l'enfant
       child.x = tailX;
       child.y = tailY;
     }
   }
   
-  // Après les itérations, s'assurer que la queue du dernier bone est à la position cible
+  // Aprï¿½s les itï¿½rations, s'assurer que la queue du dernier bone est ï¿½ la position cible
   const lastBone = chain[chain.length - 1];
   const lastTailX = lastBone.x + lastBone.length * Math.cos(lastBone.rotation * Math.PI / 180);
   const lastTailY = lastBone.y + lastBone.length * Math.sin(lastBone.rotation * Math.PI / 180);
@@ -294,6 +294,13 @@ function perpendicularDistance(px, py, x1, y1, x2, y2) {
 // Retourne tous les bones d'un squelette dans une keyframe
 export function getSkeletonBones(kf, skeletonId) {
   return getBonesFromKeyframe(kf).filter((bone) => bone.skeletonId === skeletonId);
+}
+
+// Retourne la liste des squelettes prÃ©sents dans une keyframe, dÃ©duits des
+// skeletonId des bones (un squelette = l'ensemble des bones qui le partagent).
+export function getSkeletonsFromKeyframe(kf) {
+  const ids = [...new Set(getBonesFromKeyframe(kf).map((b) => b.skeletonId).filter(Boolean))];
+  return ids.map((id, i) => ({ id, name: `Squelette ${i + 1}` }));
 }
 
 // Calcule les poids d'influence de tous les bones sur un point

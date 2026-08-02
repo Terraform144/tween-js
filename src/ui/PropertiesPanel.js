@@ -1,4 +1,4 @@
-import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones } from '../core/model.js';
+import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones, getSkeletonsFromKeyframe } from '../core/model.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 
