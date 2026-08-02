@@ -78,6 +78,29 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
 
   const btnExport = iconTextButton('exportHtml', 'Exporter HTML', () => downloadStandaloneHTML(state.doc));
 
+  // Bouton plein écran : bascule entre le mode plein écran du navigateur et
+  // la fenêtre normale (l'icône change selon l'état, via fullscreenchange).
+  const fsEl = document.documentElement;
+  const reqFullscreen = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen;
+  const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+  const isFullscreen = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+  const btnFullscreen = iconTextButton('fullscreen', 'Plein écran', () => {
+    if (!reqFullscreen && !exitFullscreen) return;
+    if (isFullscreen()) {
+      (exitFullscreen || (() => {})).call(document);
+    } else {
+      (reqFullscreen || (() => {})).call(fsEl);
+    }
+  });
+
+  const updateFullscreenBtn = () => {
+    const active = isFullscreen();
+    btnFullscreen.innerHTML = ICONS[active ? 'exitFullscreen' : 'fullscreen'] + `<span>${active ? 'Quitter le plein écran' : 'Plein écran'}</span>`;
+  };
+  document.addEventListener('fullscreenchange', updateFullscreenBtn);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+
   const spacer = document.createElement('div');
   spacer.className = 'spacer';
 
@@ -111,7 +134,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   bgInput.addEventListener('input', () => { state.doc.backgroundColor = bgInput.value; notify(state); });
 
   container.append(
-    brand, btnUndo, btnRedo, btnNew, btnOpen, btnImportSvg, btnSave, btnExport, fileInput, svgFileInput,
+    brand, btnUndo, btnRedo, btnNew, btnOpen, btnImportSvg, btnSave, btnExport, btnFullscreen, fileInput, svgFileInput,
     spacer,
     nameInput,
     wLabel, wInput, hLabel, hInput,

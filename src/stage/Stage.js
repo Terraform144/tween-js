@@ -80,7 +80,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   btnPenConfirm.innerHTML = ICONS.check + '<span>Valider</span>';
   btnPenConfirm.addEventListener('click', () => finishPen(false));
   penActions.append(btnPenCancel, btnPenConfirm);
-  container.parentElement.appendChild(penActions);
+  container.appendChild(penActions);
 
   // Boutons flottants pour la cha√Æne d'ossatures (m√™me principe que plume)
   const boneChainActions = document.createElement('div');
@@ -99,7 +99,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   btnChainConfirm.innerHTML = ICONS.check + '<span>Valider</span>';
   btnChainConfirm.addEventListener('click', () => finishBoneChain());
   boneChainActions.append(btnChainCancel, btnChainConfirm);
-  container.parentElement.appendChild(boneChainActions);
+  container.appendChild(boneChainActions);
 
   function updatePenActions() {
     const active = !!(drawState && drawState.tool === 'pen');
@@ -264,7 +264,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
             // Trouver tous les bones enfants r√©cursivement
             bonesToUse = [rootBone];
             const allChildren = getAllChildBones(kf, rootBone.id);
-            // Ajouter tous les descendants rÈcursivement
+            // Ajouter tous les descendants rÔøΩcursivement
             bonesToUse.push(...allChildren);
           }
         }
@@ -520,15 +520,15 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const line = which === 'cOut' ? ref.outLine : ref.inLine;
     const anchorRef = ref.anchor;
     
-    // circle.position() retourne des coordonnÈes Ècran (stage coordinates)
+    // circle.position() retourne des coordonnÔøΩes ÔøΩcran (stage coordinates)
     const circleScreenPos = circle.position();
-    // Convertir en coordonnÈes locales du node
+    // Convertir en coordonnÔøΩes locales du node
     const local = transform.copy().invert().point(circleScreenPos);
-    // Le vecteur est la diffÈrence entre la poignÈe et l'ancre
+    // Le vecteur est la diffÔøΩrence entre la poignÔøΩe et l'ancre
     const vec = { x: local.x - p.x, y: local.y - p.y };
     p[which] = vec;
     
-    // Mettre ‡ jour la ligne : de l'ancre au circle, en coordonnÈes Ècran
+    // Mettre ÔøΩ jour la ligne : de l'ancre au circle, en coordonnÔøΩes ÔøΩcran
     line.points([anchorRef.x(), anchorRef.y(), circleScreenPos.x, circleScreenPos.y]);
 
     if (p.smooth) {
@@ -537,7 +537,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const otherCircle = which === 'cOut' ? ref.inCircle : ref.outCircle;
       const otherLine = which === 'cOut' ? ref.inLine : ref.outLine;
       if (otherCircle && otherLine) {
-        // Position de l'autre poignÈe en Ècran
+        // Position de l'autre poignÔøΩe en ÔøΩcran
         const otherTipLocal = { x: p.x + p[other].x, y: p.y + p[other].y };
         const otherTipScreen = transform.point(otherTipLocal);
         otherCircle.position(otherTipScreen);
@@ -862,7 +862,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
     
     overlayLayer.draw();
-    // RÈinitialiser l'outil ‡ select aprËs validation
+    // RÔøΩinitialiser l'outil ÔøΩ select aprÔøΩs validation
     state.currentTool = 'select';
     state.selectedElementIds = bones.map(b => b.id);
     notify(state);
@@ -917,7 +917,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     updatePenActions();
     drawState = null;
     addElement(el);
-    // RÈinitialiser l'outil ‡ select aprËs validation
+    // RÔøΩinitialiser l'outil ÔøΩ select aprÔøΩs validation
     state.currentTool = 'select';
     notify(state);
   }
@@ -989,10 +989,17 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // taille des contr√¥les autour qui s'adapte (voir style.css), pas la sc√®ne.
   function resize() {
     const doc = state.doc;
-    const wrap = container.parentElement;
-    const availW = Math.max(80, (wrap ? wrap.clientWidth : doc.width) - 24);
-    const availH = Math.max(80, (wrap ? wrap.clientHeight : doc.height) - 24);
-    const fitScale = Math.min(1, availW / doc.width, availH / doc.height);
+    // En plein √©cran de la feuille seule, la sc√®ne peut √™tre agrandie au-del√†
+    // de 100 % pour remplir l'√©cran ; en mode normal on ne grossit jamais
+    // au-del√† de 100 % (voir commentaire plus haut).
+    const fullscreenTarget = document.fullscreenElement || document.webkitFullscreenElement;
+    const isSheetFullscreen = fullscreenTarget === container;
+    const availEl = isSheetFullscreen ? container : container.parentElement;
+    const availW = Math.max(80, (availEl ? availEl.clientWidth : doc.width) - 24);
+    const availH = Math.max(80, (availEl ? availEl.clientHeight : doc.height) - 24);
+    const fitScale = isSheetFullscreen
+      ? Math.min(availW / doc.width, availH / doc.height)
+      : Math.min(1, availW / doc.width, availH / doc.height);
     konvaStage.width(Math.round(doc.width * fitScale));
     konvaStage.height(Math.round(doc.height * fitScale));
     konvaStage.scale({ x: fitScale, y: fitScale });

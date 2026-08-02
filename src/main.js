@@ -40,6 +40,34 @@ const stage = createStage({
   },
 });
 
+// Bouton carré posé sur la feuille (coin haut droit) : ne met en plein écran
+// QUE la feuille de travail, pas toute l'application. L'icône change selon
+// l'état (entrer/quitter), et la scène est recalculée pour remplir l'écran.
+const stageFullscreenBtn = document.createElement('button');
+stageFullscreenBtn.type = 'button';
+stageFullscreenBtn.className = 'stage-fullscreen-btn';
+const fsRequest = stageContainer.requestFullscreen || stageContainer.webkitRequestFullscreen;
+const fsExit = document.exitFullscreen || document.webkitExitFullscreen;
+const isSheetFullscreen = () => (document.fullscreenElement || document.webkitFullscreenElement) === stageContainer;
+const updateFsBtn = () => {
+  const active = isSheetFullscreen();
+  stageFullscreenBtn.innerHTML = ICONS[active ? 'exitFullscreen' : 'fullscreen'];
+  stageFullscreenBtn.title = active ? 'Quitter le plein écran (Échap)' : 'Plein écran de la feuille de travail';
+};
+stageFullscreenBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!fsRequest && !fsExit) return;
+  if (isSheetFullscreen()) {
+    if (fsExit) fsExit.call(document);
+  } else if (fsRequest) {
+    fsRequest.call(stageContainer);
+  }
+});
+document.addEventListener('fullscreenchange', () => { updateFsBtn(); stage.resize(); });
+document.addEventListener('webkitfullscreenchange', () => { updateFsBtn(); stage.resize(); });
+stageContainer.appendChild(stageFullscreenBtn);
+updateFsBtn();
+
 const toolbarCtl = mountToolbar(document.getElementById('toolbar'), state, {
   onDelete: stage.deleteSelected,
 });
