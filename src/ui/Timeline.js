@@ -150,6 +150,74 @@ export function mountTimeline(container, state) {
     notify(state);
   }
 
+  // ------------------------------------------------- réordonnancement des calques
+  // Glisser une ligne de calque (colonne de gauche) vers le haut ou le bas
+  // réordonne la pile. Le panneau affiche la pile à l'envers (haut de liste =
+  // calque du dessus, comme Animate), on travaille donc en espace "affichage"
+  // puis on réinjecte l'ordre inversé dans le tableau du modèle (index 0 =
+  // bas, cohérent avec le rendu de Stage).
+  let layerDrag = null; // { layer, row, fromIndex, startY, targetGap, moved }
+
+  function startLayerDrag(e, layer, row) {
+    if (e.button !== 0) return;
+    if (e.target.closest('.mini-btn')) return;
+    if (layersInContext().length <= 1) return;
+    e.preventDefault();
+    const rows = Array.from(layersCol.querySelectorAll('.tl-layer-row'));
+    const idx = rows.indexOf(row);
+    layerDrag = { layer, row, fromIndex: idx, startY: e.clientY, targetGap: idx, moved: false };
+    window.addEventListener('pointermove', onLayerDragMove);
+    window.addEventListener('pointerup', onLayerDragEnd, { once: true });
+  }
+
+  function onLayerDragMove(e) {
+    if (!layerDrag) return;
+    if (!layerDrag.moved) {
+      if (Math.abs(e.clientY - layerDrag.startY) < 4) return;
+      layerDrag.moved = true;
+      layerDrag.row.classList.add('dragging');
+    }
+    const rows = Array.from(layersCol.querySelectorAll('.tl-layer-row'));
+    let gap = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i].getBoundingClientRect();
+      if (e.clientY > r.top + r.height / 2) gap = i + 1;
+      else break;
+    }
+    if (gap !== layerDrag.targetGap) {
+      layerDrag.targetGap = gap;
+      layersCol.querySelectorAll('.drop-line').forEach((el) => el.remove());
+      const line = document.createElement('div');
+      line.className = 'drop-line';
+      line.style.top = (gap * rowHeight() - 1) + 'px';
+      layersCol.appendChild(line);
+    }
+  }
+
+  function onLayerDragEnd() {
+    window.removeEventListener('pointermove', onLayerDragMove);
+    if (!layerDrag) return;
+    const { layer, fromIndex, targetGap, row } = layerDrag;
+    layerDrag = null;
+    row.classList.remove('dragging');
+    layersCol.querySelectorAll('.drop-line').forEach((el) => el.remove());
+    if (targetGap === fromIndex) return;
+
+    // Espace "affichage" (haut = dernier calque du modèle) → on insère à la
+    // position visée, on retire l'occurrence d'origine puis on réinverse pour
+    // retrouver l'ordre du modèle (index 0 = bas, rendu dans cet ordre).
+    const layers = layersInContext();
+    const display = layers.slice().reverse();
+    const from = display.indexOf(layer);
+    display.splice(targetGap, 0, layer);
+    if (from < targetGap) display.splice(from, 1);
+    else display.splice(from + 1, 1);
+    layers.length = 0;
+    layers.push(...display.reverse());
+    state.selectedLayerId = layer.id;
+    notify(state);
+  }
+
   let syncing = false;
   layersCol.addEventListener('scroll', () => {
     if (syncing) return;
@@ -305,6 +373,7 @@ export function mountTimeline(container, state) {
 
       row.append(eye, name, lock);
       row.addEventListener('click', () => { state.selectedLayerId = layer.id; notify(state); });
+      row.addEventListener('pointerdown', (e) => startLayerDrag(e, layer, row));
       layersCol.appendChild(row);
 
       const track = document.createElement('div');

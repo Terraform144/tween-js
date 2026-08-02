@@ -464,6 +464,7 @@ html, body {
   border-right: 1px solid var(--border);
   grid-column: 1;
   grid-row: 2;
+  position: relative;
 }
 .tl-layer-row {
   display: flex;
@@ -472,8 +473,19 @@ html, body {
   height: 24px;
   padding: 0 6px;
   border-bottom: 1px solid var(--bg-0);
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   font-size: 12px;
+}
+.tl-layer-row.dragging { opacity: 0.45; cursor: grabbing; }
+.tl-layer-row .drop-line, .drop-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  z-index: 5;
+  pointer-events: none;
 }
 .tl-layer-row.selected { background: var(--bg-3); }
 .tl-layer-row .layer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
