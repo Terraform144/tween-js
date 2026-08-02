@@ -401,6 +401,69 @@ html, body {
 .prop-row button { background: var(--bg-3); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 4px 8px; cursor: pointer; }
 .prop-empty { color: var(--text-dim); font-style: italic; padding: 6px; }
 
+/* ---------- Scripts : onglets + éditeur de code + console ---------- */
+.scripts-body { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.script-tabs {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  padding: 4px 6px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+.script-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  flex: none;
+}
+.script-tab:hover { background: var(--bg-3); }
+.script-tab.active { background: var(--accent-dim); border-color: var(--accent); }
+.script-tab .name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+.script-tab-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+}
+.script-tab-del:hover { color: var(--danger); }
+.script-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--bg-0);
+  overflow: hidden;
+}
+.script-editor .cm-editor { height: 100%; }
+.script-console {
+  flex: none;
+  max-height: 90px;
+  overflow-y: auto;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Cascadia Mono', 'Consolas', monospace;
+  font-size: 11px;
+  padding: 4px 6px;
+  user-select: text;
+}
+.script-console-line { white-space: pre-wrap; word-break: break-word; }
+.script-console-line.error { color: var(--danger); }
+.script-console-line.warn { color: #b58900; }
+
 /* ---------- Timeline ---------- */
 #timeline {
   background: var(--bg-1);

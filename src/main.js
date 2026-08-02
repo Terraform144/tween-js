@@ -5,8 +5,10 @@ import { createStage } from './stage/Stage.js';
 import { mountToolbar } from './ui/Toolbar.js';
 import { mountTimeline } from './ui/Timeline.js';
 import { mountLibraryPanel } from './ui/LibraryPanel.js';
+import { mountScriptsPanel } from './ui/ScriptsPanel.js';
 import { mountPropertiesPanel } from './ui/PropertiesPanel.js';
 import { mountMenuBar } from './ui/MenuBar.js';
+import { createSceneRuntime } from './runtime/sceneRuntime.js';
 import { getPref, setPref, hasPref } from './util/prefs.js';
 import { ICONS } from './ui/icons.js';
 import { isNarrowViewport, isTouchLike, isPhoneSize, isLargeScreen } from './util/responsive.js';
@@ -86,6 +88,12 @@ document.getElementById('stage-wrap').appendChild(banner);
 
 const libraryCtl = mountLibraryPanel(document.getElementById('library-panel'), state, {
   addInstanceAt: stage.addInstanceAt,
+});
+
+const sceneRuntime = createSceneRuntime({ state, onResize: () => stage.resize() });
+
+const scriptsCtl = mountScriptsPanel(document.getElementById('scripts-panel'), state, {
+  runtime: sceneRuntime,
 });
 
 // Un undo/redo remplace state.doc en bloc — la taille de scène peut avoir
@@ -232,6 +240,7 @@ function renderAll() {
   toolbarCtl.update();
   timelineCtl.update();
   libraryCtl.update();
+  scriptsCtl.update();
   propertiesCtl.update();
   menuBarCtl.update();
   updateBanner();
@@ -269,6 +278,7 @@ function loop(time) {
   if (advanced) {
     stage.render(tick);
     timelineCtl.update();
+    sceneRuntime.onFrame(state.currentFrame);
   }
 }
 requestAnimationFrame(loop);
