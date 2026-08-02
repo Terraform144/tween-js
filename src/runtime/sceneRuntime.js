@@ -1,0 +1,118 @@
+// Runtime d'exécution des scripts dans l'éditeur : expose une API Scene/Game
+// permettant de piloter le document (dimensions, fps, lecture, ajout de
+// formes/instances, boucle onEnterFrame, entrées clavier) depuis du code
+// utilisateur exécuté avec `run()`.
+import { createShape, createInstance, insertKeyframe, getContextLayers, getContextFrameCount, setContextFrameCount } from '../core/model.js';
+import { notify } from '../state.js';
+
+export function createSceneRuntime({ state, onResize = () => {} }) {
+  const enterFrameCbs = new Set();
+  const keyDownCbs = new Set();
+  const keyUpCbs = new Set();
+  const keys = {};
+
+  const isTyping = (t) => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+
+  function onKeyDown(e) {
+    if (isTyping(e.target)) return;
+    keys[e.key] = true;
+    keyDownCbs.forEach((cb) => { try { cb(e.key, e); } catch (err) { console.error(err); } });
+  }
+  function onKeyUp(e) {
+    if (isTyping(e.target)) return;
+    keys[e.key] = false;
+    keyUpCbs.forEach((cb) => { try { cb(e.key, e); } catch (err) { console.error(err); } });
+  }
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
+
+  function activeLayer() {
+    const layers = getContextLayers(state.doc, state.editPath);
+    return layers.find((l) => l.id === state.selectedLayerId) || layers[layers.length - 1];
+  }
+
+  function addToActiveKeyframe(el) {
+    const layer = activeLayer();
+    if (!layer || layer.locked) return null;
+    const kf = insertKeyframe(layer, state.currentFrame);
+    el.layerId = layer.id;
+    kf.elements.push(el);
+    notify(state);
+    return el.id;
+  }
+
+  const Scene = {
+    // --- Propriétés de la scène ---
+    get width() { return state.doc.width; },
+    set width(v) { state.doc.width = Math.max(1, +v || 1); notify(state); onResize(); },
+    get height() { return state.doc.height; },
+    set height(v) { state.doc.height = Math.max(1, +v || 1); notify(state); onResize(); },
+    get frameRate() { return state.doc.frameRate; },
+    set frameRate(v) { state.doc.frameRate = Math.max(1, Math.min(120, +v || 1)); notify(state); },
+    get backgroundColor() { return state.doc.backgroundColor; },
+    set backgroundColor(c) { state.doc.backgroundColor = c || '#ffffff'; notify(state); },
+    get name() { return state.doc.name; },
+    set name(n) { state.doc.name = String(n || ''); notify(state); },
+    get frameCount() { return getContextFrameCount(state.doc, state.editPath); },
+    set frameCount(v) { setContextFrameCount(state.doc, state.editPath, Math.max(1, +v || 1)); notify(state); },
+
+    // --- Lecture / lecture seule ---
+    get playing() { return state.playing; },
+    get currentFrame() { return state.currentFrame; },
+    set currentFrame(f) { state.currentFrame = Math.max(0, +f | 0); notify(state); },
+    play() { state.playing = true; notify(state); },
+    stop() { state.playing = false; notify(state); },
+    gotoAndPlay(frame) { state.currentFrame = Math.max(0, +frame | 0); state.playing = true; notify(state); },
+    gotoAndStop(frame) { state.currentFrame = Math.max(0, +frame | 0); state.playing = false; notify(state); },
+
+    // --- Création d'éléments ---
+    addShape(type, props = {}) { return addToActiveKeyframe(createShape(type, props)); },
+    addInstance(symbolId, props = {}) { return addToActiveKeyframe(createInstance(symbolId, props)); },
+
+    // --- Boucle de jeu / entrées ---
+    onEnterFrame(cb) { if (typeof cb === 'function') enterFrameCbs.add(cb); },
+    onKeyDown(cb) { if (typeof cb === 'function') keyDownCbs.add(cb); },
+    onKeyUp(cb) { if (typeof cb === 'function') keyUpCbs.add(cb); },
+    get keys() { return keys; },
+
+    // --- Divers ---
+    random(n) { return Math.floor(Math.random() * (n || 1)); },
+    log(...args) { onConsole && onConsole('log', args); },
+  };
+
+  // `run` exécute le code une fois. Les callbacks onEnterFrame/onKey* sont
+  // vidés à chaque run pour éviter les accumulateurs d'un run à l'autre.
+  let onConsole = () => {};
+  function run(code, consoleCb = () => {}) {
+    onConsole = consoleCb;
+    enterFrameCbs.clear();
+    keyDownCbs.clear();
+    keyUpCbs.clear();
+    const proxyConsole = new Proxy(console, {
+      get(target, prop) {
+        if (['log', 'warn', 'error', 'info', 'debug'].includes(prop)) {
+          return (...args) => {
+            onConsole(prop, args);
+            target[prop](...args);
+          };
+        }
+        return target[prop];
+      },
+    });
+    const fn = new Function('Scene', 'Game', 'console', '"use strict";\n' + code);
+    fn(Scene, Scene, proxyConsole);
+    return Scene;
+  }
+
+  // Appelé à chaque avancée d'image pendant la lecture (voir main.js#loop).
+  function onFrame(frame) {
+    enterFrameCbs.forEach((cb) => { try { cb(frame); } catch (err) { console.error(err); } });
+  }
+
+  function dispose() {
+    window.removeEventListener('keydown', onKeyDown);
+    window.removeEventListener('keyup', onKeyUp);
+  }
+
+  return { Scene, run, onFrame, dispose };
+}

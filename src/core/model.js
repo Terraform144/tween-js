@@ -27,7 +27,12 @@ export function createDocument({ name = 'Sans titre', width = 550, height = 400,
     layers: [createLayer('Calque 1')],
     symbols: {}, // { [symbolId]: Symbol }
     frameLabels: {}, // { [frameIndex]: 'label' } — pour gotoAndPlay('label') à l'export
+    scripts: [createScript('Script 1', '// Code exécuté avec Scene (alias Game)\n// Exemple :\nScene.log(\"Bonjour\", Scene.width, \"x\", Scene.height);\nScene.play();\nScene.onEnterFrame(() => {\n  // ... boucle de jeu, appelée à chaque image pendant la lecture\n});')],
   };
+}
+
+export function createScript(name = 'Script', code = '') {
+  return { id: nextId('script'), name, code };
 }
 
 export function createLayer(name = 'Calque') {
