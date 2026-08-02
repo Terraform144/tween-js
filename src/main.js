@@ -35,6 +35,7 @@ const stage = createStage({
   // Une sélection ne change pas le document : on ne redessine que les
   // panneaux qui en dépendent, jamais la scène elle-même (voir Stage.js).
   onSelectionChange: () => {
+    toolbarCtl.update();
     propertiesCtl.update();
     timelineCtl.update();
   },
