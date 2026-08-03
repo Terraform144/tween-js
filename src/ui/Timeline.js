@@ -93,7 +93,8 @@ export function mountTimeline(container, state) {
   container.append(toolbar, body);
 
   let scrubbing = false;
-  window.addEventListener('mouseup', () => { scrubbing = false; });
+  let scrubTarget = -1;
+  window.addEventListener('mouseup', () => { scrubbing = false; scrubTarget = -1; });
 
   // ----------------------------------------------- glisser-déposer des clés
   // Déplace une keyframe existante le long de sa piste. Les tweens ne sont
@@ -411,7 +412,19 @@ export function mountTimeline(container, state) {
       if (kf && !layer.locked) {
         startKeyDrag(e, layer, kf, index, cell);
       } else {
+        e.preventDefault();
+        scrubbing = true;
+        scrubTarget = index;
         state.selectedLayerId = layer.id;
+        state.currentFrame = index;
+        notify(state);
+      }
+    });
+    // Glisser sur une cellule "tenue" (hors keyframe) scrube la tête de lecture
+    // comme sur la règle, pour prévisualiser l'animation image par image.
+    cell.addEventListener('pointermove', () => {
+      if (scrubbing && scrubTarget !== index) {
+        scrubTarget = index;
         state.currentFrame = index;
         notify(state);
       }
