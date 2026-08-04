@@ -86,6 +86,37 @@ html, body {
 #menubar button:hover { background: var(--bg-3); border-color: var(--border); }
 #menubar button:disabled { opacity: 0.35; cursor: default; }
 #menubar button:disabled:hover { background: transparent; }
+#menubar .file-menu { position: relative; flex: none; }
+#menubar .file-menu .caret { font-size: 9px; margin-left: 2px; opacity: 0.7; }
+/* Menu Fichier : monté dans document.body (fixed) car #menubar a un
+   overflow-x:auto qui clipperait un panneau absolu descendant. */
+.file-menu-panel {
+  position: fixed;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.file-menu-panel.open { display: flex; }
+.file-menu-panel button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.file-menu-panel button:hover { background: var(--bg-3); border-color: var(--border); }
 @media (pointer: coarse), (max-width: 1024px) {
   #menubar button { padding: 8px 12px; min-height: 40px; }
 }

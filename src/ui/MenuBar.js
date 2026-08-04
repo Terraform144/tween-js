@@ -30,7 +30,6 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     resetDocument(createDocument({}));
   });
 
-  const btnOpen = iconTextButton('folderOpen', 'Ouvrir…', () => fileInput.click());
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = '.json,application/json';
@@ -48,7 +47,6 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   });
 
   // Bouton d'import SVG
-  const btnImportSvg = iconTextButton('importSvg', 'Importer SVG', () => svgFileInput.click());
   const svgFileInput = document.createElement('input');
   svgFileInput.type = 'file';
   svgFileInput.accept = '.svg,image/svg+xml';
@@ -76,7 +74,6 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   // pour connaître sa taille naturelle puis stockée dans doc.assets sous
   // forme de dataUrl base64 (persistable dans le JSON) ; le placement sur la
   // scène est délégué à main.js via onImageImport(asset).
-  const btnImportImage = iconTextButton('importImage', 'Importer image…', () => imgFileInput.click());
   const imgFileInput = document.createElement('input');
   imgFileInput.type = 'file';
   imgFileInput.accept = 'image/png,image/jpeg,image/gif,image/webp,.png,.jpg,.jpeg,.gif,.webp';
@@ -105,11 +102,63 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     imgFileInput.value = '';
   });
 
-  const btnSave = iconTextButton('save', 'Enregistrer JSON', () => {
-    downloadTextFile(serializeDocument(state.doc), safeName(state.doc.name) + '.json', 'application/json');
-  });
+  // Menu Fichier : regroupe les opérations d'entrée/sortie (ouvrir, importer
+  // SVG/image, enregistrer JSON, exporter HTML). Le panneau est monté dans
+  // document.body en position:fixed — #menubar a un overflow-x:auto qui
+  // clipperait tout dropdown positionné en absolu dans ses descendants.
+  const fileMenu = document.createElement('div');
+  fileMenu.className = 'file-menu';
+  const fileMenuBtn = document.createElement('button');
+  fileMenuBtn.type = 'button';
+  fileMenuBtn.className = 'file-menu-btn';
+  fileMenuBtn.innerHTML = ICONS.folderOpen + '<span>Fichier</span><span class="caret">▾</span>';
+  fileMenuBtn.title = 'Ouvrir, importer, enregistrer, exporter';
+  const fileMenuPanel = document.createElement('div');
+  fileMenuPanel.className = 'file-menu-panel';
+  const fileMenuItems = [
+    { icon: 'folderOpen', label: 'Ouvrir…', action: () => fileInput.click() },
+    { icon: 'importSvg', label: 'Importer SVG', action: () => svgFileInput.click() },
+    { icon: 'importImage', label: 'Importer image…', action: () => imgFileInput.click() },
+    { icon: 'save', label: 'Enregistrer JSON', action: () => downloadTextFile(serializeDocument(state.doc), safeName(state.doc.name) + '.json', 'application/json') },
+    { icon: 'exportHtml', label: 'Exporter HTML', action: () => downloadStandaloneHTML(state.doc) },
+  ];
+  for (const item of fileMenuItems) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = ICONS[item.icon] + `<span>${item.label}</span>`;
+    b.addEventListener('click', () => { closeFileMenu(); item.action(); });
+    fileMenuPanel.appendChild(b);
+  }
+  fileMenu.append(fileMenuBtn, fileMenuPanel);
 
-  const btnExport = iconTextButton('exportHtml', 'Exporter HTML', () => downloadStandaloneHTML(state.doc));
+  function openFileMenu() {
+    const rect = fileMenuBtn.getBoundingClientRect();
+    fileMenuPanel.style.left = rect.left + 'px';
+    fileMenuPanel.style.top = rect.bottom + 4 + 'px';
+    fileMenuPanel.style.minWidth = Math.max(230, rect.width) + 'px';
+    document.body.appendChild(fileMenuPanel);
+    fileMenuPanel.classList.add('open');
+  }
+
+  function closeFileMenu() {
+    fileMenuPanel.classList.remove('open');
+    if (fileMenuPanel.parentNode === document.body) document.body.removeChild(fileMenuPanel);
+  }
+
+  fileMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (fileMenuPanel.classList.contains('open')) closeFileMenu();
+    else openFileMenu();
+  });
+  // Clic ailleurs ou Échap → fermer. On ne ferme pas au scroll/resize (les
+  // coordonnées fixed suivraient mal) : on referme le menu pour éviter qu'il
+  // reste orphelin à un endroit périmé.
+  document.addEventListener('click', (e) => {
+    if (!fileMenuPanel.contains(e.target)) closeFileMenu();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFileMenu(); });
+  window.addEventListener('scroll', closeFileMenu, true);
+  window.addEventListener('resize', closeFileMenu);
 
   // Bouton plein écran : bascule entre le mode plein écran du navigateur et
   // la fenêtre normale (l'icône change selon l'état, via fullscreenchange).
@@ -167,7 +216,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   bgInput.addEventListener('input', () => { state.doc.backgroundColor = bgInput.value; notify(state); });
 
   container.append(
-    brand, btnUndo, btnRedo, btnNew, btnOpen, btnImportSvg, btnImportImage, btnSave, btnExport, btnFullscreen, fileInput, svgFileInput, imgFileInput,
+    brand, btnUndo, btnRedo, btnNew, fileMenu, btnFullscreen, fileInput, svgFileInput, imgFileInput,
     spacer,
     nameInput,
     wLabel, wInput, hLabel, hInput,
