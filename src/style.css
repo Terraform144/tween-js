@@ -282,6 +282,24 @@ html, body {
 @media (pointer: coarse), (max-width: 1024px) {
   .stage-fullscreen-btn { width: 40px; height: 40px; }
 }
+
+/* Repli CSS du plein écran (util/fullscreen.js) : utilisé quand le navigateur
+   n'expose pas le Fullscreen API (iOS Safari < 16.4, iframe sans
+   allowfullscreen, …). body.fs-css verrouille le défilement ; l'élément
+   cible passe en position:fixed plein écran par-dessus le reste. */
+body.fs-css { overflow: hidden; }
+body.fs-css .fs-css-active {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  z-index: 9999;
+}
 #stage-wrap .edit-path-banner {
   position: absolute;
   top: 8px;

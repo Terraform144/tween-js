@@ -10,6 +10,7 @@ import { mountPropertiesPanel } from './ui/PropertiesPanel.js';
 import { mountMenuBar } from './ui/MenuBar.js';
 import { createSceneRuntime } from './runtime/sceneRuntime.js';
 import { getPref, setPref, hasPref } from './util/prefs.js';
+import { toggleFullscreen, isElementFullscreen, onFullscreenChange } from './util/fullscreen.js';
 import { ICONS } from './ui/icons.js';
 import { isNarrowViewport, isTouchLike, isPhoneSize, isLargeScreen } from './util/responsive.js';
 
@@ -49,9 +50,7 @@ const stage = createStage({
 const stageFullscreenBtn = document.createElement('button');
 stageFullscreenBtn.type = 'button';
 stageFullscreenBtn.className = 'stage-fullscreen-btn';
-const fsRequest = stageContainer.requestFullscreen || stageContainer.webkitRequestFullscreen;
-const fsExit = document.exitFullscreen || document.webkitExitFullscreen;
-const isSheetFullscreen = () => (document.fullscreenElement || document.webkitFullscreenElement) === stageContainer;
+const isSheetFullscreen = () => isElementFullscreen(stageContainer);
 const updateFsBtn = () => {
   const active = isSheetFullscreen();
   stageFullscreenBtn.innerHTML = ICONS[active ? 'exitFullscreen' : 'fullscreen'];
@@ -59,15 +58,9 @@ const updateFsBtn = () => {
 };
 stageFullscreenBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  if (!fsRequest && !fsExit) return;
-  if (isSheetFullscreen()) {
-    if (fsExit) fsExit.call(document);
-  } else if (fsRequest) {
-    fsRequest.call(stageContainer);
-  }
+  toggleFullscreen(stageContainer);
 });
-document.addEventListener('fullscreenchange', () => { updateFsBtn(); stage.resize(); });
-document.addEventListener('webkitfullscreenchange', () => { updateFsBtn(); stage.resize(); });
+onFullscreenChange(() => { updateFsBtn(); stage.resize(); });
 stageContainer.appendChild(stageFullscreenBtn);
 updateFsBtn();
 
