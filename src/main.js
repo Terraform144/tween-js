@@ -133,15 +133,26 @@ const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
 // Place une image importée (asset déjà créé dans doc.assets par le menu) dans
 // la keyframe active du calque actif, à la position donnée (centre de la
 // scène pour l'import via le menu, point de dépôt pour le glisser-déposer).
+// La taille d'affichage est plafonnée pour que l'image tienne dans la scène
+// (proportions conservées), au lieu de déborder aux dimensions naturelles.
 function addBitmapAsset(asset, pos) {
   const layers = getContextLayers(state.doc, state.editPath);
   const layer = layers.find((l) => l.id === state.selectedLayerId) || layers[layers.length - 1];
   if (!layer || layer.locked) return;
   const kf = insertKeyframe(layer, state.currentFrame);
-  const el = createBitmap(asset.id, { x: pos.x, y: pos.y, width: asset.width || 100, height: asset.height || 100 });
+  const el = createBitmap(asset.id, { x: pos.x, y: pos.y, ...fitBitmapInScene(asset) });
   kf.elements.push(el);
   state.selectedElementIds = [el.id];
   notify(state);
+}
+
+// Taille d'affichage d'un bitmap importé : au plus 90 % de la scène en largeur
+// et en hauteur, sans jamais agrandir une image déjà plus petite que ça.
+function fitBitmapInScene(asset) {
+  const doc = state.doc;
+  const natW = asset.width || 100, natH = asset.height || 100;
+  const scale = Math.min(1, (doc.width * 0.9) / natW, (doc.height * 0.9) / natH);
+  return { width: Math.max(1, Math.round(natW * scale)), height: Math.max(1, Math.round(natH * scale)) };
 }
 
 // Glisser-déposer d'un fichier image directement sur la scène : le point de

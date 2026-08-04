@@ -150,30 +150,6 @@ export function createBitmap(assetId, props = {}) {
   return Object.assign(base, props);
 }
 
-// ---------------------------------------------------------------------------
-// Gradients (remplacement de la couleur unie : el.fill / el.stroke peuvent
-// être soit une chaîne hex, soit un objet gradient { type, angle?, stops }).
-// ---------------------------------------------------------------------------
-
-// Dégradé linéaire : angle en degrés (0 = gauche→droite, 90 = haut→bas), les
-// extrémités sont déduites de la boîte de l'élément au rendu (voir
-// playback/paint.js et sa copie dans tweenRuntime.js) — on ne stocke donc
-// que l'angle, pas les coordonnées absolues.
-export function createLinearGradient(stops, angle = 90) {
-  return { type: 'linear', angle, stops };
-}
-
-// Dégradé radial : du centre (offset 0) vers le bord de la boîte englobante
-// de l'élément (offset 1).
-export function createRadialGradient(stops) {
-  return { type: 'radial', stops };
-}
-
-// stops = [{ offset: 0..1, color: '#rrggbb' }, ...]
-export function isGradientPaint(p) {
-  return !!(p && typeof p === 'object' && (p.type === 'linear' || p.type === 'radial') && Array.isArray(p.stops));
-}
-
 export function createBone(props = {}) {
   const base = {
     kind: 'bone',

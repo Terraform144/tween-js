@@ -32,26 +32,21 @@ pouvoir muter librement pendant un drag sans toucher au modèle avant le
 `commitPoints()`. `getSelfRect` est recalculé depuis les vrais points
 (le Shape générique ne connaît pas width/height).
 
-## Bitmaps et dégradés (rendu)
+## Bitmaps (rendu)
 
-- **Dégradés** : `applyKonvaPaint(node, paint, width, height, mode)` — pour
-  `mode: 'fill'` branche `fillLinearGradient*`/`fillRadialGradient*` (stops via
-  `colorStopsToPairs`), pour `mode: 'stroke'` `strokeLinearGradient*`. La
-  géométrie vient de `playback/paint.js` (déduite de width/height). Le dégradé
-  **neutralise la couleur unie** (`node[g](null)`) car chez Konva une couleur
-  unie a priorité sur le dégradé (`_fill` dans Context.js).
-- **⚠️ Konva ne supporte les dégradés radiaux qu'en remplissage** :
-  `hasStroke()` et `_stroke()` ne lisent que `strokeLinearGradientColorStops`.
-  Un `{ type:'radial' }` de contour retombe donc sur la couleur de son dernier
-  arrêt (best effort dans `applyKonvaPaint`). L'UI le masque (voir
-  PropertiesPanel) mais le runtime export (canvas brut) sait les dessiner.
 - **Bitmaps** : `imageCache`/`imagePending` par `assetId` ; un
   `Konva.Image` (branch `kind:'bitmap'`) est créé avec un placeholder rect
   dashed si l'image n'est pas encore décodée, puis `onload` →
   `render(currentTick)` (pour ne pas faire sauter les MovieClips imbriqués,
-  `currentTick` est mémorisé dans `render`). `getSelfRect` = boîte naturelle.
-- **Aperçus de dessin** rect/ellipse : le fill dégradé est réappliqué pendant
-  le drag dès que la taille est connue (un dégradé dépend de la boîte).
+  `currentTick` est mémorisé dans `render`).
+- **⚠️ Transformer & `getSelfRect`** : le cadre de sélection se base sur
+  `getClientRect()` = `getSelfRect()` + transform, et la transform applique
+  déjà `offsetX/offsetY` (le nœud est centré avec `offsetX: width/2`).
+  Il ne faut donc PAS override `getSelfRect` avec un rect centré (`-w/2`)
+  sur un nœud offseté : le décalage serait appliqué deux fois et le
+  Transformer glisserait en haut-gauche de l'image. Le défaut Konva
+  (`{x:0, y:0, width, height}`) est correct — c'est la version actuelle
+  (bug corrigé après un premier commit qui surdécalait la boîte).
 
 ## Sélection
 

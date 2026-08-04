@@ -72,19 +72,6 @@ Symbol (== Document miniature)
 - `bumpIdCounterPastDocument(doc)` scanne aussi `doc.assets` (les ids
   d'assets utilisent le même compteur global `nextId`).
 
-## Peintures (fill / stroke)
-
-`fill`/`stroke` d'un Shape : **soit** une string hex, **soit** un objet dégradé :
-- `{ type: 'linear', angle?, stops }` — `angle` en degrés, `0` = gauche →
-  droite, `90` = haut → bas. Pas de coordonnées absolues : la géométrie est
-  **déduite de la boîte** (width/height) à l'affichage.
-- `{ type: 'radial', stops }` — ellipse centrée, déduite de la boîte.
-- `stops` = `[{ offset: 0..1, color: hex }, ...]`.
-- Factories : `createLinearGradient(stops, angle=90)`,
-  `createRadialGradient(stops)`, `isGradientPaint(p)`. Helpers géométrie dans
-  `src/playback/paint.js` (`gradientLineEnds`, `gradientRadial`,
-  `colorStopsToPairs`).
-
 **Bone** (`createBone(props)`), `kind: 'bone'` (inactif, flag `ENABLE_BONES`) :
 - `x, y, length, width, height, rotation, parentBoneId, skeletonId, color,
   strokeWidth, influenceRadius`

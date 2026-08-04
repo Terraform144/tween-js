@@ -43,8 +43,8 @@ d'animation vectorielle image par image inspiré d'Adobe Animate.
   styles inline).
 - Import bitmap (PNG/JPG/GIF/WebP) : menu Importer image… ou drag & drop sur
   la scène → `doc.assets` (une copie, réutilisable) + éléments `kind:'bitmap'`.
-- Dégradés de couleur (remplissage/contour) : linéaire (angle) et radial,
-  arrêts de couleur, interpolables entre keyframes.
+  À l'import, l'image est redimensionnée pour tenir dans la scène (≤ 90 %,
+  proportions conservées).
 - Export : HTML autonome, classe JS réutilisable (`extends MovieClip`) +
   runtime partagé sans dépendance, API type CreateJS/EaselJS.
 - Morphing : courbe à même nombre de points sur la clé suivante → morphing
@@ -57,8 +57,6 @@ d'animation vectorielle image par image inspiré d'Adobe Animate.
 ## Limites connues (d'après README + code)
 
 - Pas de zoom/pan de scène.
-- Contour en dégradé **radial** non supporté côté éditeur (Konva ne lit que
-  `strokeLinearGradientColorStops`) — le runtime export (canvas brut) le gère.
 - Morphing sans "shape hints" (appariement par index).
 - Rotation des tracés autour du 1er point ; rect/ellipse/texte autour du centre.
 - Pas d'ajout de poignée sur un point anguleux existant.
@@ -78,9 +76,11 @@ d'animation vectorielle image par image inspiré d'Adobe Animate.
   d'interpolation doit être répercutée aux deux endroits.
 - `tracePath`/`traceSegment` sont partagés entre Stage et export mais le
   runtime a sa propre copie.
-- Konva ne dessine les dégradés radiaux qu'en remplissage : un contour radial
-  est donc neutralisé côté éditeur (couleur du dernier arrêt) alors que le
-  runtime canvas brut le gère — ne pas "corriger" l'un sans l'autre.
+- Le Transformer Konva se base sur `getClientRect()` → `getSelfRect()` + la
+  transform (qui applique déjà `offsetX/offsetY`). Ne JAMAIS override
+  `getSelfRect` avec un rect déjà centré sur un nœud qui a un offset : le
+  décalage serait appliqué deux fois et le cadre de sélection glisserait en
+  haut-gauche (bug corrigé pour les bitmaps, voir stage-rendering.md).
 
 ## Déploiement prod ([REDACTÉ]) — PAS de git
 

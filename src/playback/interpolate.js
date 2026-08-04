@@ -32,29 +32,6 @@ export function lerpColor(hexA, hexB, t) {
   return rgbToHex(lerp(a.r, b.r, t), lerp(a.g, b.g, t), lerp(a.b, b.b, t));
 }
 
-// Une "peinture" est soit une couleur unie (string hex), soit un objet
-// dégradé { type, angle?, stops }. L'interpolation mélange les arrêts
-// correspondants (même type + même nombre d'arrêts requis), sinon on retombe
-// sur l'état de départ (forme rigide). À répercuter dans tweenRuntime.js.
-function isGradient(p) {
-  return !!(p && typeof p === 'object' && (p.type === 'linear' || p.type === 'radial') && Array.isArray(p.stops));
-}
-
-export function lerpPaint(a, b, t) {
-  if (isGradient(a) && isGradient(b) && a.type === b.type && a.stops.length === b.stops.length) {
-    return {
-      type: a.type,
-      angle: a.angle,
-      stops: a.stops.map((s, i) => ({
-        offset: lerp(s.offset, b.stops[i].offset, t),
-        color: lerpColor(s.color, b.stops[i].color, t),
-      })),
-    };
-  }
-  if (typeof a === 'string' && typeof b === 'string') return lerpColor(a, b, t);
-  return a;
-}
-
 const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height'];
 const COLOR_PROPS = ['fill', 'stroke'];
 
@@ -86,7 +63,9 @@ export function interpolateElement(a, b, t) {
     }
   }
   for (const p of COLOR_PROPS) {
-    out[p] = lerpPaint(a[p], b[p], t);
+    if (typeof a[p] === 'string' && typeof b[p] === 'string') {
+      out[p] = lerpColor(a[p], b[p], t);
+    }
   }
   // Morphing point à point : seulement si les deux courbes ont exactement
   // le même nombre de points (même index = points correspondants). Sinon
