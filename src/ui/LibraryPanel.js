@@ -1,6 +1,6 @@
 import {
   createSymbol, createInstance, getContextLayers, getActiveKeyframe,
-  symbolUsesSymbol, cloneElement, nextId,
+  symbolUsesSymbol, cloneElement, nextId, getSymbolContentBounds,
 } from '../core/model.js';
 import { notify } from '../state.js';
 import { downloadSymbolAsGameObject } from '../export/exportSymbol.js';
@@ -119,7 +119,16 @@ export function mountLibraryPanel(container, state, { addInstanceAt }) {
           alert('Impossible : cela créerait une boucle infinie de symboles imbriqués.');
           return;
         }
-        addInstanceAt(symbol.id, { x: state.doc.width / 2, y: state.doc.height / 2 });
+        // Centre le CONTENU du symbole (et non son origine (0,0)) sur la
+        // feuille : si le contenu est dessiné loin de son origine, il
+        // apparaîtrait hors feuille (voir getSymbolContentBounds).
+        const b = getSymbolContentBounds(state.doc, symbol.id);
+        const cx = state.doc.width / 2;
+        const cy = state.doc.height / 2;
+        const p = (b.width > 0 || b.height > 0)
+          ? { x: cx - (b.x + b.width / 2), y: cy - (b.y + b.height / 2) }
+          : { x: cx, y: cy };
+        addInstanceAt(symbol.id, p);
       });
 
       const renameBtn = iconBtn('pencil', 'Renommer');

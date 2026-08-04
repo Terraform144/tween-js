@@ -122,6 +122,11 @@ suffisent (`getNextKeyframe`). `easing`: linear | easeIn | easeOut | easeInOut.
 - `symbolUsesSymbol(doc, host, candidate)` : détection de cycles de symboles
   imbriqués (parcours en profondeur du graphe d'instances). Empêche un
   symbole de se contenir lui-même.
+- `getSymbolContentBounds(doc, symbolId)` : boîte englobante du CONTENU d'un
+  symbole dans son espace local, union de toutes ses images clés + symboles
+  imbriqués (garde de profondeur). Les instances sont rendues avec leur
+  origine (0,0) placée à el.x/el.y : cette boîte permet de compenser pour
+  centrer réellement le contenu (bouton « + » de la bibliothèque).
 
 ## Fonctions bones (inertes)
 

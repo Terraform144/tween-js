@@ -673,3 +673,53 @@ export function symbolUsesSymbol(doc, hostSymbolId, candidateSymbolId) {
   }
   return false;
 }
+
+// Boîte englobante du CONTENU d'un symbole dans son espace local (origine
+// (0,0) de l'instance), calculée sur l'union de toutes ses images clés
+// (contenu animé inclus) et des symboles imbriqués (récursif, avec garde de
+// profondeur). Une instance est rendue avec son origine (0,0) placée à
+// el.x/el.y : si le contenu est dessiné loin de son origine, une instance
+// ajoutée au centre de la feuille (doc.width/2, doc.height/2) apparaîtrait
+// hors feuille. Cette boîte permet de compenser (voir bouton « + » de la
+// bibliothèque) pour que le contenu soit réellement centré.
+export function getSymbolContentBounds(doc, symbolId, depth = 0) {
+  const sym = doc.symbols[symbolId];
+  if (!sym || depth > 12) return { x: 0, y: 0, width: 0, height: 0 };
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const acc = (x, y, w, h) => {
+    if (!isFinite(x) || !isFinite(y)) return;
+    if (!(w > 0) && !(h > 0)) return;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + w);
+    maxY = Math.max(maxY, y + h);
+  };
+  for (const layer of sym.layers) {
+    for (const kf of layer.keyframes) {
+      for (const el of kf.elements) {
+        if (el.kind === 'instance') {
+          const b = getSymbolContentBounds(doc, el.symbolId, depth + 1);
+          if (b.width > 0 || b.height > 0) acc(el.x + b.x, el.y + b.y, b.width, b.height);
+        } else if (el.shapeType === 'line' || el.shapeType === 'path') {
+          // Points relatifs à (x,y) ; on inclut les poignées de courbe pour
+          // une boîte fidèle au tracé visible.
+          let ax = Infinity, ay = Infinity, bx = -Infinity, by = -Infinity;
+          for (const p of el.points || []) {
+            const xs = [p.x, p.cIn ? p.x + p.cIn.x : p.x, p.cOut ? p.x + p.cOut.x : p.x];
+            const ys = [p.y, p.cIn ? p.y + p.cIn.y : p.y, p.cOut ? p.y + p.cOut.y : p.y];
+            for (const vx of xs) { ax = Math.min(ax, vx); bx = Math.max(bx, vx); }
+            for (const vy of ys) { ay = Math.min(ay, vy); by = Math.max(by, vy); }
+          }
+          if (ax !== Infinity) acc(el.x + ax, el.y + ay, bx - ax, by - ay);
+        } else {
+          // rect/ellipse/text/bitmap/bone : rendu centré sur (x,y) (Konva
+          // offsetX/offsetY = width/2, height/2).
+          const w = el.width || 0, h = el.height || 0;
+          acc(el.x - w / 2, el.y - h / 2, w, h);
+        }
+      }
+    }
+  }
+  if (minX === Infinity) return { x: 0, y: 0, width: 0, height: 0 };
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}

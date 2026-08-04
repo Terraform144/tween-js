@@ -65,6 +65,10 @@ scrollables à droite + règle + tête de lecture).
 - Liste des symboles : icône (movieclip/graphic), nom, boutons +instance
   (centre de scène, garde anti-cycle), renommer, exporter objet de jeu,
   supprimer. Double-clic = édition isolée.
+- Bouton « + » : centre le CONTENU du symbole sur la feuille via
+  `getSymbolContentBounds` (compense un contenu dessiné loin de son origine —
+  sinon l'instance apparaîtrait hors feuille) ; symbole vide → origine au
+  centre.
 
 ## PropertiesPanel.js
 
