@@ -1,4 +1,4 @@
-import { createDocument, createShape, getContextFrameCount, nextId, insertKeyframe, getContextLayers } from './core/model.js';
+import { createDocument, createShape, createBitmap, addAsset, getContextFrameCount, nextId, insertKeyframe, getContextLayers } from './core/model.js';
 import { createEditorState, subscribe, notify } from './state.js';
 import { createHistory } from './history.js';
 import { createStage } from './stage/Stage.js';
@@ -125,6 +125,51 @@ const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
     }
     notify(state);
   },
+  onImageImport: (asset) => {
+    addBitmapAsset(asset, { x: state.doc.width / 2, y: state.doc.height / 2 });
+  },
+});
+
+// Place une image importée (asset déjà créé dans doc.assets par le menu) dans
+// la keyframe active du calque actif, à la position donnée (centre de la
+// scène pour l'import via le menu, point de dépôt pour le glisser-déposer).
+function addBitmapAsset(asset, pos) {
+  const layers = getContextLayers(state.doc, state.editPath);
+  const layer = layers.find((l) => l.id === state.selectedLayerId) || layers[layers.length - 1];
+  if (!layer || layer.locked) return;
+  const kf = insertKeyframe(layer, state.currentFrame);
+  const el = createBitmap(asset.id, { x: pos.x, y: pos.y, width: asset.width || 100, height: asset.height || 100 });
+  kf.elements.push(el);
+  state.selectedElementIds = [el.id];
+  notify(state);
+}
+
+// Glisser-déposer d'un fichier image directement sur la scène : le point de
+// dépôt (en coordonnées document) est converti via stage.pointFromClient.
+stageContainer.addEventListener('dragenter', (e) => e.preventDefault());
+stageContainer.addEventListener('dragover', (e) => e.preventDefault());
+stageContainer.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+  const file = files.find((f) => (f.type || '').startsWith('image/'));
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const asset = addAsset(state.doc, {
+        name: file.name,
+        type: file.type || 'image/png',
+        dataUrl: reader.result,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+      const pos = stage.pointFromClient(e.clientX, e.clientY);
+      addBitmapAsset(asset, pos);
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
 });
 
 function updateBanner() {

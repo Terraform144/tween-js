@@ -36,6 +36,28 @@ function lerpColor(hexA, hexB, t) {
   return '#' + r + g + bl;
 }
 
+// Copie autonome de lerpPaint (interpolate.js) : une "peinture" est une
+// couleur unie (hex) ou un dégradé { type, angle?, stops }. Même type + même
+// nombre d'arrêts requis pour interpoler, sinon on garde l'état de départ.
+function isGradient(p) {
+  return !!(p && typeof p === 'object' && (p.type === 'linear' || p.type === 'radial') && Array.isArray(p.stops));
+}
+
+function lerpPaint(a, b, t) {
+  if (isGradient(a) && isGradient(b) && a.type === b.type && a.stops.length === b.stops.length) {
+    return {
+      type: a.type,
+      angle: a.angle,
+      stops: a.stops.map((s, i) => ({
+        offset: lerp(s.offset, b.stops[i].offset, t),
+        color: lerpColor(s.color, b.stops[i].color, t),
+      })),
+    };
+  }
+  if (typeof a === 'string' && typeof b === 'string') return lerpColor(a, b, t);
+  return a;
+}
+
 const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height'];
 const COLOR_PROPS = ['fill', 'stroke'];
 
@@ -62,7 +84,7 @@ function interpolateElement(a, b, t) {
     if (typeof a[p] === 'number' && typeof b[p] === 'number') out[p] = lerp(a[p], b[p], t);
   }
   for (const p of COLOR_PROPS) {
-    if (typeof a[p] === 'string' && typeof b[p] === 'string') out[p] = lerpColor(a[p], b[p], t);
+    out[p] = lerpPaint(a[p], b[p], t);
   }
   // Morphing point à point si les deux courbes ont le même nombre de points
   // (même index = points correspondants) ; sinon la forme reste rigide et
@@ -118,14 +140,64 @@ function traceSegment(ctx, a, b) {
   ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, b.x, b.y);
 }
 
-function drawShape(ctx, el) {
+// Copies autonomes des helpers de géométrie de dégradés (playback/paint.js).
+function gradientLineEnds(angle, width, height) {
+  const rad = (angle || 0) * Math.PI / 180;
+  const dx = Math.cos(rad), dy = Math.sin(rad);
+  const hw = (width || 0) / 2, hh = (height || 0) / 2;
+  const extent = Math.abs(dx) * hw + Math.abs(dy) * hh;
+  return { x1: -dx * extent, y1: -dy * extent, x2: dx * extent, y2: dy * extent };
+}
+
+function gradientRadial(width, height) {
+  const r = Math.hypot((width || 0) / 2, (height || 0) / 2);
+  return { x0: 0, y0: 0, r0: 0, x1: 0, y1: 0, r1: r };
+}
+
+// Cache d'images par dataUrl : les bitmaps embarqués sont décodés une seule
+// fois et réutilisés par toutes les instances qui partagent l'asset. L'image
+// se remplit en arrière-plan ; tant qu'elle n'est pas décodée, drawImage est
+// simplement ignoré (le rendu suivant de la boucle l'affichera).
+const __imageCache = {};
+function getImage(dataUrl) {
+  let img = __imageCache[dataUrl];
+  if (img) return img;
+  img = new Image();
+  img.src = dataUrl;
+  __imageCache[dataUrl] = img;
+  return img;
+}
+
+// Applique une "peinture" (couleur unie OU dégradé) comme style de
+// remplissage ou de contour du contexte canvas, dans l'espace local de
+// l'élément (le ctx est déjà translate/rotate/scale).
+function applyPaint(ctx, paint, width, height, mode) {
+  let value = paint;
+  if (paint && typeof paint === 'object' && paint.type) {
+    if (paint.type === 'linear') {
+      const e = gradientLineEnds(paint.angle, width, height);
+      const g = ctx.createLinearGradient(e.x1, e.y1, e.x2, e.y2);
+      for (const s of paint.stops || []) g.addColorStop(s.offset, s.color);
+      value = g;
+    } else if (paint.type === 'radial') {
+      const e = gradientRadial(width, height);
+      const g = ctx.createRadialGradient(e.x0, e.y0, e.r0, e.x1, e.y1, e.r1);
+      for (const s of paint.stops || []) g.addColorStop(s.offset, s.color);
+      value = g;
+    }
+  }
+  if (mode === 'fill') ctx.fillStyle = value == null ? '#000' : value;
+  else ctx.strokeStyle = value == null ? '#000' : value;
+}
+
+function drawShape(ctx, el, data) {
   ctx.save();
   ctx.translate(el.x, el.y);
   ctx.rotate((el.rotation || 0) * Math.PI / 180);
   ctx.scale(el.scaleX || 1, el.scaleY || 1);
   ctx.globalAlpha *= (el.opacity == null ? 1 : el.opacity);
-  ctx.fillStyle = el.fill || '#000';
-  ctx.strokeStyle = el.stroke || '#000';
+  applyPaint(ctx, el.fill, el.width, el.height, 'fill');
+  applyPaint(ctx, el.stroke, el.width, el.height, 'stroke');
   ctx.lineWidth = el.strokeWidth || 0;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -153,6 +225,12 @@ function drawShape(ctx, el) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(el.text || '', 0, 0);
+  } else if (el.kind === 'bitmap') {
+    const asset = data.assets ? data.assets[el.assetId] : null;
+    const img = asset ? getImage(asset.dataUrl) : null;
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, -el.width / 2, -el.height / 2, el.width, el.height);
+    }
   }
   ctx.restore();
 }
@@ -270,7 +348,7 @@ export class MovieClip {
         seen.add(el.id);
         let child = this._children.get(el.id);
         if (!child) {
-          child = new MovieClip({ ...symbol, frameRate: this.data.frameRate, symbols: this.data.symbols });
+          child = new MovieClip({ ...symbol, frameRate: this.data.frameRate, symbols: this.data.symbols, assets: this.data.assets });
           this._children.set(el.id, child);
         }
         if (doUpdate) child.update(dt);
@@ -284,7 +362,7 @@ export class MovieClip {
       if (!layer.visible) continue;
       for (const el of resolveLayerAtFrame(layer, frameIndex)) {
         if (el.kind === 'instance') this._renderInstance(ctx, el, frameIndex);
-        else drawShape(ctx, el);
+        else drawShape(ctx, el, this.data);
       }
     }
   }

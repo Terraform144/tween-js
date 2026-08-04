@@ -1,5 +1,6 @@
 import { notify } from '../state.js';
 import { ICONS } from './icons.js';
+import { isGradientPaint } from '../core/model.js';
 
 const TOOLS = [
   { id: 'select', icon: 'select', title: 'Sélection (V)' },
@@ -45,6 +46,33 @@ export function mountToolbar(container, state, { onDelete } = {}) {
   colorRow.className = 'tool-color-row';
   colorRow.title = 'Couleur de remplissage / contour';
 
+  // Type de remplissage : couleur unie ou dégradé. En mode dégradé,
+  // state.fillColor devient un objet { type, angle?, stops } et le nuancier
+  // ci-dessous édite la couleur du dernier arrêt. Les formes créées ensuite
+  // reprennent ce fill tel quel (voir Stage.js #applyKonvaPaint).
+  const fillTypeSelect = document.createElement('select');
+  fillTypeSelect.className = 'tool-fill-type';
+  fillTypeSelect.title = 'Type de remplissage pour les nouvelles formes';
+  fillTypeSelect.innerHTML = '<option value="solid">Unie</option><option value="linear">Dégradé linéaire</option><option value="radial">Dégradé radial</option>';
+
+  let solidFill = state.fillColor;
+  const currentFillColor = () => isGradientPaint(state.fillColor)
+    ? state.fillColor.stops[state.fillColor.stops.length - 1].color
+    : state.fillColor;
+
+  fillTypeSelect.addEventListener('change', () => {
+    const mode = fillTypeSelect.value;
+    if (mode === 'solid') {
+      state.fillColor = solidFill;
+    } else {
+      const stops = [{ offset: 0, color: '#ffffff' }, { offset: 1, color: currentFillColor() }];
+      state.fillColor = mode === 'linear'
+        ? { type: 'linear', angle: 90, stops }
+        : { type: 'radial', stops };
+    }
+    notify(state);
+  });
+
   const fillInput = document.createElement('input');
   fillInput.type = 'color';
   fillInput.value = state.fillColor;
@@ -52,14 +80,22 @@ export function mountToolbar(container, state, { onDelete } = {}) {
   // émis en continu pendant le choix dans le nuancier natif et re-déclencherait
   // un rendu global à chaque événement (la couleur n'est lue qu'à la création
   // d'une forme, pas en direct — rien ne justifie le rendu continu).
-  fillInput.addEventListener('change', () => { state.fillColor = fillInput.value; notify(state); });
+  fillInput.addEventListener('change', () => {
+    if (isGradientPaint(state.fillColor)) {
+      state.fillColor.stops[state.fillColor.stops.length - 1].color = fillInput.value;
+    } else {
+      state.fillColor = fillInput.value;
+      solidFill = fillInput.value;
+    }
+    notify(state);
+  });
 
   const strokeInput = document.createElement('input');
   strokeInput.type = 'color';
   strokeInput.value = state.strokeColor;
   strokeInput.addEventListener('change', () => { state.strokeColor = strokeInput.value; notify(state); });
 
-  colorRow.append(fillInput, strokeInput);
+  colorRow.append(fillTypeSelect, fillInput, strokeInput);
   container.appendChild(colorRow);
 
   window.addEventListener('keydown', (e) => {
@@ -73,7 +109,9 @@ export function mountToolbar(container, state, { onDelete } = {}) {
     for (const tool of TOOLS) {
       buttons[tool.id].classList.toggle('active', state.currentTool === tool.id);
     }
-    if (fillInput.value !== state.fillColor) fillInput.value = state.fillColor;
+    const fillColor = currentFillColor();
+    if (fillInput.value !== fillColor) fillInput.value = fillColor;
+    fillTypeSelect.value = isGradientPaint(state.fillColor) ? state.fillColor.type : 'solid';
     if (strokeInput.value !== state.strokeColor) strokeInput.value = state.strokeColor;
     // Désactiver le bouton delete s'il n'y a pas de sélection
     deleteBtn.disabled = state.selectedElementIds.length === 0;

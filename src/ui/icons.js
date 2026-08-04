@@ -41,6 +41,7 @@ export const ICONS = {
   newDoc: svg('<path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/>'),
   folderOpen: svg('<path d="M3.5 8V6a1.5 1.5 0 0 1 1.5-1.5h4l2 2H19A1.5 1.5 0 0 1 20.5 8"/><path d="M3.5 8h16.7a1 1 0 0 1 1 1.2l-1.6 8A1.5 1.5 0 0 1 18.1 18.5H5.4a1.5 1.5 0 0 1-1.47-1.2l-1.6-8A1 1 0 0 1 3.3 8Z"/>'),
   importSvg: svg('<path d="M3 17l4-4 4 4 4-4"/><path d="M17 13V6a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v7"/><path d="M8 17l4-4-4-4"/>'),
+  importImage: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4.5 16.5 9 12l3.2 3.2L15.5 12l4 4.5"/>'),
   save: svg('<path d="M5 4.5h11L20 8.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z"/><path d="M8 4.5V10h7V4.5"/><path d="M8 14h8v6H8Z"/>'),
   exportHtml: svg('<rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/><path d="M8.5 8.2 6.3 10.4l2.2 2.2M15.5 8.2l2.2 2.2-2.2 2.2M13 7.5l-2 9"/>'),
   fullscreen: svg('<path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/><path d="M20 15v4a1 1 0 0 1-1 1h-4"/>'),
