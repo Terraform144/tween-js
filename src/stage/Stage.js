@@ -809,9 +809,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     onSelectionChange();
   }
 
-  konvaStage.on('dblclick dbltap', () => {
-    if (drawState && drawState.tool === 'pen') finishPen(false);
-  });
+  // Double-clic désactivé pour l'outil plume (évite la validation involontaire)
+  // konvaStage.on('dblclick dbltap', () => {
+  //   if (drawState && drawState.tool === 'pen') finishPen(false);
+  // });
 
   window.addEventListener('keydown', (e) => {
     if (isTypingTarget(e.target)) return;
