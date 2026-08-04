@@ -49,7 +49,7 @@ export function mountPropertiesPanel(container, state) {
     body.appendChild(row);
   }
 
-  function textRow(label, value, onChange) {
+  function textRow(label, value, onChange, opts = {}) {
     const row = document.createElement('div');
     row.className = 'prop-row';
     const l = document.createElement('label');
@@ -57,6 +57,7 @@ export function mountPropertiesPanel(container, state) {
     const input = document.createElement('input');
     input.type = 'text';
     input.value = value || '';
+    if (opts.title) input.title = opts.title;
     input.addEventListener('change', () => onChange(input.value));
     row.append(l, input);
     body.appendChild(row);
@@ -143,6 +144,9 @@ export function mountPropertiesPanel(container, state) {
     const el = active && active.elements.find((e) => e.id === state.selectedElementIds[0]);
     if (!el) { renderDocSection(); return; }
 
+    textRow('Nom d\'instance', el.name || '', (v) => mutateSelectedElement((e) => (e.name = v)), {
+      title: 'Nom utilisé dans les scripts (ex : nom.x += 1). Pas d\'espaces ni de caractères spéciaux.',
+    });
     numberRow('X', el.x, (v) => mutateSelectedElement((e) => (e.x = v)));
     numberRow('Y', el.y, (v) => mutateSelectedElement((e) => (e.y = v)));
     if ((el.kind === 'shape' && el.shapeType !== 'line' && el.shapeType !== 'path') || el.kind === 'bitmap') {
@@ -185,7 +189,6 @@ export function mountPropertiesPanel(container, state) {
       row.className = 'prop-row';
       row.innerHTML = `<label>Symbole</label><div>${symbol ? symbol.name : '(manquant)'}</div>`;
       body.appendChild(row);
-      textRow('Nom instance', el.name, (v) => mutateSelectedElement((e) => (e.name = v)));
     } else if (el.kind === 'bitmap') {
       const asset = getAsset(state.doc, el.assetId);
       const row = document.createElement('div');

@@ -28,7 +28,7 @@ export function createDocument({ name = 'Sans titre', width = 550, height = 400,
     symbols: {}, // { [symbolId]: Symbol }
     frameLabels: {}, // { [frameIndex]: 'label' } — pour gotoAndPlay('label') à l'export
     assets: {}, // { [assetId]: Asset } — images bitmap embarquées (dataUrl base64)
-    scripts: [createScript('Script 1', '// Code exécuté avec Scene (alias Game)\n// Exemple :\nScene.log(\"Bonjour\", Scene.width, \"x\", Scene.height);\nScene.play();\nScene.onEnterFrame(() => {\n  // ... boucle de jeu, appelée à chaque image pendant la lecture\n});')],
+    scripts: [createScript('Script 1', '// Code exécuté avec Scene (alias Game)\n// Exemple :\nScene.log(\"Bonjour\", Scene.width, \"x\", Scene.height);\nScene.play();\n// Les objets nommés (Nom d\'instance dans les propriétés) sont accessibles\n// directement, comme des movieclips : nom.x += 1; // bouge de 1 px\nScene.onEnterFrame(() => {\n  // ... boucle de jeu, appelée à chaque image pendant la lecture\n});')],
   };
 }
 
@@ -69,6 +69,7 @@ export function createShape(shapeType, props = {}) {
   const base = {
     kind: 'shape',
     id: nextId('shape'),
+    name: '',
     shapeType, // 'rect' | 'ellipse' | 'line' | 'path' | 'text'
     x: 0, y: 0,
     width: 100, height: 100,
@@ -142,6 +143,7 @@ export function createBitmap(assetId, props = {}) {
   const base = {
     kind: 'bitmap',
     id: nextId('bitmap'),
+    name: '',
     assetId,
     x: 0, y: 0,
     width: 100, height: 100,
@@ -627,6 +629,24 @@ export function findElementInLayers(layers, frameIndex, elementId) {
     if (el) return { layer, keyframe: kf, element: el };
   }
   return null;
+}
+
+// Éléments du contexte courant portant un Nom d'instance (el.name), indexés
+// par nom — utilisés par le runtime de scripts pour exposer `nom` comme une
+// variable directement manipulable (`nom.x += 1`). Si deux éléments partagent
+// le même nom, le dernier (calque supérieur) gagne, comme dans Flash.
+export function getNamedElements(doc, editPath, frameIndex) {
+  const layers = getContextLayers(doc, editPath);
+  const out = {};
+  for (const layer of layers) {
+    const kf = getActiveKeyframe(layer, frameIndex);
+    if (!kf) continue;
+    for (const el of kf.elements) {
+      const name = (el.name || '').trim();
+      if (name) out[name] = el;
+    }
+  }
+  return out;
 }
 
 export function symbolUsesSymbol(doc, hostSymbolId, candidateSymbolId) {

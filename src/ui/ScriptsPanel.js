@@ -3,7 +3,7 @@
 // de l'API Scene/Game), boutons Exécuter/Arrêter et console de sortie.
 import { EditorView, basicSetup } from 'codemirror';
 import { javascript, javascriptLanguage } from '@codemirror/lang-javascript';
-import { createScript } from '../core/model.js';
+import { createScript, getNamedElements } from '../core/model.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 import { ICONS } from './icons.js';
@@ -26,6 +26,40 @@ const sceneCompletionSource = (context) => {
   return {
     from: word.from,
     options: SCENE_COMPLETIONS.map((label) => ({ label, type: 'property' })),
+  };
+};
+
+// Propriétés manipulables depuis un script sur un élément nommé.
+const INSTANCE_PROPS = [
+  'x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity',
+  'width', 'height', 'fill', 'stroke', 'strokeWidth', 'name', 'text', 'fontSize',
+];
+
+// Complétion des Noms d'instance du document courant comme variables
+// directement utilisables (nom.x += 1). On ignore les positions après un
+// point / crochet pour ne pas parasiter Scene.* ou obj.prop.
+const instanceNameCompletionSource = (context) => {
+  const word = context.matchBefore(/[\w$]*/);
+  if (!word) return null;
+  const before = context.state.sliceDoc(Math.max(0, word.from - 1), word.from);
+  if (before === '.' || before === '[') return null;
+  const options = Object.keys(getNamedElements(state.doc, state.editPath, state.currentFrame))
+    .map((label) => ({ label, type: 'variable' }));
+  if (!options.length) return null;
+  return { from: word.from, options };
+};
+
+// Complétion des propriétés d'un élément nommé après « nom. ».
+const instancePropsCompletionSource = (context) => {
+  const word = context.matchBefore(/[\w$]*/);
+  if (!word) return null;
+  const before = context.state.sliceDoc(Math.max(0, word.from - 40), word.from);
+  const m = /([A-Za-z_$][\w$]*)\.$/.exec(before);
+  if (!m) return null;
+  if (!(m[1] in getNamedElements(state.doc, state.editPath, state.currentFrame))) return null;
+  return {
+    from: word.from,
+    options: INSTANCE_PROPS.map((label) => ({ label, type: 'property' })),
   };
 };
 
@@ -122,7 +156,7 @@ export function mountScriptsPanel(container, state, { runtime }) {
       extensions: [
         basicSetup,
         javascript(),
-        javascriptLanguage.data.of({ autocomplete: sceneCompletionSource }),
+        javascriptLanguage.data.of({ autocomplete: [sceneCompletionSource, instanceNameCompletionSource, instancePropsCompletionSource] }),
         EditorView.theme({
           '&': { fontSize: '12px', height: '100%' },
           '.cm-scroller': { fontFamily: "'Cascadia Mono', 'Consolas', monospace", lineHeight: '1.45' },
