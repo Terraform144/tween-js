@@ -5,6 +5,7 @@ import { downloadTextFile } from '../util/download.js';
 import { ICONS } from './icons.js';
 import { parseSvg } from '../util/importSvg.js';
 import { enableDragScroll } from '../util/dragScroll.js';
+import { toggleFullscreen, fullscreenElement, onFullscreenChange } from '../util/fullscreen.js';
 
 export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {} }) {
   container.innerHTML = '';
@@ -162,26 +163,17 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
 
   // Bouton plein écran : bascule entre le mode plein écran du navigateur et
   // la fenêtre normale (l'icône change selon l'état, via fullscreenchange).
-  const fsEl = document.documentElement;
-  const reqFullscreen = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen;
-  const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
-  const isFullscreen = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
-
+  // Utilitaire normalisé (tous préfixes + repli CSS) dans util/fullscreen.js.
+  const fsTarget = document.getElementById('app') || document.documentElement;
   const btnFullscreen = iconTextButton('fullscreen', 'Plein écran', () => {
-    if (!reqFullscreen && !exitFullscreen) return;
-    if (isFullscreen()) {
-      (exitFullscreen || (() => {})).call(document);
-    } else {
-      (reqFullscreen || (() => {})).call(fsEl);
-    }
+    toggleFullscreen(fsTarget);
   });
 
   const updateFullscreenBtn = () => {
-    const active = isFullscreen();
+    const active = !!fullscreenElement();
     btnFullscreen.innerHTML = ICONS[active ? 'exitFullscreen' : 'fullscreen'] + `<span>${active ? 'Quitter le plein écran' : 'Plein écran'}</span>`;
   };
-  document.addEventListener('fullscreenchange', updateFullscreenBtn);
-  document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+  onFullscreenChange(updateFullscreenBtn);
 
   const spacer = document.createElement('div');
   spacer.className = 'spacer';

@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
+import { fullscreenElement } from '../util/fullscreen.js';
 import { ICONS } from '../ui/icons.js';
 
 const HANDLE_DRAG_THRESHOLD = 3; // px, avant qu'un clic-glissé plume ne devienne un point lisse
@@ -1029,7 +1030,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     // En plein écran de la feuille seule, la scène peut être agrandie au-delà
     // de 100 % pour remplir l'écran ; en mode normal on ne grossit jamais
     // au-delà de 100 % (voir commentaire plus haut).
-    const fullscreenTarget = document.fullscreenElement || document.webkitFullscreenElement;
+    const fullscreenTarget = fullscreenElement();
     const isSheetFullscreen = fullscreenTarget === container;
     const availEl = isSheetFullscreen ? container : container.parentElement;
     const availW = Math.max(80, (availEl ? availEl.clientWidth : doc.width) - 24);
