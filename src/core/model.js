@@ -27,6 +27,7 @@ export function createDocument({ name = 'Sans titre', width = 550, height = 400,
     layers: [createLayer('Calque 1')],
     symbols: {}, // { [symbolId]: Symbol }
     frameLabels: {}, // { [frameIndex]: 'label' } — pour gotoAndPlay('label') à l'export
+    assets: {}, // { [assetId]: Asset } — images bitmap embarquées (dataUrl base64)
     scripts: [createScript('Script 1', '// Code exécuté avec Scene (alias Game)\n// Exemple :\nScene.log(\"Bonjour\", Scene.width, \"x\", Scene.height);\nScene.play();\nScene.onEnterFrame(() => {\n  // ... boucle de jeu, appelée à chaque image pendant la lecture\n});')],
   };
 }
@@ -102,6 +103,75 @@ export function createInstance(symbolId, props = {}) {
     rotation: 0, scaleX: 1, scaleY: 1, opacity: 1,
   };
   return Object.assign(base, props);
+}
+
+// ---------------------------------------------------------------------------
+// Bitmap & assets (images PNG/JPG/GIF/WebP embarquées en dataUrl base64)
+// ---------------------------------------------------------------------------
+
+// Une image importée est stockée une seule fois dans doc.assets et référencée
+// par ses éléments bitmap (plusieurs placements de la même image ne copient
+// pas les pixels) — façon bibliothèque d'Adobe Animate. Le dataUrl base64
+// reste sérialisable en JSON, donc survit à l'annulation (snapshots), au
+// save/open et aux exports.
+export function createAsset({ name = 'image', type = 'image/png', dataUrl = '', width = 0, height = 0 } = {}) {
+  return {
+    id: nextId('asset'),
+    name,
+    type,
+    dataUrl,
+    width,
+    height,
+  };
+}
+
+export function addAsset(doc, asset) {
+  doc.assets = doc.assets || {};
+  doc.assets[asset.id] = asset;
+  return asset;
+}
+
+export function getAsset(doc, id) {
+  return (doc.assets || {})[id] || null;
+}
+
+// Un élément bitmap référence une image de la bibliothèque (assetId). width/
+// height = taille d'affichage (celle de l'image naturelle au moment de
+// l'import, redimensionnable ensuite via le Transformer ou les propriétés).
+export function createBitmap(assetId, props = {}) {
+  const base = {
+    kind: 'bitmap',
+    id: nextId('bitmap'),
+    assetId,
+    x: 0, y: 0,
+    width: 100, height: 100,
+    rotation: 0, scaleX: 1, scaleY: 1, opacity: 1,
+  };
+  return Object.assign(base, props);
+}
+
+// ---------------------------------------------------------------------------
+// Gradients (remplacement de la couleur unie : el.fill / el.stroke peuvent
+// être soit une chaîne hex, soit un objet gradient { type, angle?, stops }).
+// ---------------------------------------------------------------------------
+
+// Dégradé linéaire : angle en degrés (0 = gauche→droite, 90 = haut→bas), les
+// extrémités sont déduites de la boîte de l'élément au rendu (voir
+// playback/paint.js et sa copie dans tweenRuntime.js) — on ne stocke donc
+// que l'angle, pas les coordonnées absolues.
+export function createLinearGradient(stops, angle = 90) {
+  return { type: 'linear', angle, stops };
+}
+
+// Dégradé radial : du centre (offset 0) vers le bord de la boîte englobante
+// de l'élément (offset 1).
+export function createRadialGradient(stops) {
+  return { type: 'radial', stops };
+}
+
+// stops = [{ offset: 0..1, color: '#rrggbb' }, ...]
+export function isGradientPaint(p) {
+  return !!(p && typeof p === 'object' && (p.type === 'linear' || p.type === 'radial') && Array.isArray(p.stops));
 }
 
 export function createBone(props = {}) {
@@ -384,7 +454,7 @@ export function applyBoneTransformToPoint(point, bones, weights) {
 
 export function cloneElement(el, withNewId = false) {
   const copy = JSON.parse(JSON.stringify(el));
-  if (withNewId) copy.id = nextId(el.kind === 'shape' ? 'shape' : 'inst');
+  if (withNewId) copy.id = nextId(el.kind === 'shape' ? 'shape' : el.kind === 'bitmap' ? 'bitmap' : 'inst');
   return copy;
 }
 
@@ -565,6 +635,7 @@ export function bumpIdCounterPastDocument(doc) {
     scan(symId);
     scanLayers(doc.symbols[symId].layers);
   }
+  for (const assetId in doc.assets || {}) scan(assetId);
   resetIdCounter(maxNum + 1);
 }
 

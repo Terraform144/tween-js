@@ -209,6 +209,15 @@ html, body {
 }
 .tool-color-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .tool-color-row input[type="color"] { width: 26px; height: 20px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
+.tool-color-row .tool-fill-type {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 3px;
+  font-size: 11px;
+}
 
 /* ---------- Stage ---------- */
 #stage-wrap {
@@ -399,6 +408,11 @@ html, body {
 .prop-row input[type="color"] { width: 28px; height: 22px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
 .prop-row select { flex: 1; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px; }
 .prop-row button { background: var(--bg-3); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 4px 8px; cursor: pointer; }
+.prop-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grad-stops { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+.grad-stop input[type="number"] { flex: 0 0 52px; width: 52px; }
+.grad-stop input[type="color"] { flex: none; }
+.grad-stop button { flex: none; padding: 4px 8px; }
 .prop-empty { color: var(--text-dim); font-style: italic; padding: 6px; }
 
 /* ---------- Scripts : onglets + éditeur de code + console ---------- */

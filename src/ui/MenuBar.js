@@ -1,4 +1,4 @@
-import { createDocument, serializeDocument, deserializeDocument, getContextFrameCount, setContextFrameCount } from '../core/model.js';
+import { createDocument, serializeDocument, deserializeDocument, getContextFrameCount, setContextFrameCount, addAsset } from '../core/model.js';
 import { notify } from '../state.js';
 import { downloadStandaloneHTML } from '../export/exportHTML.js';
 import { downloadTextFile } from '../util/download.js';
@@ -6,7 +6,7 @@ import { ICONS } from './icons.js';
 import { parseSvg } from '../util/importSvg.js';
 import { enableDragScroll } from '../util/dragScroll.js';
 
-export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {} }) {
+export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {} }) {
   container.innerHTML = '';
 
   const brand = document.createElement('span');
@@ -72,6 +72,39 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     }
   });
 
+  // Bouton d'import d'images bitmap (PNG/JPG/GIF/WebP). L'image est décodée
+  // pour connaître sa taille naturelle puis stockée dans doc.assets sous
+  // forme de dataUrl base64 (persistable dans le JSON) ; le placement sur la
+  // scène est délégué à main.js via onImageImport(asset).
+  const btnImportImage = iconTextButton('importImage', 'Importer image…', () => imgFileInput.click());
+  const imgFileInput = document.createElement('input');
+  imgFileInput.type = 'file';
+  imgFileInput.accept = 'image/png,image/jpeg,image/gif,image/webp,.png,.jpg,.jpeg,.gif,.webp';
+  imgFileInput.style.display = 'none';
+  imgFileInput.addEventListener('change', () => {
+    const file = imgFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const asset = addAsset(state.doc, {
+          name: file.name,
+          type: file.type || 'image/png',
+          dataUrl: reader.result,
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+        notify(state);
+        onImageImport(asset);
+      };
+      img.onerror = () => alert('Impossible de lire cette image.');
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+    imgFileInput.value = '';
+  });
+
   const btnSave = iconTextButton('save', 'Enregistrer JSON', () => {
     downloadTextFile(serializeDocument(state.doc), safeName(state.doc.name) + '.json', 'application/json');
   });
@@ -134,7 +167,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   bgInput.addEventListener('input', () => { state.doc.backgroundColor = bgInput.value; notify(state); });
 
   container.append(
-    brand, btnUndo, btnRedo, btnNew, btnOpen, btnImportSvg, btnSave, btnExport, btnFullscreen, fileInput, svgFileInput,
+    brand, btnUndo, btnRedo, btnNew, btnOpen, btnImportSvg, btnImportImage, btnSave, btnExport, btnFullscreen, fileInput, svgFileInput, imgFileInput,
     spacer,
     nameInput,
     wLabel, wInput, hLabel, hInput,

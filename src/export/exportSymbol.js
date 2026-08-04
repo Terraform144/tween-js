@@ -8,9 +8,11 @@ import { downloadTextFile } from '../util/download.js';
 import { invertFrameLabels as invertLabels } from '../core/model.js';
 
 // Parcourt récursivement les instances imbriquées pour ne garder que les
-// symboles réellement utilisés par ce symbole (racine incluse).
+// symboles réellement utilisés par ce symbole (racine incluse), ainsi que les
+// assets bitmap référencés par leurs calques.
 function collectSymbolClosure(doc, rootSymbolId) {
   const collected = {};
+  const assets = {};
   const stack = [rootSymbolId];
   const visited = new Set();
   while (stack.length) {
@@ -29,22 +31,26 @@ function collectSymbolClosure(doc, rootSymbolId) {
       for (const kf of layer.keyframes) {
         for (const el of kf.elements) {
           if (el.kind === 'instance' && !visited.has(el.symbolId)) stack.push(el.symbolId);
+          if (el.kind === 'bitmap' && el.assetId && doc.assets && doc.assets[el.assetId]) {
+            assets[el.assetId] = doc.assets[el.assetId];
+          }
         }
       }
     }
   }
-  return collected;
+  return { collected, assets };
 }
 
 export function buildSymbolExportData(doc, rootSymbolId) {
-  const symbols = collectSymbolClosure(doc, rootSymbolId);
-  const root = symbols[rootSymbolId];
+  const { collected, assets } = collectSymbolClosure(doc, rootSymbolId);
+  const root = collected[rootSymbolId];
   return {
     frameRate: doc.frameRate,
     frameCount: root.frameCount,
     layers: root.layers,
     frameLabels: root.frameLabels,
-    symbols,
+    assets,
+    symbols: collected,
   };
 }
 

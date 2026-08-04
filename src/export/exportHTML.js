@@ -26,6 +26,7 @@ function buildFullDocData(doc) {
     frameCount: doc.frameCount,
     layers: doc.layers,
     frameLabels: invertFrameLabels(doc.frameLabels),
+    assets: doc.assets || {},
     symbols,
   };
 }
