@@ -78,8 +78,13 @@ scrollables à droite + règle + tête de lecture).
 
 ## MenuBar.js
 
-- Brand "TweenJS", undo/redo (Ctrl+Z / Ctrl+Y), Nouveau, Ouvrir… (JSON),
-  Importer SVG, Enregistrer JSON, Exporter HTML.
+- Brand "TweenJS", undo/redo (Ctrl+Z / Ctrl+Y), Nouveau, menu **Fichier** ▾
+  (Ouvrir… JSON, Importer SVG, Importer image…, Enregistrer JSON, Exporter
+  HTML), Plein écran.
+- Le panneau du menu Fichier est monté dans `document.body` en `fixed`
+  (#menubar a un `overflow-x:auto` qui clipperait un dropdown absolu) ;
+  coordonnées = `getBoundingClientRect()` du bouton, fermeture au clic
+  extérieur / Échap / scroll / resize.
 - Champs du document : nom, L (largeur), H (hauteur), i/s (frameRate),
   images (frameCount), fond (couleur).
 - `resetDocument` : remplace `state.doc` (utilisé par Nouveau/Ouvrir).
