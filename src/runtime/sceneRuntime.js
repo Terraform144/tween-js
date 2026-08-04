@@ -2,8 +2,29 @@
 // permettant de piloter le document (dimensions, fps, lecture, ajout de
 // formes/instances, boucle onEnterFrame, entrées clavier) depuis du code
 // utilisateur exécuté avec `run()`.
-import { createShape, createInstance, insertKeyframe, getContextLayers, getContextFrameCount, setContextFrameCount } from '../core/model.js';
+import { createShape, createInstance, insertKeyframe, getContextLayers, getContextFrameCount, setContextFrameCount, getNamedElements } from '../core/model.js';
 import { notify } from '../state.js';
+
+// Mots clés JS / identifiants réservés : un Nom d'instance qui en fait partie
+// ne peut pas être injecté comme variable directe (SyntaxError) — il reste
+// accessible via la map `named` passée aux scripts (named['nom']).
+const RESERVED = new Set([
+  'Scene', 'Game', 'console', 'named',
+  'eval', 'arguments', 'undefined', 'NaN', 'Infinity',
+  'await', 'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger',
+  'default', 'delete', 'do', 'else', 'enum', 'export', 'extends', 'false',
+  'finally', 'for', 'function', 'if', 'implements', 'import', 'in', 'instanceof',
+  'interface', 'let', 'new', 'null', 'package', 'private', 'protected', 'public',
+  'return', 'static', 'super', 'switch', 'this', 'throw', 'true', 'try',
+  'typeof', 'var', 'void', 'while', 'with', 'yield',
+]);
+
+// Noms des propriétés animables d'un élément, pour l'info-bulle de
+// complétion ; les éléments nommés supportent aussi width/height/points…
+function namedVarNames(named) {
+  return Object.keys(named)
+    .filter((n) => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(n) && !RESERVED.has(n));
+}
 
 export function createSceneRuntime({ state, onResize = () => {} }) {
   const enterFrameCbs = new Set();
@@ -82,6 +103,10 @@ export function createSceneRuntime({ state, onResize = () => {} }) {
 
   // `run` exécute le code une fois. Les callbacks onEnterFrame/onKey* sont
   // vidés à chaque run pour éviter les accumulateurs d'un run à l'autre.
+  // Les éléments portant un Nom d'instance (à l'image courante du contexte)
+  // sont injectés comme variables directement utilisables : `nom.x += 1`.
+  // Un nom non-identifiant valide (espace, mot réservé…) reste accessible
+  // via la map `named` passée en 4e argument implicite.
   let onConsole = () => {};
   function run(code, consoleCb = () => {}) {
     onConsole = consoleCb;
@@ -99,8 +124,12 @@ export function createSceneRuntime({ state, onResize = () => {} }) {
         return target[prop];
       },
     });
-    const fn = new Function('Scene', 'Game', 'console', '"use strict";\n' + code);
-    fn(Scene, Scene, proxyConsole);
+    const named = getNamedElements(state.doc, state.editPath, state.currentFrame);
+    const prelude = namedVarNames(named)
+      .map((n) => `var ${n} = named[${JSON.stringify(n)}];`)
+      .join('\n');
+    const fn = new Function('Scene', 'Game', 'console', 'named', '"use strict";\n' + prelude + '\n' + code);
+    fn(Scene, Scene, proxyConsole, named);
     return Scene;
   }
 

@@ -108,9 +108,17 @@ d'export `tweenRuntime.js` : il pilote le document live via `state`).
   `addShape(type, props)`, `addInstance(symbolId, props)` (insertion dans le
   keyframe actif du calque actif) ; `onEnterFrame(cb)`, `onKeyDown(cb)`,
   `onKeyUp(cb)`, `keys` (état du clavier) ; `random(n)`, `log(...args)`.
-- `run(code, onConsole)` : `new Function('Scene','Game','console',...)`, vide
-  les callbacks frame/touches à chaque exécution, `console` proxifié →
+- `run(code, onConsole)` : `new Function('Scene','Game','console','named',...)`,
+  vide les callbacks frame/touches à chaque exécution, `console` proxifié →
   `onConsole(level, args)`.
+- **Noms d'instance** : au `run`, `getNamedElements(doc, editPath, currentFrame)`
+  récupère les éléments portant un `el.name` ; chaque nom qui est un identifiant
+  JS valide (et non réservé) est injecté en préambule du script comme variable
+  directe — `nom.x += 1` manipule l'élément live du document. Les noms
+  invalides (espace, mot réservé…) restent accessibles via la map `named`
+  passée en 4e argument (`named['mon perso'].x`). La préférence va à la
+  variable directe (préambule `var nom = named["nom"];`), aucun risque de
+  collision avec `Scene`/`Game`/`console`/`named` (exclus du préambule).
 - `onFrame(frame)` appelée par la boucle playback de `main.js#loop` (avance
   d'image) ; `dispose()` retire les listeners clavier.
 - Sortie console → panneau Scripts (`.script-console`), niveau error en rouge,
@@ -123,9 +131,13 @@ d'export `tweenRuntime.js` : il pilote le document live via `state`).
 - Éditeur CodeMirror 6 (`basicSetup` + `javascript()`) ; persistance du code
   dans `sc.code` à chaque changement ; onglets (ajout `+ Nouveau`, renommage
   par double-clic, suppression), boutons Exécuter / Arrêter, console.
-- Autocomplétion de l'API `Scene.`/`Game.` : source ajoutée via
-  `javascriptLanguage.data.of({ autocomplete })` (combine avec l'autocomplétion
-  JS native — pas d'override). Raccourci Ctrl+Entrée pour exécuter.
+- Autocomplétion : sources ajoutées via `javascriptLanguage.data.of({ autocomplete: [sources] })`
+  (combine avec l'autocomplétion JS native — pas d'override) :
+  - `Scene.`/`Game.` → API Scene ;
+  - identifiant nu → **Noms d'instance** du contexte courant (variables) ;
+  - `nom.` (un élément nommé suivi d'un point) → propriétés animables
+    (`x, y, rotation, scaleX, scaleY, opacity, width, height, fill, …`).
+  Raccourci Ctrl+Entrée pour exécuter.
 - Sérialisation : `serializeDocument = JSON.stringify(doc)` → `doc.scripts`
   survit au round-trip JSON (export → ouvrir) sans code supplémentaire.
 

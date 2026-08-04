@@ -69,10 +69,11 @@ scrollables à droite + règle + tête de lecture).
 ## PropertiesPanel.js
 
 - Rendu conditionnel : section tween (easing) si la clé courante est tweenée
-  + astuce morphing ; sinon propriétés de l'élément sélectionné (X/Y, W/H,
-  rotation, échelle, opacité, remplissage/contour, épaisseur, texte, police)
-  + sélecteur squelette (bones) ; instance → nom + symbole ; bone → longueur,
-  couleur, parent, influence.
+  + astuce morphing ; sinon propriétés de l'élément sélectionné (Nom
+  d'instance en tête pour TOUS les objets — forme, instance, bitmap — puis
+  X/Y, W/H, rotation, échelle, opacité, remplissage/contour, épaisseur, texte,
+  police) + sélecteur squelette (bones) ; instance → nom + symbole ; bone →
+  longueur, couleur, parent, influence.
 - `mutateSelectedElement(fn)` : insère une clé au besoin puis mute l'élément.
 - Bouton "Supprimer l'objet".
 

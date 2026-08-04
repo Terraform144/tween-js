@@ -42,7 +42,7 @@ Symbol (== Document miniature)
 
 **Shape** (`createShape(shapeType, props)`), `kind: 'shape'` :
 - `shapeType`: 'rect' | 'ellipse' | 'line' | 'path' | 'text'
-- Props communes : `x, y, width, height, rotation, scaleX, scaleY, opacity,
+- Props communes : `name, x, y, width, height, rotation, scaleX, scaleY, opacity,
   fill, stroke, strokeWidth, closed`
 - `points: []` pour line/path — points relatifs à (x,y)
 - Text : `text, fontSize, fontFamily`
@@ -59,8 +59,17 @@ Symbol (== Document miniature)
 **Bitmap** (`createBitmap(assetId, props)`), `kind: 'bitmap'` :
 - `assetId` → référence vers `doc.assets[assetId]` (une seule copie des
   pixels, plusieurs placements possibles — façon bibliothèque Animate).
-- `x, y, width, height` (dimensions naturelles par défaut), `rotation,
+- `name, x, y, width, height` (dimensions naturelles par défaut), `rotation,
   scaleX, scaleY, opacity`.
+
+## Nom d'instance (`el.name`)
+
+Tout élément (shape, instance, bitmap) peut porter un **nom** saisi dans le
+panneau Propriétés. Les éléments nommés du contexte courant (image courante,
+`getNamedElements(doc, editPath, frameIndex)`) sont exposés aux scripts de
+l'éditeur comme **variables directes** : `nom.x += 1` déplace l'objet de 1 px
+(voir `export-runtime.md`). Nom vide = non référençable. En cas de doublon,
+le dernier élément (calque supérieur) gagne.
 
 ## Assets (`doc.assets`)
 
