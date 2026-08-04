@@ -37,6 +37,20 @@ par le runtime exporté.
   pas de build.
 - Échappe `<` en `\u003c` dans le JSON embarqué (évite le parsing
   `</script>`).
+- **Scripts + Noms d'instance exportés** : `buildBootstrapScript(dataJson,
+  scriptsJson)` réimplémente la surface `Scene`/`Game` de l'éditeur
+  (dimensions, frameRate, backgroundColor, play/stop/gotoAndPlay/gotoAndStop,
+  currentFrame, addShape/addInstance, onEnterFrame/onKeyDown/onKeyUp/keys,
+  random, log). Les éléments nommés de l'image 0 (même logique que
+  `getNamedElements` côté éditeur) sont exposés comme variables directes via
+  une **Proxy** : les écritures de transform vont dans l'élément live
+  (`c1.x += 1` déplace réellement le rendu), et pour une instance de symbole
+  `movieclip` les méthodes de timeline (`play/stop/gotoAndPlay/gotoAndStop`,
+  `currentFrame`, `frameCount`, `isPlaying`, `loop`) sont déléguées au
+  `MovieClip` enfant (`root._children`). Noms invalides (espace, réservé) →
+  map `named`. `onEnterFrame` est appelé à chaque tick rAF (pas par image du
+  MovieClip). Limites : éléments nommés de l'image 0 uniquement ; `addShape`/
+  `addInstance` poussent dans le keyframe 0 du dernier calque visible.
 
 ## Runtime MovieClip (`src/export/tweenRuntime.js`)
 
