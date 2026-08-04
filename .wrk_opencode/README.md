@@ -81,6 +81,20 @@ d'animation vectorielle image par image inspiré d'Adobe Animate.
 - Konva ne dessine les dégradés radiaux qu'en remplissage : un contour radial
   est donc neutralisé côté éditeur (couleur du dernier arrêt) alors que le
   runtime canvas brut le gère — ne pas "corriger" l'un sans l'autre.
+
+## Déploiement prod ([REDACTÉ]) — PAS de git
+
+[REDACTÉ] se met à jour **sans git** (le remote `[REDACTÉ]` historique est mort,
+"repository not found") : copie directe de `dist/` par SCP.
+
+1. `npm run build`
+2. `pscp -P 22 -l [REDACTÉ] -pw <mdp> -r dist/* [REDACTÉ]:/var/www/AnimateJS/`
+   (`<mdp>` : voir `.[REDACTÉ]_ssh_info.txt`, fichier ignoré par git — `pscp`
+   PuTTY est dans le PATH).
+3. Vérif : `https://animatejs.[REDACTÉ].nip.io/` doit servir le nouveau
+   hash `index-*.js/.css` (le dossier racine de [REDACTÉ] est une page
+   "Débrouillard | Apps" qui pointe vers `animatejs.*.nip.io`).
+4. Git : pousser sur `origin` (GitHub) reste la norme pour le code.
 - Fichiers de travail locaux : `_wrk_mistral_mem/session_log.md` (historique
   Mistral), `gameTest/` (AIR SDK HARMAN — non tracké), `dist/` (build).
 - `.env` est tracké par git (attention aux secrets).
