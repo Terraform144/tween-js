@@ -1,7 +1,6 @@
 import Konva from 'konva';
 import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
-import { gradientLineEnds, gradientRadial, colorStopsToPairs } from '../playback/paint.js';
 import { notify } from '../state.js';
 import { ICONS } from '../ui/icons.js';
 
@@ -31,49 +30,6 @@ function traceSegment(ctx, a, b) {
 
 function clonePathPoint(p) {
   return { x: p.x, y: p.y, cIn: p.cIn ? { x: p.cIn.x, y: p.cIn.y } : null, cOut: p.cOut ? { x: p.cOut.x, y: p.cOut.y } : null, smooth: p.smooth };
-}
-
-// Applique une "peinture" (couleur unie OU dégradé) sur un nœud Konva, en
-// remplissage ou en contour. Les dégradés Konva vivent dans des attributs
-// dédiés (fillLinearGradientStartPoint, fillRadialGradientColorStops, …) et
-// sont exprimés dans l'espace local du nœud — on les déduit donc de la boîte
-// width×height et de l'angle stocké dans le modèle. `width`/`height` peuvent
-// être passés explicitement (aperçu de dessin en cours de drag).
-function applyKonvaPaint(node, paint, width, height, mode) {
-  const g = mode === 'fill' ? 'fill' : 'stroke';
-  if (paint && typeof paint === 'object' && paint.type) {
-    // Konva ne sait dessiner les dégradés radiaux qu'en remplissage (le
-    // contour ne lit que strokeLinearGradientColorStops). Un dégradé radial
-    // de contour retombe donc sur la couleur de son dernier arrêt.
-    const radial = paint.type === 'radial' && mode === 'fill';
-    if (paint.type === 'linear' || radial) {
-      if (paint.type === 'linear') {
-        const e = gradientLineEnds(paint.angle, width, height);
-        node.setAttrs({
-          [g + 'LinearGradientStartPoint']: { x: e.x1, y: e.y1 },
-          [g + 'LinearGradientEndPoint']: { x: e.x2, y: e.y2 },
-          [g + 'LinearGradientColorStops']: colorStopsToPairs(paint.stops),
-        });
-      } else {
-        const e = gradientRadial(width, height);
-        node.setAttrs({
-          [g + 'RadialGradientStartPoint']: { x: e.x0, y: e.y0 },
-          [g + 'RadialGradientEndPoint']: { x: e.x1, y: e.y1 },
-          [g + 'RadialGradientStartRadius']: e.r0,
-          [g + 'RadialGradientEndRadius']: e.r1,
-          [g + 'RadialGradientColorStops']: colorStopsToPairs(paint.stops),
-        });
-      }
-      // Un dégradé remplace la couleur unie : si un ancien attribut fill/stroke
-      // traîne, on le neutralise (sinon Konva pourrait le dessiner par-dessus).
-      node[g](null);
-    } else {
-      const last = paint.stops && paint.stops[paint.stops.length - 1];
-      node[g](last ? last.color : null);
-    }
-  } else {
-    node[g](paint || null);
-  }
 }
 
 // Wraps a Konva.Stage and turns it into an Animate-like canvas: it renders
@@ -241,21 +197,18 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         // Placeholder tant que l'image décode (getImage déclenche un re-rendu au onload).
         node = new Konva.Rect({ width: el.width || 100, height: el.height || 100, offsetX: (el.width || 100) / 2, offsetY: (el.height || 100) / 2, fill: '#cfd8dc', stroke: '#90a4ae', strokeWidth: 1, dash: [4, 4], cornerRadius: 2 });
       }
-      node.getSelfRect = function () {
-        const w = el.width || 100, h = el.height || 100;
-        return { x: -w / 2, y: -h / 2, width: w, height: h };
-      };
+      // Pas d'override de getSelfRect : le défaut de Konva.Image/Rect
+      // (getSelfRect = {x:0, y:0, width, height} avec offsetX/offsetY) donne
+      // déjà la bonne boîte pour le Transformer. Un rect centré ici DOUBLErait
+      // le décalage (offset appliqué une fois dans la transform, une fois dans
+      // la boîte) et le sélecteur glisserait vers le haut-gauche de l'image.
     } else {
       switch (el.shapeType) {
         case 'rect':
-          node = new Konva.Rect({ offsetX: el.width / 2, offsetY: el.height / 2, width: el.width, height: el.height, strokeWidth: el.strokeWidth });
-          applyKonvaPaint(node, el.fill, el.width, el.height, 'fill');
-          applyKonvaPaint(node, el.stroke, el.width, el.height, 'stroke');
+          node = new Konva.Rect({ offsetX: el.width / 2, offsetY: el.height / 2, width: el.width, height: el.height, fill: el.fill, stroke: el.stroke, strokeWidth: el.strokeWidth });
           break;
         case 'ellipse':
-          node = new Konva.Ellipse({ radiusX: el.width / 2, radiusY: el.height / 2, strokeWidth: el.strokeWidth });
-          applyKonvaPaint(node, el.fill, el.width, el.height, 'fill');
-          applyKonvaPaint(node, el.stroke, el.width, el.height, 'stroke');
+          node = new Konva.Ellipse({ radiusX: el.width / 2, radiusY: el.height / 2, fill: el.fill, stroke: el.stroke, strokeWidth: el.strokeWidth });
           break;
         case 'line':
         case 'path': {
@@ -265,6 +218,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
           // sans jamais toucher le modèle avant commitPoints().
           const elData = { points: el.points.map(clonePathPoint), closed: !!el.closed };
           node = new Konva.Shape({
+            fill: el.closed ? el.fill : undefined,
+            stroke: el.stroke,
             strokeWidth: el.strokeWidth,
             lineCap: 'round',
             lineJoin: 'round',
@@ -276,8 +231,6 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
             },
           });
           node.setAttr('elData', elData);
-          if (el.closed) applyKonvaPaint(node, el.fill, el.width, el.height, 'fill');
-          applyKonvaPaint(node, el.stroke, el.width, el.height, 'stroke');
           // Konva.Shape générique : getSelfRect() par défaut se base sur les
           // attrs width/height (jamais renseignés ici) et renverrait une
           // boîte nulle — inutilisable pour le cadre de sélection (marquee)
@@ -293,8 +246,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
           break;
         }
         case 'text':
-          node = new Konva.Text({ offsetX: el.width / 2, offsetY: el.height / 2, width: el.width, text: el.text || 'Texte', fontSize: el.fontSize, fontFamily: el.fontFamily, align: 'center' });
-          applyKonvaPaint(node, el.fill, el.width, el.height, 'fill');
+          node = new Konva.Text({ offsetX: el.width / 2, offsetY: el.height / 2, width: el.width, text: el.text || 'Texte', fontSize: el.fontSize, fontFamily: el.fontFamily, fill: el.fill, align: 'center' });
           break;
         default:
           node = new Konva.Rect({ width: 1, height: 1, fill: 'red' });
@@ -699,12 +651,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (tool === 'rect' || tool === 'ellipse' || tool === 'line') {
       drawState = { tool, start: p, last: null };
       let node;
-      if (tool === 'rect') node = new Konva.Rect({ x: p.x, y: p.y, width: 0, height: 0, stroke: state.strokeColor, strokeWidth: state.strokeWidth, dash: [4, 4], listening: false });
-      if (tool === 'ellipse') node = new Konva.Ellipse({ x: p.x, y: p.y, radiusX: 0, radiusY: 0, stroke: state.strokeColor, strokeWidth: state.strokeWidth, dash: [4, 4], listening: false });
+      if (tool === 'rect') node = new Konva.Rect({ x: p.x, y: p.y, width: 0, height: 0, stroke: state.strokeColor, strokeWidth: state.strokeWidth, fill: state.fillColor, dash: [4, 4], listening: false });
+      if (tool === 'ellipse') node = new Konva.Ellipse({ x: p.x, y: p.y, radiusX: 0, radiusY: 0, stroke: state.strokeColor, strokeWidth: state.strokeWidth, fill: state.fillColor, dash: [4, 4], listening: false });
       if (tool === 'line') node = new Konva.Line({ points: [p.x, p.y, p.x, p.y], stroke: state.strokeColor, strokeWidth: state.strokeWidth, listening: false });
-      // fill peut être un dégradé : on l'applique via applyKonvaPaint (et on
-      // le réapplique pendant le drag, quand la taille finale est connue).
-      if (tool !== 'line') applyKonvaPaint(node, state.fillColor, 0, 0, 'fill');
       drawState.previewNode = node;
       overlayLayer.add(node);
       overlayLayer.draw();
@@ -777,13 +726,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const x = Math.min(p.x, drawState.start.x), y = Math.min(p.y, drawState.start.y);
       const w = Math.abs(p.x - drawState.start.x), h = Math.abs(p.y - drawState.start.y);
       drawState.previewNode.setAttrs({ x, y, width: w, height: h });
-      applyKonvaPaint(drawState.previewNode, state.fillColor, w, h, 'fill');
       drawState.last = p;
     } else if (drawState.tool === 'ellipse') {
       const cx = (p.x + drawState.start.x) / 2, cy = (p.y + drawState.start.y) / 2;
-      const rx = Math.abs(p.x - drawState.start.x) / 2, ry = Math.abs(p.y - drawState.start.y) / 2;
-      drawState.previewNode.setAttrs({ x: cx, y: cy, radiusX: rx, radiusY: ry });
-      applyKonvaPaint(drawState.previewNode, state.fillColor, rx * 2, ry * 2, 'fill');
+      drawState.previewNode.setAttrs({ x: cx, y: cy, radiusX: Math.abs(p.x - drawState.start.x) / 2, radiusY: Math.abs(p.y - drawState.start.y) / 2 });
       drawState.last = p;
     } else if (drawState.tool === 'line') {
       drawState.previewNode.points([drawState.start.x, drawState.start.y, p.x, p.y]);

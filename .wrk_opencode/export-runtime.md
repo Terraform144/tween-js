@@ -8,10 +8,7 @@ par le runtime exporté.
 - `lerp(a, b, t)` ; `applyEasing(t, easing)` (linear, easeIn t², easeOut
   1-(1-t)², easeInOut) ; `lerpColor` (hex → RGB → lerp → hex).
 - `NUMERIC_PROPS = [x, y, rotation, scaleX, scaleY, opacity, width, height]` ;
-  `COLOR_PROPS = [fill, stroke]`.
-- `lerpPaint(a, b, t)` : si les deux sont des dégradés de **même type** avec le
-  **même nombre d'arrêts** → mélange positions ET couleurs des stops ; sinon
-  retourne l'état de départ (pas de croisement unie↔dégradé).
+  `COLOR_PROPS = [fill, stroke]` (interpolés par `lerpColor`, string hex).
 - `interpolateElement(a, b, t)` : clone `a`, lerpe les props numériques +
   couleurs si `b` a un pendant, et **morphe point à point** les courbes
   uniquement si `a.points.length === b.points.length` (sinon la forme reste
@@ -67,10 +64,6 @@ Runtime autonome, sans dépendance (~290 lignes), API type CreateJS/EaselJS.
   par `getImage`). `data` = document embarqué (ses `assets` alimentent les
   bitmaps — la signature a changé de `drawShape(ctx, el)` à
   `drawShape(ctx, el, data)`, les deux appels dans `_renderLayers` sont à jour).
-- `applyPaint(ctx, paint, width, height, mode)` : applique `fillStyle`/
-  `strokeStyle` pour couleur unie, dégradé linéaire (`gradientLineEnds`,
-  géométrie déduite de la boîte) ou radial (`gradientRadial`). **Côté canvas
-  brut, les dégradés radiaux de contour fonctionnent** (contrairement à Konva).
 - Exporte aussi `createMovieClip(data, props)` (helper).
 
 ## Export symbole comme objet de jeu (`src/export/exportSymbol.js`)

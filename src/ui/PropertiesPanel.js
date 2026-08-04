@@ -89,115 +89,6 @@ export function mountPropertiesPanel(container, state) {
     return select;
   }
 
-  function isGrad(p) {
-    return !!(p && typeof p === 'object' && (p.type === 'linear' || p.type === 'radial') && Array.isArray(p.stops));
-  }
-
-  // Éditeur de "peinture" : couleur unie ou dégradé (linéaire/radial) avec
-  // arrêts de couleur. Toute modification remonte via onChange(paint), qu'il
-  // faut brancher sur mutateSelectedElement() (undo + notify inclus). Utilisé
-  // pour le remplissage ET le contour des formes.
-  // allowRadial=false pour le contour : Konva ne sait rendre que le dégradé
-  // linéaire de contour (strokeLinearGradientColorStops), le radial n'existe pas.
-  function renderPaintEditor(label, value, onChange, allowRadial = true) {
-    const grad = isGrad(value);
-    const type = grad ? value.type : 'solid';
-    const options = [['solid', 'Couleur unie'], ['linear', 'Dégradé linéaire']];
-    if (allowRadial) options.push(['radial', 'Dégradé radial']);
-    // Un dégradé radial "hérité" alors que l'éditeur l'interdit : on l'affiche
-    // en linéaire pour ne pas perdre les arrêts, la bascule est explicite.
-    const effectiveType = (!allowRadial && type === 'radial') ? 'linear' : type;
-
-    const typeRow = document.createElement('div');
-    typeRow.className = 'prop-row';
-    const l = document.createElement('label');
-    l.textContent = label;
-    const select = document.createElement('select');
-    for (const [v, t] of options) {
-      const opt = document.createElement('option');
-      opt.value = v; opt.textContent = t;
-      if (effectiveType === v) opt.selected = true;
-      select.appendChild(opt);
-    }
-    typeRow.append(l, select);
-    body.appendChild(typeRow);
-
-    // En mode "couleur unie", on fabrique deux arrêts identiques pour que la
-    // bascule vers un dégradé démarre avec une transition propre.
-    const stops = (grad ? value.stops : [
-      { offset: 0, color: value || '#000000' },
-      { offset: 1, color: value || '#000000' },
-    ]).map((s) => ({ ...s }));
-
-    let angleInput = null;
-    const currentAngle = () => (angleInput ? parseFloat(angleInput.value) || 0 : 90);
-
-    function buildPaint() {
-      if (select.value === 'solid') return stops[stops.length - 1].color;
-      const paint = { type: select.value, stops: stops.map((s) => ({ ...s })) };
-      if (select.value === 'linear') paint.angle = currentAngle();
-      return paint;
-    }
-
-    function emit() { onChange(buildPaint()); }
-
-    if (effectiveType === 'linear') {
-      const angleRow = document.createElement('div');
-      angleRow.className = 'prop-row';
-      const al = document.createElement('label'); al.textContent = 'Angle';
-      angleInput = document.createElement('input');
-      angleInput.type = 'number';
-      angleInput.value = Math.round((grad ? value.angle : 90) || 0);
-      angleInput.title = '0 = gauche → droite, 90 = haut → bas';
-      angleInput.addEventListener('change', emit);
-      angleRow.append(al, angleInput);
-      body.appendChild(angleRow);
-    }
-
-    const stopsBox = document.createElement('div');
-    stopsBox.className = 'grad-stops';
-
-    function renderStops() {
-      stopsBox.innerHTML = '';
-      stops.forEach((stop, i) => {
-        const srow = document.createElement('div');
-        srow.className = 'prop-row grad-stop';
-        const off = document.createElement('input');
-        off.type = 'number'; off.min = 0; off.max = 100; off.step = 1;
-        off.value = Math.round(stop.offset * 100);
-        off.title = 'Position (0–100 %)';
-        off.addEventListener('change', () => {
-          stop.offset = Math.max(0, Math.min(1, (parseFloat(off.value) || 0) / 100));
-          renderStops(); emit();
-        });
-        const color = document.createElement('input');
-        color.type = 'color';
-        color.value = stop.color;
-        color.addEventListener('change', () => { stop.color = color.value; emit(); });
-        const del = document.createElement('button');
-        del.textContent = '–';
-        del.title = 'Supprimer cet arrêt';
-        del.addEventListener('click', () => {
-          if (stops.length > 1) { stops.splice(i, 1); renderStops(); emit(); }
-        });
-        srow.append(off, color, del);
-        stopsBox.appendChild(srow);
-      });
-      const add = document.createElement('button');
-      add.textContent = '+ Arrêt';
-      add.addEventListener('click', () => {
-        if (stops.length >= 8) return;
-        stops.push({ offset: 1, color: '#cb4b16' });
-        renderStops(); emit();
-      });
-      stopsBox.appendChild(add);
-    }
-    renderStops();
-    body.appendChild(stopsBox);
-
-    select.addEventListener('change', emit);
-  }
-
   function renderTweenSection() {
     const layer = selectedLayer();
     if (!layer) return;
@@ -264,8 +155,8 @@ export function mountPropertiesPanel(container, state) {
     numberRow('Opacité', el.opacity, (v) => mutateSelectedElement((e) => (e.opacity = Math.max(0, Math.min(1, v)))), { step: 0.1 });
 
     if (el.kind === 'shape') {
-      renderPaintEditor('Remplissage', el.fill, (paint) => mutateSelectedElement((e) => (e.fill = paint)));
-      renderPaintEditor('Contour', el.stroke, (paint) => mutateSelectedElement((e) => (e.stroke = paint)), false);
+      colorRow('Remplissage', el.fill, (v) => mutateSelectedElement((e) => (e.fill = v)));
+      colorRow('Contour', el.stroke, (v) => mutateSelectedElement((e) => (e.stroke = v)));
       numberRow('Ép. contour', el.strokeWidth, (v) => mutateSelectedElement((e) => (e.strokeWidth = Math.max(0, v))));
       if (el.shapeType === 'text') {
         textRow('Texte', el.text, (v) => mutateSelectedElement((e) => (e.text = v)));
