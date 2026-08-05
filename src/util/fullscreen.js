@@ -66,8 +66,15 @@ export function exitFullscreen() {
 }
 
 export function toggleFullscreen(target) {
-  if (fullscreenElement()) exitFullscreen();
-  else requestFullscreen(target);
+  const current = fullscreenElement();
+  if (current === target) {
+    exitFullscreen();
+  } else if (current) {
+    exitFullscreen();
+    requestFullscreen(target);
+  } else {
+    requestFullscreen(target);
+  }
 }
 
 function applyCssFallback(target, active) {
