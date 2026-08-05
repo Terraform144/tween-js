@@ -15,13 +15,6 @@ function exitFn() {
   return document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
 }
 
-function settle(promise) {
-  // requestFullscreen() rejette si l'entrée est refusée (pas de geste
-  // utilisateur, permissions d'iframe…) : sans ce catch, la promesse
-  // non gérée pollue la console et donne l'impression d'un bouton cassé.
-  if (promise && typeof promise.catch === 'function') promise.catch(() => {});
-}
-
 export function fullscreenElement() {
   const native = document.fullscreenElement
     || document.webkitFullscreenElement
@@ -45,9 +38,27 @@ export function onFullscreenChange(cb) {
 // Entrer en plein écran sur `target`. Retourne true si l'API native a été
 // utilisée, false si le repli CSS a été appliqué.
 export function requestFullscreen(target) {
+  // En contexte non sécurisé (HTTP), l'API Fullscreen native est bloquée.
+  // On force le repli CSS dans ce cas.
+  if (typeof window !== 'undefined' && window.location && window.location.protocol !== 'https:') {
+    console.warn('[Fullscreen] API native désactivée en HTTP. Utilisation du repli CSS.');
+    applyCssFallback(target, true);
+    return false;
+  }
+
   const fn = requestFn(target);
   if (fn) {
-    settle(fn.call(target));
+    const promise = fn.call(target);
+    if (promise && typeof promise.catch === 'function') {
+      return promise
+        .then(() => true)
+        .catch(() => {
+          // Si l'API échoue (ex. : permission refusée), on utilise le repli CSS.
+          console.warn('[Fullscreen] API native échouée. Utilisation du repli CSS.');
+          applyCssFallback(target, true);
+          return false;
+        });
+    }
     return true;
   }
   applyCssFallback(target, true);
@@ -58,7 +69,14 @@ export function exitFullscreen() {
   if (fullscreenElement()) {
     const fn = exitFn();
     if (fn) {
-      settle(fn.call(document));
+      const promise = fn.call(document);
+      if (promise && typeof promise.catch === 'function') {
+        promise.catch(() => {
+          // Si la sortie échoue, on force le repli CSS.
+          applyCssFallback(null, false);
+        });
+        return;
+      }
       return;
     }
   }
