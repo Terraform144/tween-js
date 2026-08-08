@@ -232,6 +232,18 @@ let sidebarWidth = getPref('sidebarWidth', isLargeScreen() ? 320 : 260);
 // l'utilisateur touche au réglage, son choix est mémorisé et prime toujours.
 let sidebarCollapsed = hasPref('sidebarFullyCollapsed') ? getPref('sidebarFullyCollapsed', false) : isNarrowViewport();
 
+// Bandeau d'info cookies : aucun cookie n'est posé (voir mentions-legales.html),
+// la fermeture est donc simplement mémorisée en préférence locale comme le
+// reste de la mise en page, pas un consentement à tracer.
+const cookieBar = document.getElementById('cookie-bar');
+if (cookieBar) {
+  if (getPref('cookieBarDismissed', false)) cookieBar.style.display = 'none';
+  document.getElementById('cookie-bar-close')?.addEventListener('click', () => {
+    setPref('cookieBarDismissed', true);
+    cookieBar.style.display = 'none';
+  });
+}
+
 function applySidebarCollapse() {
   const overlay = isOverlayMode();
   sidebarEl.classList.toggle('overlay-mode', overlay);
