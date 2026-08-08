@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones } from '../core/model.js';
+import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { notify } from '../state.js';
 import { fullscreenElement } from '../util/fullscreen.js';
@@ -140,6 +140,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   let marquee = null; // { start, node, additive } — sélection rectangulaire en cours (outil sélection)
   let subselectId = null; // id de l'élément path/line actuellement édité par l'outil sous-sélection
   let pointRefs = []; // nœuds Konva des ancres/poignées affichées, reconstruits à chaque sélection
+  let clipboard = []; // éléments copiés (Ctrl+C/X), hors state.doc pour ne jamais entrer dans l'historique d'annulation
 
   function currentLayers() {
     return getContextLayers(state.doc, state.editPath);
@@ -495,8 +496,13 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function buildPointHandles(node, elData) {
     const pts = elData.points;
-    // Utiliser node.getAbsoluteTransform() qui inclut déjà le scale du stage
-    const worldOf = (local) => node.getAbsoluteTransform().point(local);
+    // node.getAbsoluteTransform(konvaStage) s'arrête avant la transform du
+    // stage : les poignées vivent dans overlayLayer, enfant direct du stage
+    // sans échelle propre, donc le scale du stage sera appliqué une seule
+    // fois (par Konva au rendu). Utiliser getAbsoluteTransform() sans borne
+    // l'inclurait deux fois et désynchroniserait les poignées dès que
+    // stage.scale() != 1 (plein écran / mobile).
+    const worldOf = (local) => node.getAbsoluteTransform(konvaStage).point(local);
 
     pts.forEach((p, i) => {
       const ref = {};
@@ -532,7 +538,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   function onAnchorDrag(node, elData, i, ref) {
-    const transform = node.getAbsoluteTransform();
+    const transform = node.getAbsoluteTransform(konvaStage);
     const local = transform.copy().invert().point(ref.anchor.position());
     const p = elData.points[i];
     p.x = local.x;
@@ -552,7 +558,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   function onHandleDrag(node, elData, i, which, ref) {
-    const transform = node.getAbsoluteTransform();
+    const transform = node.getAbsoluteTransform(konvaStage);
     const p = elData.points[i];
     const circle = which === 'cOut' ? ref.outCircle : ref.inCircle;
     const line = which === 'cOut' ? ref.outLine : ref.inLine;
@@ -821,6 +827,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (e.key === 'Escape' && drawState && drawState.tool === 'pen') cancelDraw();
     if (e.key === 'Escape' && drawState && drawState.tool === 'boneChain') cancelDraw();
     if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedElementIds.length) deleteSelected();
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelected(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelected(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteClipboard(); }
   });
 
   function isTypingTarget(target) {
@@ -1012,6 +1021,38 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     notify(state);
   }
 
+  // Coller cible toujours activeLayer() au moment du Ctrl+V, jamais le calque
+  // d'origine : c'est ce qui permet de déplacer une forme d'un calque à
+  // l'autre en changeant simplement de calque actif entre le Ctrl+X/C et le
+  // Ctrl+V. Les os ne sont pas copiables isolément : ils référencent
+  // skeletonId/boneId/parent dans une hiérarchie que le remappage d'id ne
+  // reconstruit pas, donc on les exclut de la sélection copiée.
+  function copySelected() {
+    const layer = activeLayer();
+    if (!layer) return;
+    const kf = getActiveKeyframe(layer, state.currentFrame);
+    const elements = kf.elements.filter((e) => state.selectedElementIds.includes(e.id) && e.kind !== 'bone');
+    if (!elements.length) return;
+    clipboard = elements.map((el) => cloneElement(el, false));
+  }
+
+  function cutSelected() {
+    if (!state.selectedElementIds.length) return;
+    copySelected();
+    deleteSelected();
+  }
+
+  function pasteClipboard() {
+    if (!clipboard.length) return;
+    const layer = activeLayer();
+    if (!layer || layer.locked) return;
+    const pasted = clipboard.map((el) => cloneElement(el, true));
+    commitToActiveKeyframe((kf) => { pasted.forEach((el) => kf.elements.push(el)); });
+    state.selectedElementIds = pasted.map((el) => el.id);
+    state.selectedLayerId = layer.id;
+    notify(state);
+  }
+
   function addInstanceAt(symbolId, p) {
     const el = createInstance(symbolId, { x: p.x, y: p.y });
     addElement(el);
@@ -1054,5 +1095,5 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     return konvaStage.getAbsoluteTransform().copy().invert().point(abs);
   }
 
-  return { konvaStage, render, resize, addInstanceAt, deleteSelected, pointFromClient };
+  return { konvaStage, render, resize, addInstanceAt, deleteSelected, copySelected, cutSelected, pasteClipboard, pointFromClient };
 }
