@@ -407,6 +407,24 @@ export function mountTimeline(container, state) {
     if (kf) cell.classList.add(kf.elements.length ? 'keyframe' : 'blank-keyframe');
     if (layer.id === state.selectedLayerId && index === state.currentFrame) cell.classList.add('selected');
     if (kf && !layer.locked) cell.classList.add('draggable-key');
+    if (kf && kf.script && kf.script.trim()) {
+      cell.classList.add('has-script');
+      const badge = document.createElement('span');
+      badge.className = 'frame-script-badge';
+      badge.textContent = 'a';
+      badge.title = "Script sur cette image — clic pour l'éditer dans le panneau Scripts";
+      // pointerdown (pas click) : intercepte AVANT le pointerdown du parent
+      // (cell) qui sinon démarrerait un glisser de keyframe ou un scrub.
+      badge.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        state.selectedLayerId = layer.id;
+        state.currentFrame = index;
+        state.focusFrameScript = { layerId: layer.id, frameIndex: index };
+        notify(state);
+      });
+      cell.appendChild(badge);
+    }
     cell.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       if (kf && !layer.locked) {

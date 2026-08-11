@@ -47,7 +47,7 @@ export function createLayer(name = 'Calque') {
 }
 
 export function createKeyframe(index, elements = []) {
-  return { index, elements, tween: null }; // tween: { easing } | null
+  return { index, elements, tween: null, script: '' }; // tween: { easing } | null ; script: code exécuté quand la tête de lecture atteint cette image (frame action, façon Animate CC)
 }
 
 export function createSymbol(name, type = 'movieclip') {

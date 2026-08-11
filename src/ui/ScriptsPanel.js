@@ -3,7 +3,7 @@
 // de l'API Scene/Game), boutons Exécuter/Arrêter et console de sortie.
 import { EditorView, basicSetup } from 'codemirror';
 import { javascript, javascriptLanguage } from '@codemirror/lang-javascript';
-import { createScript, getNamedElements } from '../core/model.js';
+import { createScript, getNamedElements, getContextLayers, getKeyframeAt } from '../core/model.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 import { ICONS } from './icons.js';
@@ -92,6 +92,27 @@ export function mountScriptsPanel(container, state, { runtime }) {
   const tabs = document.createElement('div');
   tabs.className = 'script-tabs';
 
+  // Scripts d'image (frame actions) : distincts des scripts nommés ci-dessus,
+  // rattachés à une keyframe précise (kf.script) et listés ici pour pouvoir
+  // sauter de l'un à l'autre, comme le navigateur d'actions d'Animate CC.
+  const frameRow = document.createElement('div');
+  frameRow.className = 'script-frame-row';
+
+  const frameSelect = document.createElement('select');
+  frameSelect.title = "Scripts d'image existants dans ce contexte";
+
+  const frameAddBtn = document.createElement('button');
+  frameAddBtn.textContent = '+ Sur cette image';
+  frameAddBtn.title = "Ajouter/éditer un script sur l'image clé courante du calque sélectionné";
+  frameAddBtn.addEventListener('click', addFrameScriptHere);
+
+  const frameDelBtn = document.createElement('button');
+  frameDelBtn.innerHTML = ICONS.close;
+  frameDelBtn.title = "Supprimer le script d'image en cours d'édition";
+  frameDelBtn.addEventListener('click', removeActiveFrameScript);
+
+  frameRow.append(frameSelect, frameAddBtn, frameDelBtn);
+
   const editorHost = document.createElement('div');
   editorHost.className = 'script-editor';
 
@@ -99,15 +120,70 @@ export function mountScriptsPanel(container, state, { runtime }) {
   consoleEl.className = 'script-console';
   consoleEl.textContent = '— console —';
 
-  body.append(tabs, editorHost, consoleEl);
+  body.append(tabs, frameRow, editorHost, consoleEl);
 
   let activeId = null;
+  let frameTarget = null; // { layerId, frameIndex } | null — non-null = édition d'un script d'image plutôt que d'un script nommé
   let editor = null;
 
+  function selectedLayer() {
+    return getContextLayers(state.doc, state.editPath).find((l) => l.id === state.selectedLayerId);
+  }
+
+  function findFrameKeyframe(target) {
+    if (!target) return null;
+    const layer = getContextLayers(state.doc, state.editPath).find((l) => l.id === target.layerId);
+    return layer ? getKeyframeAt(layer, target.frameIndex) : null;
+  }
+
+  function listFrameScripts() {
+    const out = [];
+    for (const layer of getContextLayers(state.doc, state.editPath)) {
+      for (const kf of layer.keyframes) {
+        if (kf.script && kf.script.trim()) out.push({ layerId: layer.id, layerName: layer.name, frameIndex: kf.index });
+      }
+    }
+    out.sort((a, b) => a.frameIndex - b.frameIndex);
+    return out;
+  }
+
+  function getActiveCode() {
+    if (frameTarget) {
+      const kf = findFrameKeyframe(frameTarget);
+      return kf ? kf.script : '';
+    }
+    const sc = state.doc.scripts.find((s) => s.id === activeId);
+    return sc ? sc.code : '';
+  }
+
+  function addFrameScriptHere() {
+    const layer = selectedLayer();
+    if (!layer) return;
+    const kf = getKeyframeAt(layer, state.currentFrame);
+    if (!kf) { alert("Insère d'abord une image clé (F6) sur cette image avant d'y ajouter un script."); return; }
+    saveActive();
+    if (!kf.script) kf.script = '// Exécuté une fois quand la tête de lecture atteint cette image\nScene.stop();\n';
+    frameTarget = { layerId: layer.id, frameIndex: kf.index };
+    notify(state);
+  }
+
+  function removeActiveFrameScript() {
+    if (!frameTarget) return;
+    const kf = findFrameKeyframe(frameTarget);
+    if (kf) kf.script = '';
+    frameTarget = null;
+    notify(state);
+  }
+
   const saveActive = () => {
-    if (activeId && editor) {
+    if (!editor) return;
+    const code = editor.state.doc.toString();
+    if (frameTarget) {
+      const kf = findFrameKeyframe(frameTarget);
+      if (kf) kf.script = code;
+    } else if (activeId) {
       const sc = state.doc.scripts.find((s) => s.id === activeId);
-      if (sc) sc.code = editor.state.doc.toString();
+      if (sc) sc.code = code;
     }
   };
 
@@ -117,6 +193,7 @@ export function mountScriptsPanel(container, state, { runtime }) {
     const sc = createScript(name, '// ' + name + '\n');
     state.doc.scripts.push(sc);
     activeId = sc.id;
+    frameTarget = null;
     notify(state);
   }
 
@@ -129,12 +206,11 @@ export function mountScriptsPanel(container, state, { runtime }) {
   }
 
   function runActive() {
-    const sc = state.doc.scripts.find((s) => s.id === activeId);
-    if (!sc) return;
     saveActive();
+    const code = getActiveCode();
     consoleEl.textContent = '';
     try {
-      runtime.run(sc.code, (level, args) => appendConsole(level, args));
+      runtime.run(code, (level, args) => appendConsole(level, args));
     } catch (err) {
       appendConsole('error', [String(err && err.stack || err)]);
     }
@@ -150,9 +226,8 @@ export function mountScriptsPanel(container, state, { runtime }) {
 
   function ensureEditor() {
     if (editor) return;
-    const sc = state.doc.scripts.find((s) => s.id === activeId);
     editor = new EditorView({
-      doc: sc ? sc.code : '',
+      doc: getActiveCode(),
       extensions: [
         basicSetup,
         javascript(),
@@ -181,7 +256,7 @@ export function mountScriptsPanel(container, state, { runtime }) {
     tabs.innerHTML = '';
     for (const sc of state.doc.scripts) {
       const tab = document.createElement('div');
-      tab.className = 'script-tab' + (sc.id === activeId ? ' active' : '');
+      tab.className = 'script-tab' + (sc.id === activeId && !frameTarget ? ' active' : '');
       const name = document.createElement('span');
       name.className = 'name';
       name.textContent = sc.name;
@@ -194,21 +269,58 @@ export function mountScriptsPanel(container, state, { runtime }) {
       del.title = 'Supprimer le script';
       del.innerHTML = ICONS.close;
       del.addEventListener('click', (e) => { e.stopPropagation(); removeScript(sc.id); });
-      tab.addEventListener('click', () => { saveActive(); activeId = sc.id; notify(state); });
+      tab.addEventListener('click', () => { saveActive(); activeId = sc.id; frameTarget = null; notify(state); });
       tab.append(name, del);
       tabs.appendChild(tab);
     }
   }
 
+  function renderFrameRow() {
+    const scripts = listFrameScripts();
+    frameSelect.innerHTML = '';
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = scripts.length ? '— scripts d\'image —' : '(aucun script d\'image)';
+    frameSelect.appendChild(emptyOpt);
+    for (const s of scripts) {
+      const opt = document.createElement('option');
+      opt.value = s.layerId + '#' + s.frameIndex;
+      opt.textContent = s.layerName + ' : image ' + (s.frameIndex + 1);
+      frameSelect.appendChild(opt);
+    }
+    frameSelect.value = frameTarget ? frameTarget.layerId + '#' + frameTarget.frameIndex : '';
+    frameRow.classList.toggle('active', !!frameTarget);
+    frameDelBtn.disabled = !frameTarget;
+  }
+
+  frameSelect.addEventListener('change', () => {
+    saveActive();
+    const v = frameSelect.value;
+    if (!v) { frameTarget = null; }
+    else {
+      const i = v.lastIndexOf('#');
+      frameTarget = { layerId: v.slice(0, i), frameIndex: parseInt(v.slice(i + 1), 10) };
+    }
+    notify(state);
+  });
+
   function update() {
     if (!state.doc.scripts) state.doc.scripts = [];
     if (!state.doc.scripts.length) state.doc.scripts.push(createScript('Script 1', ''));
     if (!state.doc.scripts.find((s) => s.id === activeId)) activeId = state.doc.scripts[0].id;
+    // Le badge "a" de la timeline (Timeline.js) pose cette demande ponctuelle
+    // pour ouvrir directement le script d'une keyframe cliquée ; on l'applique
+    // puis on l'efface aussitôt pour ne pas reforcer le focus à chaque notify().
+    if (state.focusFrameScript) {
+      frameTarget = state.focusFrameScript;
+      state.focusFrameScript = null;
+    }
     ensureEditor();
     renderTabs();
-    const sc = state.doc.scripts.find((s) => s.id === activeId);
-    if (sc && editor.state.doc.toString() !== sc.code) {
-      editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: sc.code } });
+    renderFrameRow();
+    const code = getActiveCode();
+    if (editor.state.doc.toString() !== code) {
+      editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: code } });
     }
   }
 

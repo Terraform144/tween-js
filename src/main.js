@@ -319,7 +319,7 @@ let wasPlaying = false;
 function loop(time) {
   requestAnimationFrame(loop);
 
-  if (state.playing && !wasPlaying) { lastTime = time; acc = 0; }
+  if (state.playing && !wasPlaying) { lastTime = time; acc = 0; sceneRuntime.runFrameScripts(state.currentFrame); }
   wasPlaying = state.playing;
   if (!state.playing) return;
 
@@ -340,6 +340,7 @@ function loop(time) {
     stage.render(tick);
     timelineCtl.update();
     sceneRuntime.onFrame(state.currentFrame);
+    sceneRuntime.runFrameScripts(state.currentFrame);
   }
 }
 requestAnimationFrame(loop);
