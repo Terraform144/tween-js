@@ -53,7 +53,6 @@ function buildBootstrapScript(dataJson, scriptsJson) {
   canvas.width = DATA.width;
   canvas.height = DATA.height;
   var ctx = canvas.getContext('2d');
-  var root = new MovieClip(DATA, {});
 
   // --- API Scene/Game pour les scripts exportés (même surface que l'éditeur) ---
   var enterFrameCbs = [];
@@ -188,6 +187,31 @@ function buildBootstrapScript(dataJson, scriptsJson) {
       return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(n) && !RESERVED.has(n);
     });
   }
+
+  // Scripts d'image (frame actions) : exécutés une fois par arrivée sur une
+  // image de la timeline racine qui porte un kf.script non vide (voir le hook
+  // onFrameScript de MovieClip.update() dans tween-runtime.js). Seule la
+  // timeline racine est couverte pour l'instant, pas les symboles imbriqués.
+  function runFrameScripts(frameIndex) {
+    for (var li = 0; li < DATA.layers.length; li++) {
+      var layer = DATA.layers[li];
+      var kf = null;
+      for (var ki = 0; ki < layer.keyframes.length; ki++) {
+        if (layer.keyframes[ki].index === frameIndex) { kf = layer.keyframes[ki]; break; }
+      }
+      if (!kf || !kf.script || !kf.script.trim()) continue;
+      try {
+        var named2 = collectNamed(DATA.layers, frameIndex);
+        var prelude2 = namedVarNames(named2).map(function (n) {
+          return 'var ' + n + ' = named[' + JSON.stringify(n) + '];';
+        }).join('\\n');
+        var fn2 = new Function('Scene', 'Game', 'console', 'named', '"use strict";\\n' + prelude2 + '\\n' + kf.script);
+        fn2(Scene, Scene, console, named2);
+      } catch (err) { console.error(err); }
+    }
+  }
+
+  var root = new MovieClip(DATA, { onFrameScript: runFrameScripts });
 
   // Les enfants movieclip nommés doivent exister avant l'exécution des scripts
   // (au premier appel à gotoAndPlay('label') depuis un onEnterFrame, la boucle

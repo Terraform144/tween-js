@@ -508,6 +508,18 @@ body.fs-css .fs-css-active {
   height: 14px;
 }
 .script-tab-del:hover { color: var(--danger); }
+.script-frame-row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.script-frame-row select { flex: 1; min-width: 0; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px; }
+.script-frame-row button { background: var(--bg-3); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px 6px; cursor: pointer; white-space: nowrap; }
+.script-frame-row.active { background: var(--accent-dim); }
+.script-frame-row.active select { border-color: var(--accent); }
 .script-editor {
   flex: 1 1 auto;
   min-height: 0;
@@ -693,6 +705,16 @@ body.fs-css .fs-css-active {
 .tl-frame-cell.dragging-key { cursor: grabbing; z-index: 4; opacity: 0.85; }
 .tl-frame-cell.drop-target { background: var(--accent-dim); outline: 1px dashed var(--accent); outline-offset: -1px; }
 .tl-frame-cell.drop-invalid { background: rgba(220, 50, 47, 0.18); outline: 1px dashed var(--danger); outline-offset: -1px; }
+.frame-script-badge {
+  position: absolute;
+  top: 0;
+  left: 1px;
+  font: 700 8px/1 sans-serif;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  z-index: 1;
+}
 .tl-frame-cell.tween-arrow-end::before {
   content: "▶";
   position: absolute;

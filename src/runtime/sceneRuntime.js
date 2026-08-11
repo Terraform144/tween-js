@@ -2,7 +2,7 @@
 // permettant de piloter le document (dimensions, fps, lecture, ajout de
 // formes/instances, boucle onEnterFrame, entrées clavier) depuis du code
 // utilisateur exécuté avec `run()`.
-import { createShape, createInstance, insertKeyframe, getContextLayers, getContextFrameCount, setContextFrameCount, getNamedElements } from '../core/model.js';
+import { createShape, createInstance, insertKeyframe, getContextLayers, getContextFrameCount, setContextFrameCount, getNamedElements, getKeyframeAt } from '../core/model.js';
 import { notify } from '../state.js';
 
 // Mots clés JS / identifiants réservés : un Nom d'instance qui en fait partie
@@ -108,29 +108,51 @@ export function createSceneRuntime({ state, onResize = () => {} }) {
   // Un nom non-identifiant valide (espace, mot réservé…) reste accessible
   // via la map `named` passée en 4e argument implicite.
   let onConsole = () => {};
-  function run(code, consoleCb = () => {}) {
-    onConsole = consoleCb;
-    enterFrameCbs.clear();
-    keyDownCbs.clear();
-    keyUpCbs.clear();
-    const proxyConsole = new Proxy(console, {
-      get(target, prop) {
-        if (['log', 'warn', 'error', 'info', 'debug'].includes(prop)) {
-          return (...args) => {
-            onConsole(prop, args);
-            target[prop](...args);
-          };
-        }
-        return target[prop];
-      },
-    });
+  const proxyConsole = new Proxy(console, {
+    get(target, prop) {
+      if (['log', 'warn', 'error', 'info', 'debug'].includes(prop)) {
+        return (...args) => {
+          onConsole(prop, args);
+          target[prop](...args);
+        };
+      }
+      return target[prop];
+    },
+  });
+
+  // Construit et exécute `code` avec accès à Scene/Game/console + les Noms
+  // d'instance de l'image courante injectés comme variables. Partagé par
+  // run() (bouton Exécuter, sur un script nommé) et runFrameScripts()
+  // (déclenchement automatique d'un script d'image pendant la lecture).
+  function execCode(code) {
     const named = getNamedElements(state.doc, state.editPath, state.currentFrame);
     const prelude = namedVarNames(named)
       .map((n) => `var ${n} = named[${JSON.stringify(n)}];`)
       .join('\n');
     const fn = new Function('Scene', 'Game', 'console', 'named', '"use strict";\n' + prelude + '\n' + code);
     fn(Scene, Scene, proxyConsole, named);
+  }
+
+  function run(code, consoleCb = () => {}) {
+    onConsole = consoleCb;
+    enterFrameCbs.clear();
+    keyDownCbs.clear();
+    keyUpCbs.clear();
+    execCode(code);
     return Scene;
+  }
+
+  // Exécute les scripts d'image (frame actions) présents pile sur `frame`,
+  // pour tous les calques du contexte d'édition courant — appelé à chaque
+  // avancée d'image pendant la lecture (voir main.js#loop), jamais pendant un
+  // simple scrub manuel de la timeline (comme dans Animate CC : les actions
+  // ne s'exécutent qu'en lecture/test, pas en édition).
+  function runFrameScripts(frame) {
+    for (const layer of getContextLayers(state.doc, state.editPath)) {
+      const kf = getKeyframeAt(layer, frame);
+      if (!kf || !kf.script || !kf.script.trim()) continue;
+      try { execCode(kf.script); } catch (err) { console.error(err); }
+    }
   }
 
   // Appelé à chaque avancée d'image pendant la lecture (voir main.js#loop).
@@ -143,5 +165,5 @@ export function createSceneRuntime({ state, onResize = () => {} }) {
     window.removeEventListener('keyup', onKeyUp);
   }
 
-  return { Scene, run, onFrame, dispose };
+  return { Scene, run, runFrameScripts, onFrame, dispose };
 }

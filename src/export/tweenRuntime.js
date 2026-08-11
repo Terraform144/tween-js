@@ -229,6 +229,13 @@ export class MovieClip {
     this._acc = 0;
     this._listeners = {};
     this._children = new Map(); // id d'instance -> MovieClip enfant (symboles movieclip imbriqués)
+    // Appelé (au plus une fois par image, hors ré-affichages sur place) quand
+    // this._frame change — sert à déclencher les scripts d'image (frame
+    // actions) posés sur ce clip. Non propagé aux enfants movieclip imbriqués
+    // pour l'instant : seule la timeline racine exécute ses scripts d'image
+    // à l'export (voir exportHTML.js).
+    this._onFrameScript = props.onFrameScript || null;
+    this._lastScriptFrame = -1;
   }
 
   get currentFrame() { return this._frame; }
@@ -290,6 +297,13 @@ export class MovieClip {
       }
     }
     this._syncChildren(this.data.layers, this._frame, dt, true);
+    // Déclenché une seule fois par arrivée sur une image (pas à chaque appel
+    // d'update() tant qu'on y reste, ex. après un stop()) — que l'image ait
+    // été atteinte en avançant normalement ou via un saut direct (gotoAndX).
+    if (this._onFrameScript && this._frame !== this._lastScriptFrame) {
+      this._lastScriptFrame = this._frame;
+      this._onFrameScript(this._frame);
+    }
   }
 
   draw(ctx) {
