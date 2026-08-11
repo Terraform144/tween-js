@@ -9,6 +9,7 @@ export function createEditorState(doc) {
     selectedLayerId: doc.layers[0].id,
     selectedElementIds: [],
     selectedKeyframe: null,    // { layerId, index } pour la sélection sur la timeline
+    focusFrameScript: null,    // { layerId, frameIndex } — demande ponctuelle du panneau Scripts d'ouvrir ce script d'image (posée par Timeline, consommée puis effacée par ScriptsPanel)
     currentTool: 'select',
     playing: false,
     fillColor: '#cb4b16',
