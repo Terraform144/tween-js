@@ -4,7 +4,7 @@
   "name": "TweenJS Shared Library - Starter Pack",
   "description": "Bibliothèque de symboles partagés de base pour TweenJS",
   "author": "TweenJS Team",
-  "license": "AGPL-3.0-or-later",
+  "license": "MIT",
   "symbols": [
     {
       "id": "button_standard",

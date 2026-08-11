@@ -312,7 +312,7 @@ Les contributions sont les bienvenues !
 
 ## 📄 Licence
 
-AGPL-3.0-or-later - Voir le fichier [LICENSE](../LICENSE) pour plus de détails.
+MIT - Voir le fichier [LICENSE](../LICENSE) pour plus de détails.
 
 ---
 

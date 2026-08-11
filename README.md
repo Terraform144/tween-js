@@ -143,8 +143,6 @@ src/
 
 ## Licence
 
-Ce projet est publié sous licence [GNU AGPL-3.0](LICENSE). Le code est libre
-(usage, modification, redistribution), y compris commercial, mais toute
-version modifiée — y compris exploitée uniquement comme service en ligne
-(SaaS) sans distribution de binaire — doit republier son code source
-complet sous la même licence.
+Ce projet est publié sous licence [MIT](LICENSE). Le code est libre
+(usage, modification, redistribution, y compris commercial), sans obligation
+de republier le code source des versions modifiées.
