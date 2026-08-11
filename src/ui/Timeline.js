@@ -412,7 +412,7 @@ export function mountTimeline(container, state) {
       const badge = document.createElement('span');
       badge.className = 'frame-script-badge';
       badge.textContent = 'a';
-      badge.title = "Script sur cette image — clic pour l'éditer dans le panneau Scripts";
+      badge.title = "Script sur cette image — clic pour l'éditer dans le panneau Scripts, clic droit pour l'effacer";
       // pointerdown (pas click) : intercepte AVANT le pointerdown du parent
       // (cell) qui sinon démarrerait un glisser de keyframe ou un scrub.
       badge.addEventListener('pointerdown', (e) => {
@@ -422,6 +422,16 @@ export function mountTimeline(container, state) {
         state.currentFrame = index;
         state.focusFrameScript = { layerId: layer.id, frameIndex: index };
         notify(state);
+      });
+      // Clic droit sur le badge : efface directement le script de l'image,
+      // sans devoir ouvrir le panneau Scripts pour cliquer sur son bouton ✕.
+      badge.addEventListener('contextmenu', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (confirm("Effacer le script de l'image " + (index + 1) + ' ?')) {
+          kf.script = '';
+          notify(state);
+        }
       });
       cell.appendChild(badge);
     }
