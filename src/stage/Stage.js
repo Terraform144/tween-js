@@ -248,7 +248,23 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
           break;
         }
         case 'text':
-          node = new Konva.Text({ offsetX: el.width / 2, offsetY: el.height / 2, width: el.width, text: el.text || 'Texte', fontSize: el.fontSize, fontFamily: el.fontFamily, fill: el.fill, align: 'center' });
+          node = new Konva.Text({
+            width: el.width,
+            text: el.text || 'Texte',
+            fontSize: el.fontSize,
+            fontFamily: el.fontFamily,
+            fill: el.fill,
+            align: el.align || 'center',
+            lineHeight: el.lineHeight != null ? el.lineHeight : 1.2,
+            wrap: 'word',
+          });
+          // La hauteur d'un texte dépend du nombre de lignes après retour à
+          // la ligne (paragraphe) ; on centre donc sur la hauteur réellement
+          // rendue plutôt que sur el.height, qui n'est plus utilisé pour le
+          // texte (contrairement aux autres formes) et se désynchroniserait
+          // dès que le contenu change de nombre de lignes.
+          node.offsetX(el.width / 2);
+          node.offsetY(node.height() / 2);
           break;
         default:
           node = new Konva.Rect({ width: 1, height: 1, fill: 'red' });

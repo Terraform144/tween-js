@@ -79,7 +79,7 @@ export function createShape(shapeType, props = {}) {
     stroke: '#073642',
     strokeWidth: 2,
     closed: false,
-    text: '', fontSize: 24, fontFamily: 'Arial',
+    text: '', fontSize: 24, fontFamily: 'Arial', align: 'center', lineHeight: 1.2,
     skeletonId: null, // ID du squelette qui influence cette forme
     boneId: null, // Gardé pour rétrocompatibilité, mais skeletonId est prioritaire
   };

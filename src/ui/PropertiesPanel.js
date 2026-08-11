@@ -63,6 +63,45 @@ export function mountPropertiesPanel(container, state) {
     body.appendChild(row);
   }
 
+  // Boîte de texte multiligne (paragraphe) : Entrée insère un retour à la
+  // ligne, ce qu'un <input> ne permet pas. 'change' (au blur) comme les
+  // autres champs texte, pas 'input' — sinon chaque frappe déclencherait un
+  // notify()/re-render qui détruit et recrée ce <textarea>, perdant le focus
+  // et la position du curseur en pleine saisie.
+  function textAreaRow(label, value, onChange, opts = {}) {
+    const row = document.createElement('div');
+    row.className = 'prop-row prop-row-textarea';
+    const l = document.createElement('label');
+    l.textContent = label;
+    const textarea = document.createElement('textarea');
+    textarea.value = value || '';
+    textarea.rows = opts.rows || 5;
+    if (opts.title) textarea.title = opts.title;
+    textarea.addEventListener('change', () => onChange(textarea.value));
+    row.append(l, textarea);
+    body.appendChild(row);
+    return textarea;
+  }
+
+  function enumRow(label, value, choices, onChange) {
+    const row = document.createElement('div');
+    row.className = 'prop-row';
+    const l = document.createElement('label');
+    l.textContent = label;
+    const select = document.createElement('select');
+    for (const [v, text] of choices) {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = text;
+      if (v === value) opt.selected = true;
+      select.appendChild(opt);
+    }
+    select.addEventListener('change', () => onChange(select.value));
+    row.append(l, select);
+    body.appendChild(row);
+    return select;
+  }
+
   function selectRow(label, value, options, onChange) {
     const row = document.createElement('div');
     row.className = 'prop-row';
@@ -149,9 +188,14 @@ export function mountPropertiesPanel(container, state) {
     });
     numberRow('X', el.x, (v) => mutateSelectedElement((e) => (e.x = v)));
     numberRow('Y', el.y, (v) => mutateSelectedElement((e) => (e.y = v)));
-    if ((el.kind === 'shape' && el.shapeType !== 'line' && el.shapeType !== 'path') || el.kind === 'bitmap') {
+    if ((el.kind === 'shape' && el.shapeType !== 'line' && el.shapeType !== 'path' && el.shapeType !== 'text') || el.kind === 'bitmap') {
       numberRow('Largeur', el.width, (v) => mutateSelectedElement((e) => (e.width = Math.max(1, v))));
       numberRow('Hauteur', el.height, (v) => mutateSelectedElement((e) => (e.height = Math.max(1, v))));
+    }
+    if (el.kind === 'shape' && el.shapeType === 'text') {
+      // La hauteur d'un texte se déduit du contenu (comme le texte
+      // paragraphe d'Animate CC) : seule la largeur de la boîte se règle.
+      numberRow('Largeur (boîte)', el.width, (v) => mutateSelectedElement((e) => (e.width = Math.max(20, v))));
     }
     numberRow('Rotation', el.rotation, (v) => mutateSelectedElement((e) => (e.rotation = v)));
     numberRow('Échelle X', el.scaleX, (v) => mutateSelectedElement((e) => (e.scaleX = v)), { step: 0.1 });
@@ -163,8 +207,16 @@ export function mountPropertiesPanel(container, state) {
       colorRow('Contour', el.stroke, (v) => mutateSelectedElement((e) => (e.stroke = v)));
       numberRow('Ép. contour', el.strokeWidth, (v) => mutateSelectedElement((e) => (e.strokeWidth = Math.max(0, v))));
       if (el.shapeType === 'text') {
-        textRow('Texte', el.text, (v) => mutateSelectedElement((e) => (e.text = v)));
+        textAreaRow('Texte', el.text, (v) => mutateSelectedElement((e) => (e.text = v)), {
+          title: 'Entrée pour aller à la ligne. Le texte se répartit automatiquement dans la largeur de la boîte (comme un paragraphe).',
+        });
         numberRow('Taille police', el.fontSize, (v) => mutateSelectedElement((e) => (e.fontSize = Math.max(1, v))));
+        numberRow('Interligne', el.lineHeight != null ? el.lineHeight : 1.2, (v) => mutateSelectedElement((e) => (e.lineHeight = Math.max(0.5, v))), { step: 0.1 });
+        enumRow('Alignement', el.align || 'center', [
+          ['left', 'Gauche'],
+          ['center', 'Centre'],
+          ['right', 'Droite'],
+        ], (v) => mutateSelectedElement((e) => (e.align = v)));
       }
       
       // Sélecteur de squelette pour le skinning
