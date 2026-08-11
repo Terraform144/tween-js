@@ -450,6 +450,20 @@ body.fs-css .fs-css-active {
 }
 .prop-row input[type="color"] { width: 28px; height: 22px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
 .prop-row select { flex: 1; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px; }
+.prop-row-textarea { align-items: flex-start; }
+.prop-row-textarea label { padding-top: 4px; }
+.prop-row textarea {
+  flex: 1;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 4px;
+  width: 0;
+  resize: vertical;
+  font-family: inherit;
+  font-size: inherit;
+}
 .prop-row button { background: var(--bg-3); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 4px 8px; cursor: pointer; }
 .prop-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prop-empty { color: var(--text-dim); font-style: italic; padding: 6px; }

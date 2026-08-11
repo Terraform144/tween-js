@@ -132,6 +132,31 @@ function getImage(dataUrl) {
   return img;
 }
 
+// Découpe le texte en lignes : d'abord sur les retours à la ligne explicites
+// (\n saisis dans la boîte de texte), puis par mot dès qu'une ligne dépasse
+// maxWidth (retour à la ligne automatique façon paragraphe). Un mot seul
+// plus large que maxWidth n'est pas coupé au milieu (comme le wrap 'word' de
+// Konva côté éditeur), il déborde simplement.
+function wrapTextLines(ctx, text, maxWidth) {
+  const paragraphs = (text || '').split('\n');
+  const lines = [];
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(' ');
+    let current = '';
+    for (const word of words) {
+      const test = current ? current + ' ' + word : word;
+      if (maxWidth && current && ctx.measureText(test).width > maxWidth) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    lines.push(current);
+  }
+  return lines;
+}
+
 function drawShape(ctx, el, data) {
   ctx.save();
   ctx.translate(el.x, el.y);
@@ -163,10 +188,16 @@ function drawShape(ctx, el, data) {
       if (el.strokeWidth) ctx.stroke();
     }
   } else if (el.shapeType === 'text') {
-    ctx.font = (el.fontSize || 24) + 'px ' + (el.fontFamily || 'Arial');
-    ctx.textAlign = 'center';
+    const fontSize = el.fontSize || 24;
+    ctx.font = fontSize + 'px ' + (el.fontFamily || 'Arial');
+    const align = el.align || 'center';
+    ctx.textAlign = align;
     ctx.textBaseline = 'middle';
-    ctx.fillText(el.text || '', 0, 0);
+    const lineHeight = (el.lineHeight != null ? el.lineHeight : 1.2) * fontSize;
+    const lines = wrapTextLines(ctx, el.text || '', el.width);
+    const startY = -((lines.length - 1) * lineHeight) / 2;
+    const xPos = align === 'left' ? -el.width / 2 : align === 'right' ? el.width / 2 : 0;
+    lines.forEach((line, i) => ctx.fillText(line, xPos, startY + i * lineHeight));
   } else if (el.kind === 'bitmap') {
     const asset = data.assets ? data.assets[el.assetId] : null;
     const img = asset ? getImage(asset.dataUrl) : null;
