@@ -2,3 +2,10 @@ node_modules/
 dist/
 .ionos_ssh_info.txt
 gameTest/
+
+.gradle-user-home/
+android/
+public/
+capacitor.config.json
+dev-server.err.log
+dev-server.log

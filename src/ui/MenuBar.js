@@ -161,6 +161,55 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   window.addEventListener('scroll', closeFileMenu, true);
   window.addEventListener('resize', closeFileMenu);
 
+  // Menu À propos : mentions légales, RGPD et documentation.
+  const aboutMenu = document.createElement('div');
+  aboutMenu.className = 'file-menu';
+  const aboutMenuBtn = document.createElement('button');
+  aboutMenuBtn.type = 'button';
+  aboutMenuBtn.className = 'file-menu-btn';
+  aboutMenuBtn.innerHTML = ICONS.info + '<span>À propos</span><span class="caret">▾</span>';
+  aboutMenuBtn.title = 'Mentions légales, RGPD, documentation';
+  const aboutMenuPanel = document.createElement('div');
+  aboutMenuPanel.className = 'file-menu-panel';
+  const aboutMenuItems = [
+    { icon: 'info', label: 'Mentions légales & RGPD', action: () => { window.location.href = '/src/mentions-legales.html'; } },
+    { icon: 'book', label: 'Documentation', action: () => { window.open('/docs/Animate-JS-Documentation.pdf', '_blank'); } },
+  ];
+  for (const item of aboutMenuItems) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = ICONS[item.icon] + `<span>${item.label}</span>`;
+    b.addEventListener('click', () => { closeAboutMenu(); item.action(); });
+    aboutMenuPanel.appendChild(b);
+  }
+  aboutMenu.append(aboutMenuBtn, aboutMenuPanel);
+
+  function openAboutMenu() {
+    const rect = aboutMenuBtn.getBoundingClientRect();
+    aboutMenuPanel.style.left = rect.left + 'px';
+    aboutMenuPanel.style.top = rect.bottom + 4 + 'px';
+    aboutMenuPanel.style.minWidth = Math.max(230, rect.width) + 'px';
+    document.body.appendChild(aboutMenuPanel);
+    aboutMenuPanel.classList.add('open');
+  }
+
+  function closeAboutMenu() {
+    aboutMenuPanel.classList.remove('open');
+    if (aboutMenuPanel.parentNode === document.body) document.body.removeChild(aboutMenuPanel);
+  }
+
+  aboutMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (aboutMenuPanel.classList.contains('open')) closeAboutMenu();
+    else openAboutMenu();
+  });
+  document.addEventListener('click', (e) => {
+    if (!aboutMenuPanel.contains(e.target)) closeAboutMenu();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAboutMenu(); });
+  window.addEventListener('scroll', closeAboutMenu, true);
+  window.addEventListener('resize', closeAboutMenu);
+
   // Bouton plein écran : bascule entre le mode plein écran du navigateur et
   // la fenêtre normale (l'icône change selon l'état, via fullscreenchange).
   // Utilitaire normalisé (tous préfixes + repli CSS) dans util/fullscreen.js.
@@ -208,7 +257,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   bgInput.addEventListener('input', () => { state.doc.backgroundColor = bgInput.value; notify(state); });
 
   container.append(
-    brand, btnUndo, btnRedo, btnNew, fileMenu, btnFullscreen, fileInput, svgFileInput, imgFileInput,
+    brand, btnUndo, btnRedo, btnNew, fileMenu, aboutMenu, btnFullscreen, fileInput, svgFileInput, imgFileInput,
     spacer,
     nameInput,
     wLabel, wInput, hLabel, hInput,
