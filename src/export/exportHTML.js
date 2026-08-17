@@ -190,8 +190,9 @@ function buildBootstrapScript(dataJson, scriptsJson) {
 
   // Scripts d'image (frame actions) : exécutés une fois par arrivée sur une
   // image de la timeline racine qui porte un kf.script non vide (voir le hook
-  // onFrameScript de MovieClip.update() dans tween-runtime.js). Seule la
-  // timeline racine est couverte pour l'instant, pas les symboles imbriqués.
+  // onFrameScript de MovieClip.update() dans tween-runtime.js). Les clips
+  // enfants movieclip exécutent aussi leurs propres scripts d'image via
+  // _runChildFrameScript (timeline indépendante, comportement Animate CC).
   function runFrameScripts(frameIndex) {
     for (var li = 0; li < DATA.layers.length; li++) {
       var layer = DATA.layers[li];
