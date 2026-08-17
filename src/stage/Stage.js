@@ -927,11 +927,6 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
     
     overlayLayer.draw();
-    // R�initialiser l'outil � select apr�s validation
-    state.currentTool = 'select';
-    state.selectedElementIds = bones.map(b => b.id);
-    notify(state);
-    updateBoneChainActions();
   }
 
   function finishBoneChain() {

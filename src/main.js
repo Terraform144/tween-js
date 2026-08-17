@@ -327,12 +327,15 @@ function advanceClipsForLayer(layers, parentFrame) {
     const symbol = state.doc.symbols[el.symbolId];
     if (!symbol || symbol.type !== 'movieclip') continue;
     const clipState = getClipState(el.id);
+    // Scripts d'image AVANT l'avancement (comportement Animate CC) :
+    // on exécute le script de l'image courante, puis on avance si le clip
+    // n'a pas été arrêté par Scene.stop().
+    if (clipState._lastScriptFrame !== clipState.currentFrame) {
+      clipState._lastScriptFrame = clipState.currentFrame;
+      sceneRuntime.runClipFrameScripts(symbol, clipState.currentFrame, clipState);
+    }
     if (clipState.isPlaying) {
       clipState.currentFrame = (clipState.currentFrame + 1) % symbol.frameCount;
-      if (clipState._lastScriptFrame !== clipState.currentFrame) {
-        clipState._lastScriptFrame = clipState.currentFrame;
-        sceneRuntime.runClipFrameScripts(symbol, clipState.currentFrame, clipState);
-      }
     }
     // Récursion : avancer les clips imbriqués dans ce clip
     advanceClipsForLayer(symbol.layers, clipState.currentFrame);
@@ -362,6 +365,10 @@ function loop(time) {
   if (advanced) {
     sceneRuntime.onFrame(state.currentFrame);
     sceneRuntime.runFrameScripts(state.currentFrame);
+    // Re-vérifier state.playing : un script racine peut appeler Scene.stop()
+    // ce qui met state.playing = false. Dans ce cas on rend l'image courante
+    // (pour refléter l'arrêt) mais on n'avance plus les clips ni la timeline.
+    if (!state.playing) { stage.render(tick); timelineCtl.update(); return; }
     advanceClipsForLayer(getContextLayers(state.doc, state.editPath), state.currentFrame);
     stage.render(tick);
     timelineCtl.update();
