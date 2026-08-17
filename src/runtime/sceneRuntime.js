@@ -160,10 +160,45 @@ export function createSceneRuntime({ state, onResize = () => {} }) {
     enterFrameCbs.forEach((cb) => { try { cb(frame); } catch (err) { console.error(err); } });
   }
 
+  // Exécute les scripts d'image d'un MovieClip enfant. Contrairement à
+  // runFrameScripts (qui opère sur le contexte d'édition courant), celui-ci
+  // reçoit directement le symbole et l'état du clip pour créer un `Scene`
+  // scopé : `Scene.stop()` arrête CE clip, pas la scène racine.
+  function runClipFrameScripts(symbol, frame, clipState) {
+    const clipScene = {
+      // --- Propriétés de la scène (lecture seule, deleguate to global) ---
+      get width() { return state.doc.width; },
+      get height() { return state.doc.height; },
+      get frameRate() { return state.doc.frameRate; },
+      get backgroundColor() { return state.doc.backgroundColor; },
+      get name() { return state.doc.name; },
+      get frameCount() { return symbol.frameCount; },
+      // --- Lecture : scope au clip ---
+      get playing() { return clipState.isPlaying; },
+      get currentFrame() { return clipState.currentFrame; },
+      set currentFrame(f) { clipState.currentFrame = Math.max(0, +f | 0); clipState._lastScriptFrame = -1; },
+      play() { clipState.isPlaying = true; },
+      stop() { clipState.isPlaying = false; },
+      gotoAndPlay(frame) { clipState.currentFrame = Math.max(0, +frame | 0); clipState.isPlaying = true; clipState._lastScriptFrame = -1; },
+      gotoAndStop(frame) { clipState.currentFrame = Math.max(0, +frame | 0); clipState.isPlaying = false; clipState._lastScriptFrame = -1; },
+      // --- Divers ---
+      random(n) { return Math.floor(Math.random() * (n || 1)); },
+      log(...args) { onConsole && onConsole('log', args); },
+    };
+    for (const layer of symbol.layers) {
+      const kf = getKeyframeAt(layer, frame);
+      if (!kf || !kf.script || !kf.script.trim()) continue;
+      try {
+        const fn = new Function('Scene', 'Game', 'console', 'named', '"use strict";\n' + kf.script);
+        fn(clipScene, clipScene, proxyConsole, {});
+      } catch (err) { console.error(err); }
+    }
+  }
+
   function dispose() {
     window.removeEventListener('keydown', onKeyDown);
     window.removeEventListener('keyup', onKeyUp);
   }
 
-  return { Scene, run, runFrameScripts, onFrame, dispose };
+  return { Scene, run, runFrameScripts, runClipFrameScripts, onFrame, dispose };
 }

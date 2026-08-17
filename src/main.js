@@ -9,6 +9,8 @@ import { mountScriptsPanel } from './ui/ScriptsPanel.js';
 import { mountPropertiesPanel } from './ui/PropertiesPanel.js';
 import { mountMenuBar } from './ui/MenuBar.js';
 import { createSceneRuntime } from './runtime/sceneRuntime.js';
+import { getClipState } from './runtime/clipStates.js';
+import { resolveLayersAtFrame } from './playback/resolve.js';
 import { getPref, setPref, hasPref } from './util/prefs.js';
 import { toggleFullscreen, isElementFullscreen, onFullscreenChange } from './util/fullscreen.js';
 import { ICONS } from './ui/icons.js';
@@ -316,6 +318,27 @@ let lastTime = null;
 let acc = 0;
 let wasPlaying = false;
 
+// Avance les timelines indépendantes des MovieClip enfants (comportement
+// Animate CC : chaque clip a son propre isPlaying/currentFrame).
+function advanceClipsForLayer(layers, parentFrame) {
+  const elements = resolveLayersAtFrame(layers, parentFrame);
+  for (const el of elements) {
+    if (el.kind !== 'instance') continue;
+    const symbol = state.doc.symbols[el.symbolId];
+    if (!symbol || symbol.type !== 'movieclip') continue;
+    const clipState = getClipState(el.id);
+    if (clipState.isPlaying) {
+      clipState.currentFrame = (clipState.currentFrame + 1) % symbol.frameCount;
+      if (clipState._lastScriptFrame !== clipState.currentFrame) {
+        clipState._lastScriptFrame = clipState.currentFrame;
+        sceneRuntime.runClipFrameScripts(symbol, clipState.currentFrame, clipState);
+      }
+    }
+    // Récursion : avancer les clips imbriqués dans ce clip
+    advanceClipsForLayer(symbol.layers, clipState.currentFrame);
+  }
+}
+
 function loop(time) {
   requestAnimationFrame(loop);
 
@@ -337,10 +360,11 @@ function loop(time) {
     advanced = true;
   }
   if (advanced) {
-    stage.render(tick);
-    timelineCtl.update();
     sceneRuntime.onFrame(state.currentFrame);
     sceneRuntime.runFrameScripts(state.currentFrame);
+    advanceClipsForLayer(getContextLayers(state.doc, state.editPath), state.currentFrame);
+    stage.render(tick);
+    timelineCtl.update();
   }
 }
 requestAnimationFrame(loop);
