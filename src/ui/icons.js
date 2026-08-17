@@ -46,6 +46,8 @@ export const ICONS = {
   exportHtml: svg('<rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/><path d="M8.5 8.2 6.3 10.4l2.2 2.2M15.5 8.2l2.2 2.2-2.2 2.2M13 7.5l-2 9"/>'),
   fullscreen: svg('<path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/><path d="M20 15v4a1 1 0 0 1-1 1h-4"/>'),
   exitFullscreen: svg('<path d="M9 4v4a1 1 0 0 1-1 1H4"/><path d="M15 4v4a1 1 0 0 0 1 1h4"/><path d="M9 20v-4a1 1 0 0 0-1-1H4"/><path d="M15 20v-4a1 1 0 0 1 1-1h4"/>'),
+  info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.5" fill="currentColor" stroke="none"/>'),
+  book: svg('<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 1 4 15.5Z"/><path d="M4 18h16"/><path d="M10 2v16"/>'),
 };
 
 // Injecte l'icône dans un bouton/élément existant, avant tout texte déjà

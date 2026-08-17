@@ -775,3 +775,78 @@ button.icon-btn:disabled { opacity: 0.4; cursor: default; }
   }
   .prop-row input[type="color"] { width: 34px; height: 28px; }
 }
+
+/* ---------- Téléphone (< 640px) : optimisation maximale ---------- */
+@media (max-width: 640px) {
+  /* Réduire la hauteur de la timeline pour gagner de la place */
+  #timeline { height: 160px; }
+  
+  /* La timeline est repliée par défaut sur téléphone (voir Timeline.js) */
+  #timeline.collapsed { height: auto; }
+  
+  /* Boutons de la toolbar encore plus grands */
+  .tool-btn { width: 52px; height: 52px; }
+  .tool-btn svg { width: 26px; height: 26px; }
+  
+  /* Menubar : boutons plus grands et espacés */
+  #menubar { padding: 6px 10px; gap: 6px; }
+  #menubar button { 
+    padding: 10px 14px; 
+    min-height: 44px; 
+    font-size: 13px;
+  }
+  
+  /* Panneaux : titre plus grand pour mieux cliquer */
+  .panel-title { 
+    padding: 8px 10px; 
+    font-size: 12px;
+  }
+  .panel-title button { 
+    padding: 8px 12px; 
+    min-width: 36px; 
+    min-height: 36px;
+    font-size: 12px;
+  }
+  
+  /* Bibliothèque : éléments plus grands */
+  .lib-item { 
+    padding: 10px 8px; 
+    gap: 8px;
+  }
+  .lib-item button { 
+    width: 36px; 
+    height: 36px; 
+  }
+  
+  /* Timeline : cellules plus grandes pour le tactile */
+  .tl-layer-row, .tl-track-row { height: 38px; }
+  .tl-frame-cell { width: 18px; }
+  .tl-ruler .cell { width: 18px; }
+  
+  /* Bouton plein écran de la scène */
+  .stage-fullscreen-btn { 
+    width: 44px; 
+    height: 44px; 
+  }
+  
+  /* Propriétés : champs plus grands */
+  .prop-row input[type="number"], .prop-row input[type="text"], .prop-row select {
+    padding: 10px;
+    font-size: 14px;
+  }
+  .prop-row input[type="color"] { width: 38px; height: 32px; }
+  .prop-row label { width: 80px; font-size: 12px; }
+  
+  /* Scripts : onglets plus grands */
+  .script-tab { 
+    padding: 6px 10px; 
+    font-size: 12px;
+  }
+  .script-tab .name { max-width: 110px; }
+  
+  /* Boutons d'action de la plume */
+  .pen-action-btn { 
+    padding: 12px 20px; 
+    font-size: 14px; 
+  }
+}
