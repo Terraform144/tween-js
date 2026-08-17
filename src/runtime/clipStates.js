@@ -2,8 +2,6 @@
 // Chaque instance MovieClip possède sa propre timeline (isPlaying,
 // currentFrame) — comportement identique à Adobe Animate CC.
 
-import { getKeyframeAt, getActiveKeyframe } from '../core/model.js';
-
 const clipStates = new Map(); // instanceId -> ClipState
 
 export function getClipState(instanceId) {
