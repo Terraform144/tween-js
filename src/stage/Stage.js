@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
+import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
 import { fullscreenElement } from '../util/fullscreen.js';
 import { ICONS } from '../ui/icons.js';
@@ -344,7 +345,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         if (symbol) {
           const childFrame = symbol.type === 'graphic'
             ? frameIndex % Math.max(1, symbol.frameCount)
-            : (tick || 0) % Math.max(1, symbol.frameCount);
+            : getClipState(el.id).currentFrame;
           renderInto(node, symbol.layers, childFrame, tick, depth + 1);
         }
       }

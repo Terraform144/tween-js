@@ -81,6 +81,13 @@ function getActiveKeyframe(layer, frameIndex) {
   return active;
 }
 
+function getKeyframeAt(layer, index) {
+  for (const kf of layer.keyframes) {
+    if (kf.index === index) return kf;
+  }
+  return null;
+}
+
 function getNextKeyframe(layer, kf) {
   const idx = layer.keyframes.indexOf(kf);
   return layer.keyframes[idx + 1] || null;
@@ -231,9 +238,9 @@ export class MovieClip {
     this._children = new Map(); // id d'instance -> MovieClip enfant (symboles movieclip imbriqués)
     // Appelé (au plus une fois par image, hors ré-affichages sur place) quand
     // this._frame change — sert à déclencher les scripts d'image (frame
-    // actions) posés sur ce clip. Non propagé aux enfants movieclip imbriqués
-    // pour l'instant : seule la timeline racine exécute ses scripts d'image
-    // à l'export (voir exportHTML.js).
+    // actions) posés sur ce clip. Propagé aux enfants movieclip imbriqués :
+    // chaque clip a sa propre timeline indépendante avec ses propres scripts
+    // (comportement identique à Adobe Animate CC).
     this._onFrameScript = props.onFrameScript || null;
     this._lastScriptFrame = -1;
   }
@@ -324,6 +331,8 @@ export class MovieClip {
   // crée/retire les enfants correspondants et les fait avancer. Les enfants
   // sont indexés par id d'INSTANCE (unique par placement sur la scène), donc
   // deux instances du même symbole ont bien un état de lecture indépendant.
+  // Chaque enfant reçoit un onFrameScript qui exécute ses propres scripts
+  // d'image avec un Scene scopé (stop/play/etc. déléguent au clip enfant).
   _syncChildren(layers, frameIndex, dt, doUpdate) {
     const seen = new Set();
     for (const layer of layers) {
@@ -335,13 +344,52 @@ export class MovieClip {
         seen.add(el.id);
         let child = this._children.get(el.id);
         if (!child) {
-          child = new MovieClip({ ...symbol, frameRate: this.data.frameRate, symbols: this.data.symbols, assets: this.data.assets });
+          const parent = this;
+          child = new MovieClip(
+            { ...symbol, frameRate: this.data.frameRate, symbols: this.data.symbols, assets: this.data.assets },
+            {
+              onFrameScript: function (frame) { parent._runChildFrameScript(child, frame); },
+            }
+          );
           this._children.set(el.id, child);
         }
         if (doUpdate) child.update(dt);
       }
     }
     for (const id of this._children.keys()) if (!seen.has(id)) this._children.delete(id);
+  }
+
+  // Exécute les scripts d'image d'un clip enfant avec un Scene scopé :
+  // Scene.stop() arrête CE clip, pas le parent.
+  _runChildFrameScript(childClip, frame) {
+    for (const layer of childClip.data.layers) {
+      const kf = getKeyframeAt(layer, frame);
+      if (!kf || !kf.script || !kf.script.trim()) continue;
+      try {
+        const clipScene = this._buildClipScene(childClip);
+        var fn = new Function('Scene', 'Game', 'console', 'named', '"use strict";\n' + kf.script);
+        fn(clipScene, clipScene, console, {});
+      } catch (err) { console.error(err); }
+    }
+  }
+
+  // Crée un objet Scene qui délègue au clip enfant (comportement Animate CC).
+  _buildClipScene(childClip) {
+    const clip = childClip;
+    return {
+      get width() { return clip.data.width || 0; },
+      get height() { return clip.data.height || 0; },
+      get frameRate() { return clip.data.frameRate || 24; },
+      get frameCount() { return clip.data.frameCount || 1; },
+      get currentFrame() { return clip.currentFrame; },
+      get playing() { return clip.isPlaying; },
+      play: function () { clip.play(); },
+      stop: function () { clip.stop(); },
+      gotoAndPlay: function (f) { clip.gotoAndPlay(f); },
+      gotoAndStop: function (f) { clip.gotoAndStop(f); },
+      random: function (n) { return Math.floor(Math.random() * (n || 1)); },
+      log: function () { console.log.apply(console, arguments); },
+    };
   }
 
   _renderLayers(ctx, layers, frameIndex) {
