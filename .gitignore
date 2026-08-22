@@ -5,7 +5,8 @@ gameTest/
 
 .gradle-user-home/
 android/
-public/
+public/*
+!public/apk-debug.apk
 capacitor.config.json
 dev-server.err.log
 dev-server.log
