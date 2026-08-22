@@ -9,7 +9,7 @@ import { mountScriptsPanel } from './ui/ScriptsPanel.js';
 import { mountPropertiesPanel } from './ui/PropertiesPanel.js';
 import { mountMenuBar } from './ui/MenuBar.js';
 import { createSceneRuntime } from './runtime/sceneRuntime.js';
-import { getClipState } from './runtime/clipStates.js';
+import { getClipState, clearClipStates } from './runtime/clipStates.js';
 import { resolveLayersAtFrame } from './playback/resolve.js';
 import { getPref, setPref, hasPref } from './util/prefs.js';
 import { toggleFullscreen, isElementFullscreen, onFullscreenChange } from './util/fullscreen.js';
@@ -62,9 +62,66 @@ stageFullscreenBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   toggleFullscreen(stageContainer);
 });
-onFullscreenChange(() => { updateFsBtn(); stage.resize(); });
+// La classe body.sheet-fullscreen (voir style.css) fait passer le contrôle de
+// zoom en fixed en haut à gauche de l'écran pendant le plein écran de la
+// feuille ; à la sortie il retrouve le coin bas-gauche de la feuille.
+const updateFsUi = () => {
+  document.body.classList.toggle('sheet-fullscreen', isSheetFullscreen());
+};
+onFullscreenChange(() => { updateFsBtn(); updateFsUi(); stage.resize(); });
 stageContainer.appendChild(stageFullscreenBtn);
 updateFsBtn();
+updateFsUi();
+
+// --- Contrôle de zoom (loupe + pourcentage + boutons +/- + main) ---
+const zoomControls = document.createElement('div');
+zoomControls.className = 'stage-zoom-controls';
+
+const btnHand = document.createElement('button');
+btnHand.type = 'button';
+btnHand.className = 'zoom-hand-btn';
+btnHand.title = 'Main — déplacer la scène (M)';
+btnHand.innerHTML = ICONS.hand;
+btnHand.addEventListener('click', () => {
+  if (state.currentTool === 'hand') {
+    state.currentTool = 'select';
+  } else {
+    state.currentTool = 'hand';
+  }
+  notify(state);
+});
+
+const zoomSep = document.createElement('span');
+zoomSep.className = 'zoom-sep';
+
+const btnZoomOut = document.createElement('button');
+btnZoomOut.type = 'button';
+btnZoomOut.title = 'Diminuer le zoom (Ctrl+molette)';
+btnZoomOut.innerHTML = ICONS.zoomOut;
+btnZoomOut.addEventListener('click', () => stage.zoomOut());
+
+const zoomPercent = document.createElement('span');
+zoomPercent.className = 'zoom-percent';
+zoomPercent.title = 'Réinitialiser le zoom';
+zoomPercent.textContent = stage.getZoomPercent() + '%';
+zoomPercent.addEventListener('click', () => { stage.zoomReset(); stage.resetPan(); });
+
+const btnZoomIn = document.createElement('button');
+btnZoomIn.type = 'button';
+btnZoomIn.title = 'Agrandir le zoom (Ctrl+molette)';
+btnZoomIn.innerHTML = ICONS.zoomIn;
+btnZoomIn.addEventListener('click', () => stage.zoomIn());
+
+zoomControls.append(btnHand, zoomSep, btnZoomOut, zoomPercent, btnZoomIn);
+stageContainer.appendChild(zoomControls);
+
+function updateZoomUI() {
+  zoomPercent.textContent = stage.getZoomPercent() + '%';
+  btnHand.classList.toggle('active', state.currentTool === 'hand');
+  stageContainer.classList.toggle('panning', state.currentTool === 'hand');
+}
+stage.setOnZoomChange(updateZoomUI);
+
 
 const toolbarCtl = mountToolbar(document.getElementById('toolbar'), state, {
   onDelete: stage.deleteSelected,
@@ -307,6 +364,7 @@ function renderAll() {
   propertiesCtl.update();
   menuBarCtl.update();
   updateBanner();
+  updateZoomUI();
 }
 
 subscribe(state, renderAll);
@@ -345,7 +403,7 @@ function advanceClipsForLayer(layers, parentFrame) {
 function loop(time) {
   requestAnimationFrame(loop);
 
-  if (state.playing && !wasPlaying) { lastTime = time; acc = 0; sceneRuntime.runFrameScripts(state.currentFrame); }
+  if (state.playing && !wasPlaying) { lastTime = time; acc = 0; clearClipStates(); sceneRuntime.runFrameScripts(state.currentFrame); }
   wasPlaying = state.playing;
   if (!state.playing) return;
 

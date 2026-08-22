@@ -32,6 +32,7 @@ export function mountTimeline(container, state) {
   const btnTween = svgButton('tween', 'Activer/désactiver le tween de mouvement');
   const btnRemoveKf = svgButton('close', 'Supprimer l\'image clé');
   const btnPlay = svgButton('play', 'Lecture / Pause (Entrée)');
+  const btnStop = svgButton('stop', 'Arrêter la lecture');
 
   const labelInput = document.createElement('input');
   labelInput.type = 'text';
@@ -63,7 +64,7 @@ export function mountTimeline(container, state) {
   });
   applyCollapsed();
 
-  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, frameInfo, btnCollapse);
+  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, btnStop, frameInfo, btnCollapse);
   enableDragScroll(toolbar);
 
   const body = document.createElement('div');
@@ -303,6 +304,10 @@ export function mountTimeline(container, state) {
   });
   btnPlay.addEventListener('click', () => {
     state.playing = !state.playing;
+    notify(state);
+  });
+  btnStop.addEventListener('click', () => {
+    state.playing = false;
     notify(state);
   });
 

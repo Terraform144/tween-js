@@ -42,7 +42,17 @@ function clonePathPoint(p) {
 export function createStage({ container, state, onSelectionChange = () => {} }) {
   const initialDoc = state.doc;
 
-  const konvaStage = new Konva.Stage({ container, width: initialDoc.width, height: initialDoc.height });
+  // Le pan (outil main) translate ce wrapper interne et non `container`
+  // lui-même : en plein écran natif, la feuille de style UA du navigateur
+  // impose `transform: none !important` à l'élément fullscreen (spec WHATWG
+  // §5.2), ce qui écraserait silencieusement tout transform inline posé sur
+  // le conteneur — la scène devenait impossible à déplacer. Un enfant de
+  // l'élément fullscreen n'est pas visé par cette règle.
+  const panLayer = document.createElement('div');
+  panLayer.className = 'stage-pan-layer';
+  container.appendChild(panLayer);
+
+  const konvaStage = new Konva.Stage({ container: panLayer, width: initialDoc.width, height: initialDoc.height });
 
   const bgLayer = new Konva.Layer({ listening: false });
   const contentLayer = new Konva.Layer();
@@ -142,6 +152,18 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   let subselectId = null; // id de l'élément path/line actuellement édité par l'outil sous-sélection
   let pointRefs = []; // nœuds Konva des ancres/poignées affichées, reconstruits à chaque sélection
   let clipboard = []; // éléments copiés (Ctrl+C/X), hors state.doc pour ne jamais entrer dans l'historique d'annulation
+  let panStart = null; // { mouseX, mouseY, offsetX, offsetY } — glisser-déposer en cours avec la main
+  let panOffset = { x: 0, y: 0 }; // décalage CSS translate courant du conteneur
+
+  function applyPanTransform() {
+    panLayer.style.transform = (panOffset.x || panOffset.y) ? `translate(${panOffset.x}px, ${panOffset.y}px)` : '';
+  }
+
+  function resetPan() {
+    panOffset.x = 0;
+    panOffset.y = 0;
+    applyPanTransform();
+  }
 
   function currentLayers() {
     return getContextLayers(state.doc, state.editPath);
@@ -637,9 +659,16 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   konvaStage.on('mousedown touchstart', (e) => {
+    const tool = state.currentTool;
+    if (tool === 'hand') {
+      e.cancelBubble = true;
+      const evt = e.evt;
+      panStart = { mouseX: evt.clientX, mouseY: evt.clientY, offsetX: panOffset.x, offsetY: panOffset.y };
+      container.classList.add('grabbing');
+      return;
+    }
     const p = stagePointer();
     if (!p) return;
-    const tool = state.currentTool;
 
     if (tool === 'select' || tool === 'subselect') {
       if (e.target === konvaStage) {
@@ -734,6 +763,14 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   konvaStage.on('mousemove touchmove', () => {
+    if (panStart) {
+      const dx = event.clientX - panStart.mouseX;
+      const dy = event.clientY - panStart.mouseY;
+      panOffset.x = panStart.offsetX + dx;
+      panOffset.y = panStart.offsetY + dy;
+      applyPanTransform();
+      return;
+    }
     if (marquee) {
       const p = stagePointer();
       if (!p) return;
@@ -783,6 +820,11 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   });
 
   konvaStage.on('mouseup touchend', () => {
+    if (panStart) {
+      panStart = null;
+      container.classList.remove('grabbing');
+      return;
+    }
     if (marquee) { finishMarquee(); return; }
     if (!drawState) return;
     if (drawState.tool === 'pen') {
@@ -795,7 +837,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // Filet de sécurité si le bouton est relâché hors de la scène (l'événement
   // Konva ne se déclenche alors pas) — même principe que le redimensionnement
   // du panneau latéral dans main.js.
-  window.addEventListener('mouseup', () => { if (marquee) finishMarquee(); });
+  window.addEventListener('mouseup', () => { if (marquee) finishMarquee(); if (panStart) { panStart = null; container.classList.remove('grabbing'); } });
 
   const MARQUEE_CLICK_THRESHOLD = 3; // px, en dessous duquel on considère que c'était un simple clic (pas un glissé)
 
@@ -839,6 +881,11 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   window.addEventListener('keydown', (e) => {
     if (isTypingTarget(e.target)) return;
+    if (e.key === 'm' || e.key === 'M') {
+      if (state.currentTool === 'hand') { state.currentTool = 'select'; } else { state.currentTool = 'hand'; }
+      notify(state);
+      return;
+    }
     if (e.key === 'Enter' && drawState && drawState.tool === 'pen') finishPen(false);
     if (e.key === 'Enter' && drawState && drawState.tool === 'boneChain') finishBoneChain();
     if (e.key === 'Escape' && drawState && drawState.tool === 'pen') cancelDraw();
@@ -1079,33 +1126,85 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // dessin — voir la mémoire projet sur le bug du quart haut-gauche mobile.
   // Ne grossit jamais au-delà de 100% : sur un très grand écran, c'est la
   // taille des contrôles autour qui s'adapte (voir style.css), pas la scène.
+  let fitScale = 1;
   function resize() {
     const doc = state.doc;
-    // En plein écran de la feuille seule, la scène peut être agrandie au-delà
-    // de 100 % pour remplir l'écran ; en mode normal on ne grossit jamais
-    // au-delà de 100 % (voir commentaire plus haut).
     const fullscreenTarget = fullscreenElement();
     const isSheetFullscreen = fullscreenTarget === container;
     const availEl = isSheetFullscreen ? container : container.parentElement;
     const availW = Math.max(80, (availEl ? availEl.clientWidth : doc.width) - 24);
     const availH = Math.max(80, (availEl ? availEl.clientHeight : doc.height) - 24);
-    const fitScale = isSheetFullscreen
+    fitScale = isSheetFullscreen
       ? Math.min(availW / doc.width, availH / doc.height)
       : Math.min(1, availW / doc.width, availH / doc.height);
-    konvaStage.width(Math.round(doc.width * fitScale));
-    konvaStage.height(Math.round(doc.height * fitScale));
-    konvaStage.scale({ x: fitScale, y: fitScale });
+    resetPan();
+    applyZoom();
     render();
   }
+
+  const ZOOM_MIN = 0.1;
+  const ZOOM_MAX = 10;
+  const ZOOM_STEP = 0.25;
+
+  function applyZoom() {
+    const doc = state.doc;
+    const scale = fitScale * state.zoom;
+    konvaStage.width(Math.round(doc.width * scale));
+    konvaStage.height(Math.round(doc.height * scale));
+    konvaStage.scale({ x: scale, y: scale });
+  }
+
+  function zoomIn() {
+    state.zoom = Math.min(ZOOM_MAX, state.zoom + ZOOM_STEP);
+    applyZoom();
+    render();
+    if (onZoomChange) onZoomChange();
+  }
+
+  function zoomOut() {
+    state.zoom = Math.max(ZOOM_MIN, state.zoom - ZOOM_STEP);
+    applyZoom();
+    render();
+    if (onZoomChange) onZoomChange();
+  }
+
+  function zoomReset() {
+    state.zoom = 1;
+    applyZoom();
+    render();
+    if (onZoomChange) onZoomChange();
+  }
+
+  function getZoomPercent() {
+    return Math.round(state.zoom * 100);
+  }
+
+  let onZoomChange = null;
+  function setOnZoomChange(fn) { onZoomChange = fn; }
+
+  // Zoom à la molette : Ctrl+molette agrandit/rétrécit autour du pointeur
+  container.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+    const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, state.zoom + delta));
+    if (newZoom === state.zoom) return;
+    state.zoom = newZoom;
+    applyZoom();
+    render();
+    if (onZoomChange) onZoomChange();
+  }, { passive: false });
 
   // Convertit des coordonnées client (événement DOM : glisser-déposer, clic
   // externe) en coordonnées document, en inversant la transformation absolue
   // du stage (même principe que getRelativePointerPosition()).
   function pointFromClient(clientX, clientY) {
-    const rect = container.getBoundingClientRect();
+    // Rect du panLayer (et non du container) : c'est lui que le pan translate,
+    // l'origine doit donc suivre la scène déplacée.
+    const rect = panLayer.getBoundingClientRect();
     const abs = { x: clientX - rect.left, y: clientY - rect.top };
     return konvaStage.getAbsoluteTransform().copy().invert().point(abs);
   }
 
-  return { konvaStage, render, resize, addInstanceAt, deleteSelected, copySelected, cutSelected, pasteClipboard, pointFromClient };
+  return { konvaStage, render, resize, addInstanceAt, deleteSelected, copySelected, cutSelected, pasteClipboard, pointFromClient, zoomIn, zoomOut, zoomReset, getZoomPercent, setOnZoomChange, resetPan };
 }
