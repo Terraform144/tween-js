@@ -174,6 +174,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   const aboutMenuItems = [
     { icon: 'info', label: 'Mentions légales & RGPD', action: () => { window.location.href = '/src/mentions-legales.html'; } },
     { icon: 'book', label: 'Documentation', action: () => { window.open('/docs/Animate-JS-Documentation.pdf', '_blank'); } },
+    { icon: 'chevronDown', label: 'APK Debug', action: () => { window.location.href = '/apk-debug.apk'; } },
   ];
   for (const item of aboutMenuItems) {
     const b = document.createElement('button');
