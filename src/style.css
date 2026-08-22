@@ -259,6 +259,12 @@ html, body {
   touch-action: none;
   position: relative;
 }
+/* Porte le translate du pan (outil main) : en plein écran natif, la feuille
+   UA impose transform:none !important à l'élément fullscreen — le déplacement
+   doit donc s'appliquer à ce wrapper interne (voir Stage.js#createStage). */
+.stage-pan-layer {
+  position: relative;
+}
 /* Bouton carré de plein écran posé sur la feuille, en haut à droite. */
 .stage-fullscreen-btn {
   position: absolute;
@@ -279,6 +285,71 @@ html, body {
   box-shadow: 0 2px 6px rgba(7, 54, 66, 0.18);
 }
 .stage-fullscreen-btn:hover { background: var(--bg-3); border-color: var(--accent); color: var(--accent); }
+/* Contrôle de zoom posé sur la feuille, en bas à gauche. */
+.stage-zoom-controls {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(238, 232, 213, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(7, 54, 66, 0.18);
+  touch-action: auto;
+}
+.stage-zoom-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--text);
+  cursor: pointer;
+}
+.stage-zoom-controls button:hover { background: var(--bg-3); color: var(--accent); }
+.stage-zoom-controls .zoom-percent {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 38px;
+  text-align: center;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  user-select: none;
+}
+.stage-zoom-controls .zoom-percent:hover { background: var(--bg-3); color: var(--accent); }
+.stage-zoom-controls .zoom-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
+}
+.stage-zoom-controls .zoom-hand-btn.active { background: var(--accent-dim); color: var(--accent); }
+/* Plein écran de la feuille (classe posée par main.js) : le contrôle devient
+   fixed en haut à gauche de l'écran pour rester toujours visible, même si la
+   feuille défile ou est déplacée à la main ; à la sortie du plein écran il
+   retrouve le coin bas-gauche de la feuille. */
+body.sheet-fullscreen .stage-zoom-controls {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  bottom: auto;
+}
+/* Curseur main : grabbing pendant le glisser, grab au survol */
+#stage-container.panning { cursor: grab; }
+#stage-container.panning.grabbing { cursor: grabbing; }
+@media (pointer: coarse), (max-width: 1024px) {
+  .stage-zoom-controls button { width: 36px; height: 36px; }
+  .stage-zoom-controls .zoom-percent { font-size: 13px; min-width: 48px; }
+}
 @media (pointer: coarse), (max-width: 1024px) {
   .stage-fullscreen-btn { width: 40px; height: 40px; }
 }
