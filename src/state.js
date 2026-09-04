@@ -15,6 +15,7 @@ export function createEditorState(doc) {
     fillColor: '#cb4b16',
     strokeColor: '#073642',
     strokeWidth: 2,
+    brushSize: 5,
     zoom: 1,
     listeners: new Set(),
   };

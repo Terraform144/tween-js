@@ -8,10 +8,11 @@ const TOOLS = [
   { id: 'ellipse', icon: 'ellipse', title: 'Ellipse (O)' },
   { id: 'line', icon: 'line', title: 'Ligne (L)' },
   { id: 'pen', icon: 'pen', title: 'Plume — courbes de Bézier, clic = point anguleux, clic-glissé = point lisse (P)' },
+  { id: 'brush', icon: 'pencil', title: 'Pinceau — dessiner des traits libres (B)' },
   { id: 'text', icon: 'text', title: 'Texte (T)' },
 ];
 
-const SHORTCUTS = { v: 'select', a: 'subselect', r: 'rect', o: 'ellipse', l: 'line', b: 'bone', c: 'boneChain', p: 'pen', t: 'text' };
+const SHORTCUTS = { v: 'select', a: 'subselect', r: 'rect', o: 'ellipse', l: 'line', b: 'brush', p: 'pen', t: 'text' };
 
 export function mountToolbar(container, state, { onDelete } = {}) {
   container.innerHTML = '';
