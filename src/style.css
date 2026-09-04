@@ -240,6 +240,8 @@ html, body {
 }
 .tool-color-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .tool-color-row input[type="color"] { width: 26px; height: 20px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
+.tool-color-row input[type="range"] { width: 100px; cursor: pointer; }
+.tool-color-row select { padding: 2px 4px; border: 1px solid var(--border); background: var(--bg-1); color: var(--text); cursor: pointer; }
 
 /* ---------- Stage ---------- */
 #stage-wrap {
@@ -333,6 +335,13 @@ html, body {
   margin: 0 2px;
 }
 .stage-zoom-controls .zoom-hand-btn.active { background: var(--accent-dim); color: var(--accent); }
+/* Main (pan) désactivée hors plein écran de la feuille : bouton grisé, non
+   cliquable (voir main.js) */
+.stage-zoom-controls .zoom-hand-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.stage-zoom-controls .zoom-hand-btn:disabled:hover { background: transparent; color: var(--text); }
 /* Plein écran de la feuille (classe posée par main.js) : le contrôle devient
    fixed en haut à gauche de l'écran pour rester toujours visible, même si la
    feuille défile ou est déplacée à la main ; à la sortie du plein écran il

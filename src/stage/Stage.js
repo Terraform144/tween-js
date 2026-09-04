@@ -3,11 +3,12 @@ import { getContextLayers, insertKeyframe, createShape, createInstance, createPa
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
-import { fullscreenElement } from '../util/fullscreen.js';
+import { fullscreenElement, isElementFullscreen } from '../util/fullscreen.js';
 import { ICONS } from '../ui/icons.js';
 
 const HANDLE_DRAG_THRESHOLD = 3; // px, avant qu'un clic-glissé plume ne devienne un point lisse
 const CLOSE_PATH_THRESHOLD = 8; // px, distance au premier point pour fermer le tracé au clic
+const BRUSH_MIN_DISTANCE = 2; // px, distance minimum entre points pour le pinceau
 
 // Trace un chemin (segments droits ou courbes de Bézier) dans un contexte
 // canvas déjà positionné en beginPath(). Partagé par le rendu Konva (scène
@@ -246,8 +247,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
             fill: el.closed ? el.fill : undefined,
             stroke: el.stroke,
             strokeWidth: el.strokeWidth,
-            lineCap: 'round',
-            lineJoin: 'round',
+            lineCap: el.lineCap || 'round',
+            lineJoin: el.lineJoin || 'round',
             sceneFunc: (ctx, shape) => {
               const d = shape.getAttr('elData');
               ctx.beginPath();
@@ -379,6 +380,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     // Changer d'outil en pleine plume ou chaîne de bones abandonnait un tracé fantôme
     if (drawState && drawState.tool === 'pen' && state.currentTool !== 'pen') cancelDraw();
     if (drawState && drawState.tool === 'boneChain' && state.currentTool !== 'boneChain') finishBoneChain();
+    if (drawState && drawState.tool === 'brush' && state.currentTool !== 'brush') finishBrush();
     currentTick = tick;
     const doc = state.doc;
     bgRect.width(doc.width);
@@ -732,6 +734,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       updateBoneChainPreview();
     } else if (tool === 'pen') {
       startOrContinuePen(p);
+    } else if (tool === 'brush') {
+      startOrContinueBrush(p);
     } else if (tool === 'text') {
       createTextAt(p);
     }
@@ -815,6 +819,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         drawState.handlePreview.points([start.x - vec.x, start.y - vec.y, start.x + vec.x, start.y + vec.y]);
       }
       drawState.previewNode.getLayer().batchDraw();
+    } else if (drawState.tool === 'brush') {
+      startOrContinueBrush(p);
     }
     overlayLayer.batchDraw();
   });
@@ -829,6 +835,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (!drawState) return;
     if (drawState.tool === 'pen') {
       drawState.dragging = false;
+      return;
+    }
+    if (drawState.tool === 'brush') {
+      finishBrush();
       return;
     }
     finishDrag();
@@ -882,6 +892,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   window.addEventListener('keydown', (e) => {
     if (isTypingTarget(e.target)) return;
     if (e.key === 'm' || e.key === 'M') {
+      // Le pan n'est permis qu'en plein écran de la feuille (voir main.js)
+      if (!isElementFullscreen(container)) return;
       if (state.currentTool === 'hand') { state.currentTool = 'select'; } else { state.currentTool = 'hand'; }
       notify(state);
       return;
@@ -890,6 +902,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (e.key === 'Enter' && drawState && drawState.tool === 'boneChain') finishBoneChain();
     if (e.key === 'Escape' && drawState && drawState.tool === 'pen') cancelDraw();
     if (e.key === 'Escape' && drawState && drawState.tool === 'boneChain') cancelDraw();
+    if (e.key === 'Escape' && drawState && drawState.tool === 'brush') cancelDraw();
     if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedElementIds.length) deleteSelected();
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelected(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelected(); }
@@ -1029,6 +1042,166 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     notify(state);
   }
 
+  // =============================================================================
+  // BRUSH TOOL FUNCTIONS
+  // =============================================================================
+
+  // Démarrer ou continuer le trait de pinceau
+  function startOrContinueBrush(p) {
+    if (!drawState || drawState.tool !== 'brush') {
+      drawState = {
+        tool: 'brush',
+        points: [p],
+        previewNode: null
+      };
+      const previewNode = new Konva.Line({
+        points: [p.x, p.y, p.x, p.y],
+        stroke: state.strokeColor,
+        strokeWidth: state.brushSize || 5,
+        lineCap: 'round',
+        lineJoin: 'round',
+        tension: 0.8,
+        listening: false
+      });
+      drawState.previewNode = previewNode;
+      overlayLayer.add(previewNode);
+    } else {
+      const points = drawState.points;
+      const last = points[points.length - 1];
+      const dist = distance(p, last);
+      if (dist < BRUSH_MIN_DISTANCE) return;
+      points.push(p);
+      const flatPoints = points.flatMap(pt => [pt.x, pt.y]);
+      drawState.previewNode.points(flatPoints);
+      overlayLayer.batchDraw();
+    }
+  }
+
+  // Finaliser le trait de pinceau
+  function finishBrush() {
+    if (!drawState || drawState.tool !== 'brush' || drawState.points.length < 2) {
+      cancelDraw();
+      return;
+    }
+    let points = drawState.points;
+    
+    // Étape 1 : Simplifier avec Ramer-Douglas-Peucker
+    points = simplifyPointsRD(points, 2.0);
+    
+    // Étape 2 : Convertir en courbe Bézier lisse
+    points = createSmoothPath(points, 0.6);
+    
+    const xs = points.map(p => p.x);
+    const ys = points.map(p => p.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const ox = minX;
+    const oy = minY;
+    const relPoints = points.map(p => createPathPoint(p.x - ox, p.y - oy));
+    const el = createShape('path', {
+      x: ox, y: oy,
+      points: relPoints,
+      closed: false,
+      width: maxX - minX,
+      height: maxY - minY,
+      fill: 'transparent',
+      stroke: state.strokeColor,
+      strokeWidth: state.brushSize || 5
+    });
+    cancelDraw();
+    addElement(el);
+    state.currentTool = 'select';
+    notify(state);
+  }
+
+  // Algorithme Ramer-Douglas-Peucker pour simplifier un polyligne
+  function simplifyPointsRD(points, epsilon = 2.0) {
+    if (points.length <= 2) return points;
+    
+    let dmax = 0;
+    let index = 0;
+    const end = points.length - 1;
+    
+    for (let i = 1; i < end; i++) {
+      const d = perpendicularDistance(points[i], points[0], points[end]);
+      if (d > dmax) {
+        index = i;
+        dmax = d;
+      }
+    }
+    
+    if (dmax > epsilon) {
+      const rec1 = simplifyPointsRD(points.slice(0, index + 1), epsilon);
+      const rec2 = simplifyPointsRD(points.slice(index), epsilon);
+      return rec1.slice(0, -1).concat(rec2);
+    }
+    
+    return [points[0], points[end]];
+  }
+
+  // Distance perpendiculaire d'un point à une ligne
+  function perpendicularDistance(point, lineStart, lineEnd) {
+    const x0 = point.x, y0 = point.y;
+    const x1 = lineStart.x, y1 = lineStart.y;
+    const x2 = lineEnd.x, y2 = lineEnd.y;
+    
+    if (x1 === x2 && y1 === y2) {
+      return Math.hypot(x0 - x1, y0 - y1);
+    }
+    
+    const numerator = Math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
+    const denominator = Math.hypot(y2 - y1, x2 - x1);
+    return numerator / denominator;
+  }
+
+  // Conversion en courbe Bézier lisse
+  function createSmoothPath(points, tension = 0.6) {
+    if (points.length < 2) return points.map(p => createPathPoint(p.x, p.y));
+    if (points.length === 2) {
+      return [
+        createPathPoint(points[0].x, points[0].y),
+        createPathPoint(points[1].x, points[1].y)
+      ];
+    }
+    
+    const result = [createPathPoint(points[0].x, points[0].y)];
+    
+    for (let i = 1; i < points.length - 1; i++) {
+      const p0 = points[i - 1];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      
+      // Calcul des vecteurs
+      const dx1 = p1.x - p0.x;
+      const dy1 = p1.y - p0.y;
+      const dx2 = p2.x - p1.x;
+      const dy2 = p2.y - p1.y;
+      
+      // Longueurs
+      const len1 = Math.hypot(dx1, dy1);
+      const len2 = Math.hypot(dx2, dy2);
+      
+      // Vecteurs de contrôle (relatifs au point)
+      const cOutX = dx1 * tension * len2 / (len1 + len2);
+      const cOutY = dy1 * tension * len2 / (len1 + len2);
+      const cInX = -dx2 * tension * len1 / (len1 + len2);
+      const cInY = -dy2 * tension * len1 / (len1 + len2);
+      
+      result.push(createPathPoint(
+        p1.x, p1.y,
+        { x: cOutX, y: cOutY },
+        { x: cInX, y: cInY }
+      ));
+    }
+    
+    // Dernier point
+    result.push(createPathPoint(points[points.length - 1].x, points[points.length - 1].y));
+    
+    return result;
+  }
+
   function cancelDraw() {
     if (drawState && drawState.tool === 'pen') destroyPenPreview();
     else if (drawState && drawState.previewNode) {
@@ -1043,6 +1216,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       if (drawState.previewJoints) {
         for (const joint of drawState.previewJoints) joint.destroy();
       }
+    }
+    else if (drawState && drawState.tool === 'brush') {
+      if (drawState.previewNode) drawState.previewNode.destroy();
     }
     overlayLayer.draw();
     drawState = null;
