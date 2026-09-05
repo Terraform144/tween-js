@@ -25,6 +25,15 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     if (!e.ctrlKey && !e.metaKey) return;
     if (e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); history.undo(); }
     else if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) { e.preventDefault(); history.redo(); }
+    else if (e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      try {
+        saveProject(state.doc);
+        alert(`Projet "${state.doc.name}" sauvegardé dans les archives.`);
+      } catch (err) {
+        alert('Erreur lors de la sauvegarde : ' + err.message);
+      }
+    }
   });
 
   const btnNew = iconTextButton('newDoc', 'Nouveau', () => {
@@ -188,59 +197,32 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
       projects.sort((a, b) => b.timestamp - a.timestamp);
       
       for (const project of projects) {
-        const projectRow = document.createElement('div');
-        projectRow.className = 'archive-item';
-        
-        const projectInfo = document.createElement('span');
-        projectInfo.className = 'archive-info';
-        const displayName = project.name || 'Sans titre';
-        projectInfo.innerHTML = ICONS.folderOpen + `<strong>${displayName}</strong> - ${new Date(project.timestamp).toLocaleDateString('fr-FR')}`;
-        projectRow.appendChild(projectInfo);
-        
-        const loadBtn = document.createElement('button');
-        loadBtn.type = 'button';
-        loadBtn.className = 'archive-action-btn';
-        loadBtn.innerHTML = ICONS.folderOpen;
-        loadBtn.title = 'Charger ce projet';
-        loadBtn.addEventListener('click', () => {
+        const projectBtn = document.createElement('button');
+        projectBtn.type = 'button';
+        projectBtn.className = 'archive-item';
+        projectBtn.textContent = project.name || 'Sans titre';
+        projectBtn.addEventListener('click', () => {
           closeArchivesMenu();
           const doc = loadProject(project.id);
           if (doc) {
-            // Réinitialiser le compteur d'ID pour éviter les conflits
             bumpIdCounterPastDocument(doc);
             onProjectLoad(doc);
           } else {
             alert('Erreur lors du chargement du projet.');
           }
         });
-        projectRow.appendChild(loadBtn);
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'archive-action-btn';
-        deleteBtn.innerHTML = ICONS.trash;
-        deleteBtn.title = 'Supprimer ce projet';
-        deleteBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (confirm(`Supprimer le projet "${project.name}" ?`)) {
-            deleteProject(project.id);
-            refreshArchivesMenu();
-            closeArchivesMenu();
-          }
-        });
-        projectRow.appendChild(deleteBtn);
-        
-        archivesMenuPanel.appendChild(projectRow);
+        archivesMenuPanel.appendChild(projectBtn);
       }
     }
     
-    // Bouton pour sauvegarder le projet actuel (TOUJOURS visible)
+    // Bouton pour sauvegarder le projet actuel
     const saveRow = document.createElement('div');
-    saveRow.className = 'archive-item archive-save-row';
+    saveRow.className = 'archive-save-row';
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'archive-save-btn';
-    saveBtn.innerHTML = ICONS.save + `<span>Sauvegarder "${state.doc.name}"</span>`;
+    saveBtn.textContent = `Sauvegarder "${state.doc.name}"`;
+    saveBtn.title = 'Sauvegarder (Ctrl+S)';
     saveBtn.addEventListener('click', () => {
       closeArchivesMenu();
       try {

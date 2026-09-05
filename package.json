@@ -8,6 +8,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:vanilla": "vite build --config vite.vanilla.config.js",
+    "build:pure-vanilla": "vite build --config vite.vanilla.config.js && copy dist\\tweenjs-bundle.iife.js ..\\Animate_JS_PureVanilla\\tweenjs-bundle.js",
+    "build:pure-vanilla": "vite build --config vite.vanilla.config.js",
     "preview": "vite preview"
   },
   "dependencies": {
