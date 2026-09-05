@@ -1079,11 +1079,13 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (!drawState || drawState.points.length < 2) { cancelDraw(); return; }
     destroyPenPreview();
     const pts = drawState.points;
+    // Fermer automatiquement si le dernier point est proche du premier (même avec Entrée/✅)
+    const shouldClose = closeShape || (pts.length > 1 && distance(pts[pts.length - 1], pts[0]) <= CLOSE_PATH_THRESHOLD);
     const ox = pts[0].x, oy = pts[0].y;
     const rel = pts.map((p) => createPathPoint(p.x - ox, p.y - oy, { cIn: p.cIn, cOut: p.cOut, smooth: p.smooth }));
     const xs = rel.map((p) => p.x), ys = rel.map((p) => p.y);
     const el = createShape('path', {
-      x: ox, y: oy, points: rel, closed: closeShape,
+      x: ox, y: oy, points: rel, closed: shouldClose,
       width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys),
       fill: state.fillColor, stroke: state.strokeColor, strokeWidth: state.strokeWidth,
     });
