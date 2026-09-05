@@ -1,4 +1,4 @@
-import { createDocument, serializeDocument, deserializeDocument, getContextFrameCount, setContextFrameCount, addAsset } from '../core/model.js';
+import { createDocument, serializeDocument, deserializeDocument, getContextFrameCount, setContextFrameCount, addAsset, bumpIdCounterPastDocument } from '../core/model.js';
 import { notify } from '../state.js';
 import { downloadStandaloneHTML } from '../export/exportHTML.js';
 import { downloadTextFile } from '../util/download.js';
@@ -6,8 +6,9 @@ import { ICONS } from './icons.js';
 import { parseSvg } from '../util/importSvg.js';
 import { enableDragScroll } from '../util/dragScroll.js';
 import { toggleFullscreen, fullscreenElement, onFullscreenChange } from '../util/fullscreen.js';
+import { getAllProjects, saveProject, loadProject, deleteProject, deleteAllProjects } from '../util/projects.js';
 
-export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {} }) {
+export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onProjectLoad = () => {} }) {
   container.innerHTML = '';
 
   const brand = document.createElement('span');
@@ -161,6 +162,128 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   window.addEventListener('scroll', closeFileMenu, true);
   window.addEventListener('resize', closeFileMenu);
 
+  // Menu Archives : liste des projets sauvegardés dans localStorage
+  const archivesMenu = document.createElement('div');
+  archivesMenu.className = 'file-menu';
+  const archivesMenuBtn = document.createElement('button');
+  archivesMenuBtn.type = 'button';
+  archivesMenuBtn.className = 'file-menu-btn';
+  archivesMenuBtn.innerHTML = ICONS.folderOpen + '<span>Archives</span><span class="caret">▾</span>';
+  archivesMenuBtn.title = 'Projets sauvegardés localement';
+  const archivesMenuPanel = document.createElement('div');
+  archivesMenuPanel.className = 'file-menu-panel archives-menu-panel';
+  
+  // Fonction pour rafraîchir la liste des archives
+  function refreshArchivesMenu() {
+    archivesMenuPanel.innerHTML = '';
+    const projects = getAllProjects();
+    
+    if (projects.length === 0) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.className = 'archives-empty';
+      emptyMsg.textContent = 'Aucun projet sauvegardé';
+      archivesMenuPanel.appendChild(emptyMsg);
+    } else {
+      // Tri par timestamp (plus récent en premier)
+      projects.sort((a, b) => b.timestamp - a.timestamp);
+      
+      for (const project of projects) {
+        const projectRow = document.createElement('div');
+        projectRow.className = 'archive-item';
+        
+        const projectInfo = document.createElement('span');
+        projectInfo.className = 'archive-info';
+        const displayName = project.name || 'Sans titre';
+        projectInfo.innerHTML = ICONS.folderOpen + `<strong>${displayName}</strong> - ${new Date(project.timestamp).toLocaleDateString('fr-FR')}`;
+        projectRow.appendChild(projectInfo);
+        
+        const loadBtn = document.createElement('button');
+        loadBtn.type = 'button';
+        loadBtn.className = 'archive-action-btn';
+        loadBtn.innerHTML = ICONS.folderOpen;
+        loadBtn.title = 'Charger ce projet';
+        loadBtn.addEventListener('click', () => {
+          closeArchivesMenu();
+          const doc = loadProject(project.id);
+          if (doc) {
+            // Réinitialiser le compteur d'ID pour éviter les conflits
+            bumpIdCounterPastDocument(doc);
+            onProjectLoad(doc);
+          } else {
+            alert('Erreur lors du chargement du projet.');
+          }
+        });
+        projectRow.appendChild(loadBtn);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'archive-action-btn';
+        deleteBtn.innerHTML = ICONS.trash;
+        deleteBtn.title = 'Supprimer ce projet';
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (confirm(`Supprimer le projet "${project.name}" ?`)) {
+            deleteProject(project.id);
+            refreshArchivesMenu();
+            closeArchivesMenu();
+          }
+        });
+        projectRow.appendChild(deleteBtn);
+        
+        archivesMenuPanel.appendChild(projectRow);
+      }
+    }
+    
+    // Bouton pour sauvegarder le projet actuel (TOUJOURS visible)
+    const saveRow = document.createElement('div');
+    saveRow.className = 'archive-item archive-save-row';
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'archive-save-btn';
+    saveBtn.innerHTML = ICONS.save + `<span>Sauvegarder "${state.doc.name}"</span>`;
+    saveBtn.addEventListener('click', () => {
+      closeArchivesMenu();
+      try {
+        saveProject(state.doc);
+        alert(`Projet "${state.doc.name}" sauvegardé dans les archives.`);
+        refreshArchivesMenu();
+      } catch (e) {
+        alert('Erreur lors de la sauvegarde : ' + e.message);
+      }
+    });
+    saveRow.appendChild(saveBtn);
+    archivesMenuPanel.appendChild(saveRow);
+  }
+  
+  function openArchivesMenu() {
+    const rect = archivesMenuBtn.getBoundingClientRect();
+    archivesMenuPanel.style.left = rect.left + 'px';
+    archivesMenuPanel.style.top = rect.bottom + 4 + 'px';
+    archivesMenuPanel.style.minWidth = Math.max(280, rect.width) + 'px';
+    document.body.appendChild(archivesMenuPanel);
+    archivesMenuPanel.classList.add('open');
+    refreshArchivesMenu();
+  }
+  
+  function closeArchivesMenu() {
+    archivesMenuPanel.classList.remove('open');
+    if (archivesMenuPanel.parentNode === document.body) document.body.removeChild(archivesMenuPanel);
+  }
+  
+  archivesMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (archivesMenuPanel.classList.contains('open')) closeArchivesMenu();
+    else openArchivesMenu();
+  });
+  document.addEventListener('click', (e) => {
+    if (!archivesMenuPanel.contains(e.target)) closeArchivesMenu();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeArchivesMenu(); });
+  window.addEventListener('scroll', closeArchivesMenu, true);
+  window.addEventListener('resize', closeArchivesMenu);
+
+  archivesMenu.append(archivesMenuBtn, archivesMenuPanel);
+
   // Menu À propos : mentions légales, RGPD et documentation.
   const aboutMenu = document.createElement('div');
   aboutMenu.className = 'file-menu';
@@ -258,7 +381,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   bgInput.addEventListener('input', () => { state.doc.backgroundColor = bgInput.value; notify(state); });
 
   container.append(
-    brand, btnUndo, btnRedo, btnNew, fileMenu, aboutMenu, btnFullscreen, fileInput, svgFileInput, imgFileInput,
+    brand, btnUndo, btnRedo, btnNew, fileMenu, archivesMenu, aboutMenu, btnFullscreen, fileInput, svgFileInput, imgFileInput,
     spacer,
     nameInput,
     wLabel, wInput, hLabel, hInput,

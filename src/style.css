@@ -117,6 +117,121 @@ html, body {
   font-size: 12px;
 }
 .file-menu-panel button:hover { background: var(--bg-3); border-color: var(--border); }
+
+/* Menu Archives - liste des projets sauvegardés */
+.archives-menu-panel {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.archives-empty {
+  padding: 12px;
+  color: #000000;
+  text-align: center;
+  font-size: 12px;
+}
+
+.archive-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  width: 100%;
+  background: transparent;
+  border-radius: 3px;
+}
+
+.archive-item:hover {
+  background: var(--bg-3);
+}
+
+.archive-info {
+  flex: 1;
+  font-size: 12px;
+  color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archive-info strong {
+  color: #000000;
+  font-weight: 600;
+}
+
+.archive-info svg {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  margin-right: 6px;
+  color: #000000;
+}
+
+.archive-action-btn {
+  flex: none;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #000000;
+  border-radius: 2px;
+}
+
+.archive-action-btn:hover {
+  background: var(--bg-1);
+  color: #000000;
+}
+
+.archive-save-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.archive-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  color: #000000;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.archive-save-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.archive-clear-row {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.archive-clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.archive-clear-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
 @media (pointer: coarse), (max-width: 1024px) {
   #menubar button { padding: 8px 12px; min-height: 40px; }
 }

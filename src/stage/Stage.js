@@ -737,7 +737,23 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     } else if (tool === 'brush') {
       startOrContinueBrush(p);
     } else if (tool === 'text') {
-      createTextAt(p);
+      // Mode texte : clic simple = texte avec dimensions par défaut
+      // Clic + glisser = dessiner un rectangle pour définir le cadre du texte
+      if (!drawState || drawState.tool !== 'text') {
+        // Démarrer un nouveau rectangle de texte
+        const rectNode = new Konva.Rect({
+          x: p.x, y: p.y, width: 0, height: 0,
+          stroke: state.strokeColor, strokeWidth: 1, dash: [3, 3],
+          listening: false,
+        });
+        overlayLayer.add(rectNode);
+        drawState = {
+          tool: 'text',
+          start: { x: p.x, y: p.y },
+          previewNode: rectNode,
+          isDragging: false
+        };
+      }
     }
   });
 
@@ -787,7 +803,23 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (!drawState) return;
     const p = stagePointer();
     if (!p) return;
-    if (drawState.tool === 'rect') {
+    if (drawState.tool === 'text') {
+      // Marquer comme glissé si la distance est suffisante
+      const distanceFromStart = Math.sqrt(
+        Math.pow(p.x - drawState.start.x, 2) + Math.pow(p.y - drawState.start.y, 2)
+      );
+      if (distanceFromStart > 5) {
+        drawState.isDragging = true;
+      }
+      
+      if (drawState.isDragging) {
+        const x = Math.min(p.x, drawState.start.x), y = Math.min(p.y, drawState.start.y);
+        const w = Math.abs(p.x - drawState.start.x), h = Math.abs(p.y - drawState.start.y);
+        drawState.previewNode.setAttrs({ x, y, width: w, height: h });
+        drawState.last = p;
+        overlayLayer.batchDraw();
+      }
+    } else if (drawState.tool === 'rect') {
       const x = Math.min(p.x, drawState.start.x), y = Math.min(p.y, drawState.start.y);
       const w = Math.abs(p.x - drawState.start.x), h = Math.abs(p.y - drawState.start.y);
       drawState.previewNode.setAttrs({ x, y, width: w, height: h });
@@ -840,6 +872,27 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (drawState.tool === 'brush') {
       finishBrush();
       return;
+    }
+    if (drawState.tool === 'text') {
+      // Si on a dessiné un rectangle (glisser), créer le texte avec les dimensions
+      if (drawState.isDragging && drawState.last) {
+        const x = Math.min(drawState.last.x, drawState.start.x);
+        const y = Math.min(drawState.last.y, drawState.start.y);
+        const w = Math.abs(drawState.last.x - drawState.start.x);
+        const h = Math.abs(drawState.last.y - drawState.start.y);
+        // Créer le texte avec les dimensions du rectangle
+        createTextAtWithBounds({ x, y, width: w, height: h });
+        cancelDraw();
+        return;
+      } else {
+        // Clic simple sans glisser : créer un texte à la position du clic
+        const p = stagePointer();
+        if (p) {
+          createTextAt(p);
+        }
+        cancelDraw();
+        return;
+      }
     }
     finishDrag();
   });
@@ -1233,12 +1286,26 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     overlayLayer.draw();
   }
 
-  function createTextAt(p) {
-    const el = createShape('text', { x: p.x, y: p.y, width: 160, height: 30, text: 'Texte', fill: state.fillColor, strokeWidth: 0 });
+  function createTextAtWithBounds(bounds) {
+    // bounds = { x, y, width, height }
+    const el = createShape('text', {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2,
+      width: Math.max(20, bounds.width),
+      height: Math.max(20, bounds.height),
+      text: 'Texte',
+      fill: state.fillColor,
+      strokeWidth: 0
+    });
     addElement(el);
     state.currentTool = 'select';
     state.selectedElementIds = [el.id];
     notify(state);
+  }
+
+  function createTextAt(p) {
+    // Créer un texte avec dimensions par défaut à la position p
+    createTextAtWithBounds({ x: p.x - 80, y: p.y - 15, width: 160, height: 30 });
   }
 
   function addElement(el) {
