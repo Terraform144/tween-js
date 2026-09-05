@@ -193,6 +193,19 @@ const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
   onImageImport: (asset) => {
     addBitmapAsset(asset, { x: state.doc.width / 2, y: state.doc.height / 2 });
   },
+  onProjectLoad: (doc) => {
+    // Charger un projet depuis les archives
+    if (!confirm('Charger ce projet ? Le travail non sauvegardé sera perdu.')) return;
+    state.doc = doc;
+    state.editPath = [];
+    state.currentFrame = 0;
+    state.selectedLayerId = doc.layers[0]?.id || null;
+    state.selectedElementIds = [];
+    state.playing = false;
+    // Forcer le redimensionnement de la scène
+    stage.resize();
+    notify(state);
+  },
 });
 
 // Place une image importée (asset déjà créé dans doc.assets par le menu) dans
