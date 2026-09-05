@@ -1,0 +1,990 @@
+/* Thème Solarisé clair : fond crème chaud, texte quasi-noir mais adouci
+   (teinté bleu-pétrole, jamais #000 franc), icônes au trait cohérentes
+   (voir ui/icons.js) qui héritent la couleur du bouton via currentColor. */
+:root {
+  --bg-0: #fdf6e3;
+  --bg-1: #eee8d5;
+  --bg-2: #f8f2e0;
+  --bg-3: #f1e2b8;
+  --border: #ddd0a8;
+  --text: #073642;
+  --text-dim: #657b83;
+  --accent: #cb4b16;
+  --accent-dim: #fbe1d0;
+  --danger: #dc322f;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text);
+  font-size: 13px;
+  overflow: hidden;
+  user-select: none;
+}
+/* Très grand écran (moniteur 4K, TV) — voir aussi isLargeScreen() dans
+   util/responsive.js, à garder synchronisé avec ce seuil. La scène elle-même
+   ne grandit pas au-delà de 100% (Stage.js#resize) : c'est le confort de
+   lecture du reste de l'interface qui s'adapte, à distance de visionnage
+   "10 pieds". */
+@media (min-width: 1920px) {
+  html, body { font-size: 15px; }
+  .panel-title { font-size: 12.5px; }
+  .lib-item, .prop-row, .tl-toolbar, .tl-layer-row { font-size: 13px; }
+  #menubar button, .panel-title button, button.icon-btn { font-size: 13px; }
+}
+@media (min-width: 2600px) {
+  html, body { font-size: 17px; }
+  .panel-title { font-size: 14px; }
+  .lib-item, .prop-row, .tl-toolbar, .tl-layer-row { font-size: 14.5px; }
+  #menubar button, .panel-title button, button.icon-btn { font-size: 14.5px; }
+}
+
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+}
+
+/* ---------- Menu bar ---------- */
+#menubar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  /* Ne coupe jamais un champ silencieusement : défile plutôt que de casser
+     la mise en page sur petit écran (TV/desktop ne le remarquent jamais,
+     puisque tout tient déjà). */
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+#menubar .brand {
+  font-weight: 600;
+  color: var(--accent);
+  margin-right: 12px;
+  flex: none;
+}
+#menubar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+#menubar button:hover { background: var(--bg-3); border-color: var(--border); }
+#menubar button:disabled { opacity: 0.35; cursor: default; }
+#menubar button:disabled:hover { background: transparent; }
+#menubar .file-menu { position: relative; flex: none; }
+#menubar .file-menu .caret { font-size: 9px; margin-left: 2px; opacity: 0.7; }
+/* Menu Fichier : monté dans document.body (fixed) car #menubar a un
+   overflow-x:auto qui clipperait un panneau absolu descendant. */
+.file-menu-panel {
+  position: fixed;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.file-menu-panel.open { display: flex; }
+.file-menu-panel button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.file-menu-panel button:hover { background: var(--bg-3); border-color: var(--border); }
+
+/* Menu Archives - liste des projets sauvegardés */
+.archives-menu-panel {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.archives-empty {
+  padding: 12px;
+  color: var(--text);
+  text-align: center;
+  font-size: 12px;
+}
+
+.archive-item {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--text);
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.archive-item:hover {
+  background: var(--bg-3);
+}
+
+.archive-save-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.archive-save-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+}
+
+.archive-save-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+@media (pointer: coarse), (max-width: 1024px) {
+  #menubar button { padding: 8px 12px; min-height: 40px; }
+}
+#menubar .spacer { flex: 1; }
+#menubar input[type="number"] {
+  width: 50px;
+  flex: none;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 3px;
+}
+#menubar label { color: var(--text-dim); margin-left: 6px; font-size: 12px; flex: none; }
+#menubar input[type="text"] { flex: none; }
+
+/* Cliquer-glisser souris pour les barres qui débordent horizontalement — voir
+   util/dragScroll.js (nécessaire sur mobile quand une souris est connectée :
+   pas de tactile pour le scroll natif, pas de molette horizontale). */
+.drag-scroll { cursor: grab; }
+.drag-scroll:active { cursor: grabbing; }
+
+/* ---------- Main layout ---------- */
+#main {
+  display: grid;
+  grid-template-columns: 44px 1fr 5px 260px;
+  min-height: 0;
+}
+/* Valeur de secours pour le tout premier rendu (avant que main.js recalcule
+   la même largeur en JS) : doigt/tactile ou écran étroit = colonne outils
+   plus large pour des cibles tactiles confortables (voir .tool-btn). */
+@media (pointer: coarse), (max-width: 1024px) {
+  #main { grid-template-columns: 56px 1fr 5px 260px; }
+}
+
+#sidebar-resizer {
+  cursor: col-resize;
+  background: var(--border);
+  position: relative;
+}
+#sidebar-resizer:hover, #sidebar-resizer.dragging { background: var(--accent); }
+#sidebar-toggle-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 32px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+#sidebar-toggle-btn:hover { background: var(--accent-dim); border-color: var(--accent); }
+
+/* Tablette/mobile (voir OVERLAY_BREAKPOINT dans main.js) : le panneau
+   latéral ne pousse plus la scène, il devient un tiroir par-dessus. */
+@media (max-width: 1024px) {
+  #sidebar-resizer { cursor: pointer; }
+}
+#sidebar.overlay-mode {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(340px, 88vw);
+  z-index: 60;
+  box-shadow: -10px 0 30px rgba(7, 54, 66, 0.35);
+}
+#sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 54, 66, 0.35);
+  z-index: 55;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+#sidebar-backdrop.visible { opacity: 1; pointer-events: auto; }
+
+/* ---------- Toolbar ---------- */
+#toolbar {
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  gap: 2px;
+  overflow-y: auto;
+}
+.tool-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 15px;
+}
+.tool-btn svg { width: 18px; height: 18px; }
+.tool-btn:hover { background: var(--bg-3); }
+.tool-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+@media (pointer: coarse), (max-width: 1024px) {
+  .tool-btn { width: 48px; height: 48px; }
+  .tool-btn svg { width: 24px; height: 24px; }
+}
+@media (min-width: 1920px) and (pointer: fine) {
+  .tool-btn { width: 42px; height: 42px; }
+  .tool-btn svg { width: 21px; height: 21px; }
+}
+.tool-color-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.tool-color-row input[type="color"] { width: 26px; height: 20px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
+.tool-color-row input[type="range"] { width: 100px; cursor: pointer; }
+.tool-color-row select { padding: 2px 4px; border: 1px solid var(--border); background: var(--bg-1); color: var(--text); cursor: pointer; }
+
+/* ---------- Stage ---------- */
+#stage-wrap {
+  background: #e9dfc2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  position: relative;
+}
+#stage-container {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--text), 0 8px 24px rgba(7, 54, 66, 0.28);
+  /* Un doigt qui dessine ne doit jamais faire défiler/zoomer la page — tout
+     le geste tactile revient à Konva (mousedown/touchstart déjà gérés dans
+     Stage.js). */
+  touch-action: none;
+  position: relative;
+}
+/* Porte le translate du pan (outil main) : en plein écran natif, la feuille
+   UA impose transform:none !important à l'élément fullscreen — le déplacement
+   doit donc s'appliquer à ce wrapper interne (voir Stage.js#createStage). */
+.stage-pan-layer {
+  position: relative;
+}
+/* Bouton carré de plein écran posé sur la feuille, en haut à droite. */
+.stage-fullscreen-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(238, 232, 213, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(7, 54, 66, 0.18);
+}
+.stage-fullscreen-btn:hover { background: var(--bg-3); border-color: var(--accent); color: var(--accent); }
+/* Contrôle de zoom posé sur la feuille, en bas à gauche. */
+.stage-zoom-controls {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(238, 232, 213, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(7, 54, 66, 0.18);
+  touch-action: auto;
+}
+.stage-zoom-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--text);
+  cursor: pointer;
+}
+.stage-zoom-controls button:hover { background: var(--bg-3); color: var(--accent); }
+.stage-zoom-controls .zoom-percent {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 38px;
+  text-align: center;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  user-select: none;
+}
+.stage-zoom-controls .zoom-percent:hover { background: var(--bg-3); color: var(--accent); }
+.stage-zoom-controls .zoom-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 2px;
+}
+.stage-zoom-controls .zoom-hand-btn.active { background: var(--accent-dim); color: var(--accent); }
+/* Main (pan) désactivée hors plein écran de la feuille : bouton grisé, non
+   cliquable (voir main.js) */
+.stage-zoom-controls .zoom-hand-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.stage-zoom-controls .zoom-hand-btn:disabled:hover { background: transparent; color: var(--text); }
+/* Plein écran de la feuille (classe posée par main.js) : le contrôle devient
+   fixed en haut à gauche de l'écran pour rester toujours visible, même si la
+   feuille défile ou est déplacée à la main ; à la sortie du plein écran il
+   retrouve le coin bas-gauche de la feuille. */
+body.sheet-fullscreen .stage-zoom-controls {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  bottom: auto;
+}
+/* Curseur main : grabbing pendant le glisser, grab au survol */
+#stage-container.panning { cursor: grab; }
+#stage-container.panning.grabbing { cursor: grabbing; }
+@media (pointer: coarse), (max-width: 1024px) {
+  .stage-zoom-controls button { width: 36px; height: 36px; }
+  .stage-zoom-controls .zoom-percent { font-size: 13px; min-width: 48px; }
+}
+@media (pointer: coarse), (max-width: 1024px) {
+  .stage-fullscreen-btn { width: 40px; height: 40px; }
+}
+
+/* Repli CSS du plein écran (util/fullscreen.js) : utilisé quand le navigateur
+   n'expose pas le Fullscreen API (iOS Safari < 16.4, iframe sans
+   allowfullscreen, …). body.fs-css verrouille le défilement ; l'élément
+   cible passe en position:fixed plein écran par-dessus le reste. */
+body.fs-css { overflow: hidden; }
+body.fs-css .fs-css-active {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  z-index: 9999;
+}
+#stage-wrap .edit-path-banner {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 5;
+}
+
+/* Boutons flottants Valider/Annuler pour l'outil plume — indispensables sur
+   mobile, où il n'y a pas de clavier pour Entrée/Échap (voir Stage.js). Ils
+   sont dans #stage-container (et non #stage-wrap) pour rester visibles quand
+   la feuille seule passe en plein écran. */
+#stage-container .pen-actions {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 6;
+}
+.pen-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(7, 54, 66, 0.25);
+}
+.pen-action-btn.pen-confirm { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pen-action-btn.pen-confirm:disabled { opacity: 0.4; cursor: default; }
+.pen-action-btn.pen-cancel { background: var(--bg-2); color: var(--text); }
+@media (pointer: coarse), (max-width: 1024px) {
+  .pen-action-btn { padding: 10px 18px; font-size: 14px; }
+}
+
+/* ---------- Sidebar : pile de panneaux réductibles, largeur partagée ---------- */
+/* Flexbox plutôt qu'une grille à lignes fixes : n'importe quel nombre de
+   panneaux (bibliothèque, propriétés, futurs panneaux...) se partagent
+   l'espace disponible automatiquement, sans avoir à recalculer un
+   grid-template-rows à chaque ajout/repli. */
+#sidebar {
+  background: var(--bg-1);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.panel.collapsed { flex: none; }
+.panel.collapsed .panel-body { display: none; }
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  min-height: 0;
+}
+.panel-title {
+  flex: none;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  align-items: center;
+}
+.panel-title button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+.panel-title .panel-collapse-btn { padding: 2px 5px; }
+.panel-title .panel-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lib-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.lib-item:hover { background: var(--bg-2); }
+.lib-item.selected { background: var(--accent-dim); }
+.lib-item .icon { color: var(--accent); display: flex; }
+.lib-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-item button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  flex: none;
+}
+.lib-item button:hover { background: var(--bg-3); }
+.lib-empty { color: var(--text-dim); font-style: italic; padding: 6px; }
+
+.prop-group { margin-bottom: 10px; }
+.prop-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.prop-row label { width: 70px; color: var(--text-dim); font-size: 11px; }
+.prop-row input[type="number"], .prop-row input[type="text"] {
+  flex: 1;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 4px;
+  width: 0;
+}
+.prop-row input[type="color"] { width: 28px; height: 22px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
+.prop-row select { flex: 1; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px; }
+.prop-row-textarea { align-items: flex-start; }
+.prop-row-textarea label { padding-top: 4px; }
+.prop-row textarea {
+  flex: 1;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 4px;
+  width: 0;
+  resize: vertical;
+  font-family: inherit;
+  font-size: inherit;
+}
+.prop-row button { background: var(--bg-3); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 4px 8px; cursor: pointer; }
+.prop-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prop-empty { color: var(--text-dim); font-style: italic; padding: 6px; }
+
+/* ---------- Scripts : onglets + éditeur de code + console ---------- */
+.scripts-body { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.script-tabs {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  padding: 4px 6px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+.script-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  flex: none;
+}
+.script-tab:hover { background: var(--bg-3); }
+.script-tab.active { background: var(--accent-dim); border-color: var(--accent); }
+.script-tab .name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+.script-tab-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+}
+.script-tab-del:hover { color: var(--danger); }
+.script-frame-row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.script-frame-row select { flex: 1; min-width: 0; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px; }
+.script-frame-row button { background: var(--bg-3); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px 6px; cursor: pointer; white-space: nowrap; }
+.script-frame-row.active { background: var(--accent-dim); }
+.script-frame-row.active select { border-color: var(--accent); }
+.script-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--bg-0);
+  overflow: hidden;
+}
+.script-editor .cm-editor { height: 100%; }
+.script-console {
+  flex: none;
+  max-height: 90px;
+  overflow-y: auto;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Cascadia Mono', 'Consolas', monospace;
+  font-size: 11px;
+  padding: 4px 6px;
+  user-select: text;
+}
+.script-console-line { white-space: pre-wrap; word-break: break-word; }
+.script-console-line.error { color: var(--danger); }
+.script-console-line.warn { color: #b58900; }
+
+/* ---------- Timeline ---------- */
+#timeline {
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#timeline.collapsed { height: auto; }
+#timeline.collapsed .tl-body { display: none; }
+.tl-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.tl-toolbar > * { flex: none; }
+.tl-toolbar .sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+.tl-toolbar .frame-info { color: var(--text-dim); font-size: 11px; margin-left: auto; }
+.tl-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  grid-template-rows: 20px 1fr;
+  overflow: hidden;
+}
+.tl-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tl-header button {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+}
+.tl-layers {
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid var(--border);
+  grid-column: 1;
+  grid-row: 2;
+  position: relative;
+}
+.tl-layer-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--bg-0);
+  cursor: grab;
+  touch-action: none;
+  font-size: 12px;
+}
+.tl-layer-row.dragging { opacity: 0.45; cursor: grabbing; }
+.tl-layer-row .drop-line, .drop-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  z-index: 5;
+  pointer-events: none;
+}
+.tl-layer-row.selected { background: var(--bg-3); }
+.tl-layer-row .layer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-layer-row .mini-btn { width: 16px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-dim); }
+.tl-layer-row .mini-btn.active { color: var(--accent); }
+
+.tl-tracks-scroll {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  overflow: auto;
+  position: relative;
+}
+.tl-ruler {
+  display: flex;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 20px;
+}
+.tl-ruler .cell {
+  width: 16px;
+  flex: none;
+  border-right: 1px solid var(--bg-0);
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+  cursor: pointer;
+}
+.tl-ruler .cell.has-label { color: var(--accent); }
+.tl-ruler .cell svg { width: 11px; height: 11px; vertical-align: -2px; }
+.tl-track-row {
+  display: flex;
+  height: 24px;
+  border-bottom: 1px solid var(--bg-0);
+  position: relative;
+}
+.tl-frame-cell {
+  width: 16px;
+  flex: none;
+  border-right: 1px solid var(--bg-0);
+  background: var(--bg-1);
+  position: relative;
+  cursor: pointer;
+}
+.tl-frame-cell.has-content { background: var(--bg-3); }
+.tl-frame-cell.tweened { background: var(--accent-dim); }
+.tl-frame-cell.keyframe::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text);
+}
+.tl-frame-cell.blank-keyframe::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--text-dim);
+  background: transparent;
+}
+.tl-frame-cell.selected { outline: 1px solid var(--accent); outline-offset: -1px; }
+/* Glisser-déposer d'une keyframe le long de sa piste (voir Timeline.js) */
+.tl-frame-cell.draggable-key { cursor: grab; touch-action: none; }
+.tl-frame-cell.dragging-key { cursor: grabbing; z-index: 4; opacity: 0.85; }
+.tl-frame-cell.drop-target { background: var(--accent-dim); outline: 1px dashed var(--accent); outline-offset: -1px; }
+.tl-frame-cell.drop-invalid { background: rgba(220, 50, 47, 0.18); outline: 1px dashed var(--danger); outline-offset: -1px; }
+.frame-script-badge {
+  position: absolute;
+  top: 0;
+  left: 1px;
+  font: 700 8px/1 sans-serif;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  z-index: 1;
+}
+.tl-frame-cell.tween-arrow-end::before {
+  content: "▶";
+  position: absolute;
+  top: 0;
+  right: 1px;
+  font-size: 7px;
+  line-height: 1;
+  color: var(--accent);
+}
+.tl-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent);
+  z-index: 2;
+  pointer-events: none;
+}
+.tl-playhead::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -5px;
+  width: 11px;
+  height: 9px;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+button.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 3px 6px;
+}
+button.icon-btn:hover { background: var(--bg-3); }
+button.icon-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+button.icon-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- Cibles tactiles agrandies (doigt, ou petit écran) ---------- */
+@media (pointer: coarse), (max-width: 1024px) {
+  button.icon-btn { padding: 7px 10px; min-height: 36px; }
+  .panel-title button { padding: 6px 9px; min-width: 30px; min-height: 30px; }
+  .lib-item button { width: 30px; height: 30px; }
+  .lib-item { padding: 7px 6px; }
+  .tl-layer-row .mini-btn { width: 26px; }
+  .tl-layer-row, .tl-track-row { height: 34px; }
+  .tl-header button { width: 30px; height: 30px; }
+  .prop-row input[type="number"], .prop-row input[type="text"], .prop-row select {
+    padding: 8px;
+    font-size: 13px;
+  }
+  .prop-row input[type="color"] { width: 34px; height: 28px; }
+}
+
+/* ---------- Téléphone (< 640px) : optimisation maximale ---------- */
+@media (max-width: 640px) {
+  /* Réduire la hauteur de la timeline pour gagner de la place */
+  #timeline { height: 160px; }
+  
+  /* La timeline est repliée par défaut sur téléphone (voir Timeline.js) */
+  #timeline.collapsed { height: auto; }
+  
+  /* Boutons de la toolbar encore plus grands */
+  .tool-btn { width: 52px; height: 52px; }
+  .tool-btn svg { width: 26px; height: 26px; }
+  
+  /* Menubar : boutons plus grands et espacés */
+  #menubar { padding: 6px 10px; gap: 6px; }
+  #menubar button { 
+    padding: 10px 14px; 
+    min-height: 44px; 
+    font-size: 13px;
+  }
+  
+  /* Panneaux : titre plus grand pour mieux cliquer */
+  .panel-title { 
+    padding: 8px 10px; 
+    font-size: 12px;
+  }
+  .panel-title button { 
+    padding: 8px 12px; 
+    min-width: 36px; 
+    min-height: 36px;
+    font-size: 12px;
+  }
+  
+  /* Bibliothèque : éléments plus grands */
+  .lib-item { 
+    padding: 10px 8px; 
+    gap: 8px;
+  }
+  .lib-item button { 
+    width: 36px; 
+    height: 36px; 
+  }
+  
+  /* Timeline : cellules plus grandes pour le tactile */
+  .tl-layer-row, .tl-track-row { height: 38px; }
+  .tl-frame-cell { width: 18px; }
+  .tl-ruler .cell { width: 18px; }
+  
+  /* Bouton plein écran de la scène */
+  .stage-fullscreen-btn { 
+    width: 44px; 
+    height: 44px; 
+  }
+  
+  /* Propriétés : champs plus grands */
+  .prop-row input[type="number"], .prop-row input[type="text"], .prop-row select {
+    padding: 10px;
+    font-size: 14px;
+  }
+  .prop-row input[type="color"] { width: 38px; height: 32px; }
+  .prop-row label { width: 80px; font-size: 12px; }
+  
+  /* Scripts : onglets plus grands */
+  .script-tab { 
+    padding: 6px 10px; 
+    font-size: 12px;
+  }
+  .script-tab .name { max-width: 110px; }
+  
+  /* Boutons d'action de la plume */
+  .pen-action-btn { 
+    padding: 12px 20px; 
+    font-size: 14px; 
+  }
+}

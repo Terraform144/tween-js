@@ -126,60 +126,29 @@ html, body {
 
 .archives-empty {
   padding: 12px;
-  color: #000000;
+  color: var(--text);
   text-align: center;
   font-size: 12px;
 }
 
 .archive-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  display: block;
   width: 100%;
+  padding: 7px 10px;
   background: transparent;
+  border: none;
   border-radius: 3px;
+  color: var(--text);
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .archive-item:hover {
   background: var(--bg-3);
-}
-
-.archive-info {
-  flex: 1;
-  font-size: 12px;
-  color: #000000;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.archive-info strong {
-  color: #000000;
-  font-weight: 600;
-}
-
-.archive-info svg {
-  width: 14px;
-  height: 14px;
-  vertical-align: middle;
-  margin-right: 6px;
-  color: #000000;
-}
-
-.archive-action-btn {
-  flex: none;
-  padding: 4px 6px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #000000;
-  border-radius: 2px;
-}
-
-.archive-action-btn:hover {
-  background: var(--bg-1);
-  color: #000000;
 }
 
 .archive-save-row {
@@ -189,46 +158,20 @@ html, body {
 }
 
 .archive-save-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
   width: 100%;
-  padding: 6px 10px;
+  padding: 7px 10px;
   background: var(--accent-dim);
   border: 1px solid var(--accent);
-  color: #000000;
+  color: var(--text);
   border-radius: 3px;
   cursor: pointer;
   font-size: 12px;
+  text-align: left;
 }
 
 .archive-save-btn:hover {
   background: var(--accent);
-  color: white;
-}
-
-.archive-clear-row {
-  margin-top: 4px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.archive-clear-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 6px 10px;
-  background: transparent;
-  border: 1px solid var(--danger);
-  color: var(--danger);
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.archive-clear-btn:hover {
-  background: var(--danger);
   color: white;
 }
 
