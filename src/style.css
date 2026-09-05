@@ -987,4 +987,31 @@ button.icon-btn:disabled { opacity: 0.4; cursor: default; }
     padding: 12px 20px; 
     font-size: 14px; 
   }
+  
+  /* Champ de texte pour l'édition inline du texte */
+  .text-input-container {
+    pointer-events: auto;
+    z-index: 1000;
+  }
+  
+  .text-input-field {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow: auto;
+    padding: 4px;
+    margin: 0;
+    line-height: 1.2;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  
+  .text-input-field:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
 }
