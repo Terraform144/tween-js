@@ -1372,7 +1372,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // Ne grossit jamais au-delà de 100% : sur un très grand écran, c'est la
   // taille des contrôles autour qui s'adapte (voir style.css), pas la scène.
   let fitScale = 1;
-  function resize() {
+  function resize(resetPanOnResize = true) {
     const doc = state.doc;
     const fullscreenTarget = fullscreenElement();
     const isSheetFullscreen = fullscreenTarget === container;
@@ -1382,7 +1382,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     fitScale = isSheetFullscreen
       ? Math.min(availW / doc.width, availH / doc.height)
       : Math.min(1, availW / doc.width, availH / doc.height);
-    resetPan();
+    if (resetPanOnResize) resetPan();
     applyZoom();
     render();
   }
