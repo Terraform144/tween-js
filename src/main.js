@@ -202,8 +202,8 @@ const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
     state.selectedLayerId = doc.layers[0]?.id || null;
     state.selectedElementIds = [];
     state.playing = false;
-    // Forcer le redimensionnement de la scène
-    stage.resize();
+    // Forcer le redimensionnement de la scène sans réinitialiser le panoramique
+    stage.resize(false);
     notify(state);
   },
 });
