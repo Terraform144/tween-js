@@ -279,7 +279,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   const aboutMenuItems = [
     { icon: 'info', label: 'Mentions légales & RGPD', action: () => { window.location.href = '/src/mentions-legales.html'; } },
     { icon: 'book', label: 'Documentation', action: () => { window.open('/docs/Animate-JS-Documentation.pdf', '_blank'); } },
-    { icon: 'chevronDown', label: 'APK Debug', action: () => { window.location.href = '/apk-debug.apk'; } },
+    { icon: 'chevronDown', label: 'APK Debug', action: () => { window.location.href = 'http://gamecreator.debrouillard.be/app/Tween_JS/app-debug.apk'; } },
     { icon: 'book', label: 'Code Source', action: () => { window.open('https://github.com/Terraform144/tween-js/tree/TweenJS_simpleV.0.1', '_blank'); } },
   ];
   for (const item of aboutMenuItems) {
