@@ -165,7 +165,7 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - Utilisateur : root
 - Mot de passe : Thk6tD56BuVcEM
 - Destination : /var/www/AnimateJS
-- Commande : pscp -P 22 -l root -pw Thk6tD56BuVcEM -r dist/* 212.227.93.180:/var/www/AnimateJS/
+- Commande : pscp -P 22 -l root -pw youyouyou -r dist/* 212.285458.180:/var/www/AnimateJS/
 
 ### GitHub
 - Repository : https://github.com/Terraform144/tween-js.git
