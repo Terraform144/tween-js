@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Programmer dans la section Script — TweenJS / Animate-JS</title>
+<style>
+  @page { margin: 18mm 16mm; }
+  html { font-size: 11pt; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #1a1a1a; line-height: 1.5; margin: 0;
+  }
+  h1 { font-size: 22pt; color: #b04a16; margin: 0 0 4pt; border-bottom: 3px solid #cb4b16; padding-bottom: 6pt; }
+  h2 { font-size: 15pt; color: #073642; margin: 22pt 0 6pt; border-left: 5px solid #cb4b16; padding-left: 10pt; page-break-after: avoid; }
+  h3 { font-size: 12.5pt; color: #b04a16; margin: 16pt 0 4pt; page-break-after: avoid; }
+  h4 { font-size: 11pt; color: #073642; margin: 12pt 0 3pt; page-break-after: avoid; }
+  p { margin: 4pt 0; }
+  ul, ol { margin: 4pt 0 4pt 0; padding-left: 22pt; }
+  li { margin: 2pt 0; }
+  code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 9pt; background: #f4f0e8; padding: 1px 4px; border-radius: 3px; color: #073642; }
+  pre {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 8.5pt; line-height: 1.35;
+    background: #fdfbf6; border: 1px solid #d9cdb5; border-left: 4px solid #cb4b16;
+    border-radius: 4px; padding: 8pt 10pt; margin: 6pt 0; overflow: hidden;
+    white-space: pre-wrap; word-wrap: break-word; page-break-inside: avoid;
+  }
+  pre code { background: none; padding: 0; color: #1a1a1a; }
+  .c-com { color: #6a8b7a; font-style: italic; }
+  .c-kw { color: #b04a16; font-weight: 600; }
+  .c-str { color: #2a6e7a; }
+  .c-num { color: #8a5a00; }
+  table { border-collapse: collapse; width: 100%; margin: 8pt 0; font-size: 9.5pt; page-break-inside: avoid; }
+  th { background: #073642; color: #fff; text-align: left; padding: 5pt 8pt; font-weight: 600; }
+  td { border: 1px solid #d9cdb5; padding: 4pt 8pt; vertical-align: top; }
+  tr:nth-child(even) td { background: #fdfbf6; }
+  .note { background: #fff7e6; border: 1px solid #e6c77a; border-radius: 4px; padding: 7pt 10pt; margin: 8pt 0; font-size: 10pt; page-break-inside: avoid; }
+  .note::before { content: "Note — "; font-weight: 700; color: #8a5a00; }
+  .warn { background: #fdecea; border: 1px solid #e0a9a3; border-radius: 4px; padding: 7pt 10pt; margin: 8pt 0; font-size: 10pt; page-break-inside: avoid; }
+  .warn::before { content: "Attention — "; font-weight: 700; color: #b04a16; }
+  .lead { font-size: 11.5pt; color: #444; margin: 8pt 0 14pt; }
+  .toc { background: #fdfbf6; border: 1px solid #d9cdb5; border-radius: 4px; padding: 10pt 14pt; margin: 12pt 0; font-size: 10.5pt; }
+  .toc ol { margin: 0; padding-left: 18pt; }
+  .toc a { color: #073642; text-decoration: none; }
+  .tag { display: inline-block; font-size: 8pt; background: #cb4b16; color: #fff; border-radius: 3px; padding: 1px 6px; margin-left: 6pt; vertical-align: middle; }
+  .tag.ed { background: #2a6e7a; }
+  .tag.exp { background: #b04a16; }
+  .tag.both { background: #073642; }
+  .pagebreak { page-break-before: always; }
+  .hdr { display: flex; justify-content: space-between; font-size: 9pt; color: #888; margin-bottom: 10pt; }
+  .src { font-family: "Cascadia Mono", Consolas, monospace; font-size: 8.5pt; color: #2a6e7a; }
+  .footer { margin-top: 18pt; padding-top: 8pt; border-top: 1px solid #d9cdb5; font-size: 9pt; color: #888; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <span>TweenJS / Animate-JS — Documentation de la section Script</span>
+  <span>Version 0.1 — Septembre 2026</span>
+</div>
+
+<h1>Programmer dans la section Script</h1>
+<p class="lead">Guide des moyens de coder dans le panneau <strong>Scripts</strong> de l'application, avec exemples concrets. L'accent est mis sur l'exploitation des <strong>movieclips</strong> et des <strong>variables au‑delà des clips</strong> : déclencher lecture/arrêt depuis un parent, un enfant, un script d'image, etc.</p>
+
+<div class="toc">
+  <strong>Sommaire</strong>
+  <ol>
+    <li><a href="#s1">Le panneau Scripts : deux types de code</a></li>
+    <li><a href="#s2">L'objet Scene (alias Game) — surface de l'API</a></li>
+    <li><a href="#s3">Les éléments nommés : vos variables directes</a></li>
+    <li><a href="#s4">Manipuler les propriétés d'un élément nommé</a></li>
+    <li><a href="#s5">Les MovieClips : timeline indépendante</a></li>
+    <li><a href="#s6">Piloter un clip enfant depuis le parent</a></li>
+    <li><a href="#s7">Piloter le parent / la scène depuis un clip enfant</a></li>
+    <li><a href="#s8">Les scripts d'image (frame actions)</a></li>
+    <li><a href="#s9">Étiquettes d'image et gotoAndPlay('label')</a></li>
+    <li><a href="#s10">Événements onEnterFrame, onKeyDown, onKeyUp</a></li>
+    <li><a href="#s11">La map <code>named</code> — accès aux noms non‑identifiants</a></li>
+    <li><a href="#s12">Différences éditeur vs export HTML</a></li>
+    <li><a href="#s13">Recettes courantes</a></li>
+    <li><a href="#s14">Pièges et limites connues</a></li>
+  </ol>
+</div>
+
+<h2 id="s1">1. Le panneau Scripts : deux types de code</h2>
+<p>Le panneau <strong>Scripts</strong> (icône <code>{ }</code>) gère deux familles de code distinctes, comme le navigateur d'actions d'Adobe Animate CC :</p>
+<table>
+  <tr><th>Type</th><th>Où il vit</th><th>Quand il s'exécute</th><th>Bouton / onglet</th></tr>
+  <tr><td><strong>Script nommé</strong></td><td><code>doc.scripts[]</code> — onglets en haut du panneau</td><td>Quand on appuie sur <strong>Exécuter</strong> (ou Ctrl+Entrée) ; aussi une fois au chargement de l'export HTML</td><td>+ Nouveau, ▶ Exécuter</td></tr>
+  <tr><td><strong>Script d'image</strong> (frame action)</td><td><code>kf.script</code> sur une image clé précise</td><td>Automatiquement quand la tête de lecture atteint cette image <em>en lecture</em> (pas en scrub manuel)</td><td>+ Sur cette image</td></tr>
+</table>
+<p>Les scripts d'image sont listés dans le sélecteur déroulant <em>« scripts d'image »</em> triés par calque et numéro d'image, pour sauter de l'un à l'autre. Un badge <code>a</code> sur la timeline ouvre directement le script d'une keyframe cliquée.</p>
+<div class="note">Les deux types s'exécutent dans le même moteur (voir <span class="src">src/runtime/sceneRuntime.js → execCode()</span>). Ils partagent donc les mêmes variables globales <code>Scene</code>, <code>Game</code>, <code>console</code>, <code>named</code>.</div>
+
+<h2 id="s2">2. L'objet Scene (alias Game) — surface de l'API</h2>
+<p><code>Scene</code> et <code>Game</code> sont deux noms pour le <strong>même</strong> objet. C'est la porte d'entrée vers la scène et sa timeline racine.</p>
+
+<h3>Propriétés de scène (lecture / écriture)</h3>
+<table>
+  <tr><th>Propriété</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>Scene.width</code></td><td>number</td><td>Largeur de la scène (px). Réajuste le canvas à l'écriture.</td></tr>
+  <tr><td><code>Scene.height</code></td><td>number</td><td>Hauteur de la scène (px).</td></tr>
+  <tr><td><code>Scene.frameRate</code></td><td>number</td><td>Images par seconde (1‑120). Défaut 24.</td></tr>
+  <tr><td><code>Scene.backgroundColor</code></td><td>string</td><td>Couleur de fond (ex. <code>"#ffffff"</code>).</td></tr>
+  <tr><td><code>Scene.name</code></td><td>string</td><td>Nom du document.</td></tr>
+  <tr><td><code>Scene.frameCount</code></td><td>number</td><td>Nombre total d'images du contexte courant (scène racine ou symbole en édition).</td></tr>
+</table>
+
+<h3>Lecture / navigation dans la timeline</h3>
+<table>
+  <tr><th>Méthode / prop.</th><th>Description</th></tr>
+  <tr><td><code>Scene.play()</code></td><td>Lance la lecture de la timeline racine.</td></tr>
+  <tr><td><code>Scene.stop()</code></td><td>Arrête la timeline racine.</td></tr>
+  <tr><td><code>Scene.gotoAndPlay(frame)</code></td><td>Saute à l'image <code>frame</code> (0‑indexé) et joue.</td></tr>
+  <tr><td><code>Scene.gotoAndStop(frame)</code></td><td>Saute à l'image <code>frame</code> et s'arrête.</td></tr>
+  <tr><td><code>Scene.playing</code> <span class="tag">get</span></td><td><code>true</code> si la lecture est en cours.</td></tr>
+  <tr><td><code>Scene.currentFrame</code> <span class="tag both">get/set</span></td><td>Image courante (0‑indexé). Modifiable directement.</td></tr>
+</table>
+
+<h3>Création d'éléments, boucle et entrées</h3>
+<table>
+  <tr><th>Méthode</th><th>Description</th></tr>
+  <tr><td><code>Scene.addShape(type, props)</code></td><td>Ajoute une forme (<code>"rect"</code>, <code>"ellipse"</code>, <code>"line"</code>, <code>"path"</code>, <code>"text"</code>) sur l'image clé courante du calque actif. Retourne l'id.</td></tr>
+  <tr><td><code>Scene.addInstance(symbolId, props)</code></td><td>Ajoute une instance de symbole (movieclip/graphic). Retourne l'id.</td></tr>
+  <tr><td><code>Scene.onEnterFrame(cb)</code></td><td>Enregistre <code>cb(frame)</code> appelée à chaque image pendant la lecture.</td></tr>
+  <tr><td><code>Scene.onKeyDown(cb)</code></td><td>Enregistre <code>cb(key, event)</code> sur appui clavier.</td></tr>
+  <tr><td><code>Scene.onKeyUp(cb)</code></td><td>Idem au relâchement.</td></tr>
+  <tr><td><code>Scene.keys</code> <span class="tag">get</span></td><td>Objet <code>{ [key]: true/false }</code> — état clavier en temps réel.</td></tr>
+  <tr><td><code>Scene.random(n)</code></td><td>Entier aléatoire dans <code>[0, n[</code>.</td></tr>
+  <tr><td><code>Scene.log(...args)</code></td><td>Affiche dans la console du panneau (et la console navigateur).</td></tr>
+</table>
+
+<pre><code><span class="c-com">// Exemple : configurer la scène et démarrer</span>
+Scene.frameRate = 30;
+Scene.backgroundColor = <span class="c-str">"#102030"</span>;
+Scene.frameCount = 60;
+Scene.log(<span class="c-str">"Scène :"</span>, Scene.width, <span class="c-str">"x"</span>, Scene.height);
+Scene.play();</code></pre>
+
+<div class="note">Dans un <strong>script d'image d'un clip enfant</strong>, ce même objet <code>Scene</code> est <strong>scopé au clip</strong> (voir §5) : <code>Scene.stop()</code> arrête alors <em>ce clip</em>, pas la racine. La distinction est automatique, vous n'avez rien à changer dans votre code.</div>
+
+<h2 id="s3">3. Les éléments nommés : vos variables directes</h2>
+<p>C'est la pierre angulaire pour piloter un clip « par‑delà lui‑même ». Dans le <strong>Panneau Propriétés</strong>, le champ <em>« Nom d'instance »</em> donne un nom à un élément. Tout élément nommé présent à l'image courante est alors injecté comme <strong>variable globale</strong> dans chaque script :</p>
+
+<pre><code><span class="c-com">// Si un movieclip porte le Nom d'instance "hero" :</span>
+hero.x += 2;          <span class="c-com">// déplacement horizontal</span>
+hero.rotation = 45;    <span class="c-com">// rotation en degrés</span>
+hero.gotoAndStop(5);   <span class="c-com">// si c'est un movieclip → contrôle sa timeline</span></code></pre>
+
+<p>L'injection se fait au moment de l'exécution par un préambule généré automatiquement (voir <span class="src">sceneRuntime.js → execCode()</span>) :</p>
+<pre><code><span class="c-kw">var</span> hero = named[<span class="c-str">"hero"</span>];
+<span class="c-kw">var</span> fond = named[<span class="c-str">"fond"</span>];
+<span class="c-com">// ... votre code ...</span></code></pre>
+
+<div class="note">Si deux éléments portent le même nom, le <strong>calque supérieur gagne</strong> (comportement Flash). La résolution se fait à l'image courante du contexte d'édition.</div>
+
+<h2 id="s4">4. Manipuler les propriétés d'un élément nommé</h2>
+<p>Les propriétés animables exposées via la variable directe :</p>
+<table>
+  <tr><th>Propriété</th><th>Type</th><th>Sens</th></tr>
+  <tr><td><code>x</code>, <code>y</code></td><td>number</td><td>Position (px), origine = coin haut‑gauche de la scène</td></tr>
+  <tr><td><code>rotation</code></td><td>number</td><td>Rotation en degrés (sens horaire)</td></tr>
+  <tr><td><code>scaleX</code>, <code>scaleY</code></td><td>number</td><td>Échelle (1 = 100%)</td></tr>
+  <tr><td><code>opacity</code></td><td>number 0‑1</td><td>Opacité</td></tr>
+  <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>Dimensions (rect, ellipse, text, bitmap, instance)</td></tr>
+  <tr><td><code>fill</code>, <code>stroke</code></td><td>string</td><td>Couleurs (formes)</td></tr>
+  <tr><td><code>strokeWidth</code></td><td>number</td><td>Épaisseur du trait</td></tr>
+  <tr><td><code>text</code>, <code>fontSize</code></td><td>string / number</td><td>Texte et taille (formes de type text)</td></tr>
+  <tr><td><code>name</code></td><td>string</td><td>Nom d'instance (lecture/écriture)</td></tr>
+</table>
+
+<pre><code><span class="c-com">// Osciller un clip nommé "balle" avec onEnterFrame</span>
+Scene.onEnterFrame(<span class="c-kw">function</span>(frame) {
+  balle.x = 200 + Math.sin(frame * 0.2) * 100;
+  balle.y = 150 + Math.cos(frame * 0.2) * 60;
+  balle.rotation = frame * 5;
+});</code></pre>
+
+<h2 id="s5">5. Les MovieClips : timeline indépendante</h2>
+<p>Un symbole de type <strong>movieclip</strong> possède sa <strong>propre timeline indépendante</strong> : <code>isPlaying</code>, <code>currentFrame</code>, play/stop/gotoAndPlay/gotoAndStop. C'est exactement le modèle d'Adobe Animate. Chaque <strong>instance</strong> de movieclip a son propre état de lecture, indexé par l'id d'instance (pas par l'id de symbole — deux placements du même clip jouent indépendamment).</p>
+
+<p>Dans l'éditeur, l'état de lecture des clips est géré par <span class="src">src/runtime/clipStates.js</span> : un <code>Map&lt;instanceId, ClipState&gt;</code> où chaque entrée vaut <code>{ isPlaying: true, currentFrame: 0, _lastScriptFrame: -1, loop: true }</code>. À l'export, la classe <code>MovieClip</code> (<span class="src">src/export/tweenRuntime.js</span>) porte ces états directement sur l'instance.</p>
+
+<h3>Quand un movieclip est nommé, sa variable expose en plus</h3>
+<table>
+  <tr><th>Méthode / prop.</th><th>Effet sur <em>ce clip</em></th></tr>
+  <tr><td><code>nom.play()</code></td><td>Lance la lecture du clip</td></tr>
+  <tr><td><code>nom.stop()</code></td><td>Arrête le clip à l'image courante</td></tr>
+  <tr><td><code>nom.gotoAndPlay(f)</code></td><td>Saute à l'image <code>f</code> (ou une étiquette) et joue</td></tr>
+  <tr><td><code>nom.gotoAndStop(f)</code></td><td>Saute à l'image <code>f</code> et s'arrête</td></tr>
+  <tr><td><code>nom.currentFrame</code></td><td>Image courante du clip (0‑indexé)</td></tr>
+  <tr><td><code>nom.frameCount</code></td><td>Nombre d'images du symbole</td></tr>
+  <tr><td><code>nom.isPlaying</code> <span class="tag ed">éditeur</span> <span class="tag exp">export</span></td><td><code>true</code> si le clip joue</td></tr>
+  <tr><td><code>nom.loop</code> <span class="tag exp">export</span></td><td>Boucle activée (défaut true)</td></tr>
+  <tr><td><code>nom.addEventListener('loop'|'complete', fn)</code> <span class="tag exp">export</span></td><td>Événements de fin/boucle du clip</td></tr>
+</table>
+
+<div class="note">Les méthodes de timeline sur la variable nommée ne marchent <strong>que pour les instances de movieclip</strong>. Un symbole de type <code>graphic</code> reste synchronisé sur l'image du parent (pas d'état propre), comme dans l'éditeur.</div>
+
+<h2 id="s6">6. Piloter un clip enfant depuis le parent</h2>
+<p>Cas le plus fréquent : sur la scène racine (ou dans un clip parent) se trouve une instance de movieclip nommée <code>porte</code>. On veut la commander depuis un script du parent.</p>
+
+<pre><code><span class="c-com">// Script racine : la porte s'ouvre quand on appuie sur Espace</span>
+Scene.stop();   <span class="c-com">// on gèle la timeline racine, on pilote les clips à la main</span>
+
+Scene.onKeyDown(<span class="c-kw">function</span>(key) {
+  <span class="c-kw">if</span> (key === <span class="c-str">" "</span> || key === <span class="c-str">"Spacebar"</span>) {
+    porte.gotoAndPlay(<span class="c-str">"ouverture"</span>);  <span class="c-com">// par étiquette (voir §9)</span>
+  }
+});
+
+Scene.onKeyUp(<span class="c-kw">function</span>(key) {
+  <span class="c-kw">if</span> (key === <span class="c-str">" "</span> || key === <span class="c-str">"Spacebar"</span>) {
+    porte.gotoAndStop(<span class="c-str">"fermee"</span>);
+  }
+});</code></pre>
+
+<pre><code><span class="c-com">// Autre exemple : démarrer/arrêter deux clips enfants en alternance</span>
+clipA.play();
+clipB.stop();
+
+Scene.onEnterFrame(<span class="c-kw">function</span>(f) {
+  <span class="c-kw">if</span> (f % 60 === 0) {           <span class="c-com">// toutes les 60 images</span>
+    <span class="c-kw">if</span> (clipA.isPlaying) { clipA.stop();  clipB.play(); }
+    <span class="c-kw">else</span>                   { clipA.play(); clipB.stop(); }
+  }
+});</code></pre>
+
+<p>Dans l'éditeur, l'avancement des clips enfants est fait par <span class="src">main.js → advanceClipsForLayer()</span> à chaque image de la timeline racine, <strong>après</strong> exécution des scripts d'image du clip (comportement Animate : le script de l'image courante peut appeler <code>Scene.stop()</code> et empêcher l'avancement).</p>
+
+<h2 id="s7">7. Piloter le parent / la scène depuis un clip enfant</h2>
+<p>C'est l'inverse : un script d'image <em>à l'intérieur</em> d'un movieclip veut agir sur le clip qui le contient, ou sur la scène racine. Le mécanisme repose sur le <strong>Scene scopé</strong> :</p>
+<ul>
+  <li>À l'intérieur d'un clip enfant, <code>Scene.stop()</code> arrête <strong>ce clip enfant</strong>, pas le parent ni la racine.</li>
+  <li>Pour commander le parent ou la racine, on passe par le <strong>Nom d'instance</strong> du parent tel qu'il est connu du contexte parent. Concrètement, on nomme l'instance du parent (ex. <code>monClip</code>) et depuis l'enfant, on ne peut pas y accéder directement — la résolution des noms se fait <em>dans le contexte du script qui s'exécute</em>.</li>
+</ul>
+
+<div class="warn">Il n'y a pas de <code>this.parent</code> explicite comme en ActionScript. La communication parent ⇄ enfant se fait toujours par <strong>noms d'instance</strong> exposés au contexte qui exécute le script.</div>
+
+<h3>Recette : un clip enfant arrête la scène racine</h3>
+<p>1. Donnez à l'instance du clip parent sur la scène racine le Nom d'instance <code>hero</code>.<br>
+2. Sur l'image clé où vous voulez stopper la scène, créez un <strong>script d'image à la racine</strong> :</p>
+<pre><code><span class="c-com">// Script d'image à la racine, image 20</span>
+Scene.stop();
+hero.gotoAndStop(<span class="c-str">"victoire"</span>);</code></pre>
+<p>3. À l'intérieur de <code>hero</code>, sur l'image de fin de l'animation <code>"victoire"</code>, posez un script d'image <strong>du clip</strong> :</p>
+<pre><code><span class="c-com">// Script d'image DANS le clip hero, image "victoire"</span>
+Scene.stop();   <span class="c-com">// arrête hero (Scene est scopé au clip ici)</span>
+<span class="c-com">// Pas d'accès direct à la racine depuis ici ; la coordination se fait</span>
+<span class="c-com">// par convention d'étiquettes / d'images, comme dans Animate CC.</span></code></pre>
+
+<h3>Recette : un clip enfant signale la fin au parent</h3>
+<p>À l'export, <code>MovieClip</code> émet l'événement <code>'complete'</code> quand le clip termine sans boucler. Le parent peut donc écouter l'enfant nommé :</p>
+<pre><code><span class="c-com">// Script racine</span>
+hero.loop = <span class="c-kw">false</span>;
+hero.addEventListener(<span class="c-str">"complete"</span>, <span class="c-kw">function</span>() {
+  Scene.gotoAndPlay(<span class="c-str">"niveauSuivant"</span>);
+});</code></pre>
+<div class="note"><code>addEventListener</code>/<code>removeEventListener</code> et l'événement <code>'complete'</code> ne sont disponibles que dans le runtime d'<strong>export</strong> (<span class="src">tweenRuntime.js</span>). Dans l'éditeur, on reproduit ce schéma avec un <code>onEnterFrame</code> qui teste <code>hero.currentFrame === hero.frameCount - 1</code>.</div>
+
+<h2 id="s8">8. Les scripts d'image (frame actions)</h2>
+<p>Un script d'image est rattaché à une <strong>image clé</strong> d'un <strong>calque</strong> précis. Il s'exécute <strong>une seule fois</strong> quand la tête de lecture atteint cette image <em>pendant la lecture</em> (jamais en scrub manuel, comme dans Animate CC).</p>
+
+<h3>Créer un script d'image</h3>
+<ol>
+  <li>Sélectionnez le calque et placez la tête de lecture sur l'image voulue.</li>
+  <li>Insérez une image clé (F6) si nécessaire.</li>
+  <li>Dans le panneau Scripts, cliquez sur <strong>+ Sur cette image</strong>. Un squelette est créé :</li>
+</ol>
+<pre><code><span class="c-com">// Exécuté une fois quand la tête de lecture atteint cette image</span>
+Scene.stop();</code></pre>
+
+<h3>Comportement clip vs racine</h3>
+<table>
+  <tr><th>Emplacement du script d'image</th><th><code>Scene.stop()</code> arrête…</th></tr>
+  <tr><td>Calque de la <strong>scène racine</strong></td><td>la timeline racine</td></tr>
+  <tr><td>Calque d'un <strong>symbole movieclip</strong> en édition</td><td>ce clip (état via <code>clipState</code>)</td></tr>
+  <tr><td>Calque d'un <strong>symbole graphic</strong></td><td>sans effet — un graphic n'a pas d'état propre</td></tr>
+</table>
+
+<p>Dans l'éditeur, le déclenchement est dans <span class="src">main.js → advanceClipsForLayer()</span> : on exécute le script de l'image courante du clip <strong>avant</strong> d'avancer, pour qu'un <code>Scene.stop()</code> puisse empêcher l'avancement.</p>
+
+<pre><code><span class="c-com">// Script d'image à la racine, image 0 : stop + lancement d'un clip</span>
+Scene.stop();
+intro.gotoAndPlay(1);</code></pre>
+
+<pre><code><span class="c-com">// Script d'image dans un clip "jauge", image 10</span>
+<span class="c-com">// Ici Scene est scopé au clip jauge</span>
+Scene.gotoAndStop(<span class="c-str">"plein"</span>);</code></pre>
+
+<h2 id="s9">9. Étiquettes d'image et gotoAndPlay('label')</h2>
+<p>Le panneau Propriétés permet d'affecter une <strong>étiquette</strong> à une image (via <code>frameLabels</code> du document ou du symbole). On peut alors cibler une image par son nom plutôt que par son numéro — aussi bien sur la scène qu'un clip :</p>
+<pre><code><span class="c-com">// À la racine</span>
+Scene.gotoAndPlay(<span class="c-str">"intro"</span>);
+
+<span class="c-com">// Sur une instance nommée "bouton" (movieclip)</span>
+bouton.gotoAndStop(<span class="c-str">"survol"</span>);
+
+<span class="c-com">// Dans un script d'image du clip bouton lui-même</span>
+Scene.gotoAndPlay(<span class="c-str">"clic"</span>);</code></pre>
+<p>À l'export, les étiquettes sont inversées en <code>{ [label]: frameIndex }</code> pour un lookup O(1) (voir <span class="src">model.js → invertFrameLabels()</span>). Un label introuvable produit un avertissement console et ne fait rien.</p>
+
+<h2 id="s10">10. Événements onEnterFrame, onKeyDown, onKeyUp</h2>
+<p>Les callbacks enregistrés via <code>Scene.onEnterFrame(cb)</code> / <code>onKeyDown</code> / <code>onKeyUp</code> sont <strong>vidés à chaque Exécuter</strong> (voir <span class="src">sceneRuntime.js → run()</span>) pour éviter les accumulateurs d'un run à l'autre. Les <code>onKey*</code> sont ignorés quand le focus est dans un champ de saisie.</p>
+
+<pre><code><span class="c-com">// Déplacement au clavier d'un clip "joueur"</span>
+Scene.onKeyDown(<span class="c-kw">function</span>(key) {
+  <span class="c-kw">if</span> (key === <span class="c-str">"ArrowLeft"</span>)  joueur.x -= 4;
+  <span class="c-kw">if</span> (key === <span class="c-str">"ArrowRight"</span>) joueur.x += 4;
+  <span class="c-kw">if</span> (key === <span class="c-str">"ArrowUp"</span>)    joueur.y -= 4;
+  <span class="c-kw">if</span> (key === <span class="c-str">"ArrowDown"</span>)  joueur.y += 4;
+});
+
+<span class="c-com">// État clavier en temps réel (utile dans onEnterFrame)</span>
+Scene.onEnterFrame(<span class="c-kw">function</span>() {
+  <span class="c-kw">if</span> (Scene.keys[<span class="c-str">"ArrowRight"</span>]) joueur.x += 3;
+  <span class="c-kw">if</span> (Scene.keys[<span class="c-str">" "</span>])         joueur.gotoAndPlay(<span class="c-str">"saut"</span>);
+});</code></pre>
+
+<pre><code><span class="c-com">// Détection de collision frame par frame entre deux clips nommés</span>
+Scene.onEnterFrame(<span class="c-kw">function</span>(f) {
+  <span class="c-kw">var</span> dx = balle.x - cible.x;
+  <span class="c-kw">var</span> dy = balle.y - cible.y;
+  <span class="c-kw">if</span> (Math.hypot(dx, dy) &lt; 30) {
+    cible.gotoAndStop(<span class="c-str">"touche"</span>);
+    Scene.stop();
+  }
+});</code></pre>
+
+<h2 id="s11">11. La map <code>named</code> — accès aux noms non‑identifiants</h2>
+<p>Un Nom d'instance qui n'est pas un identifiant JavaScript valide (espace, accent, mot réservé, commence par un chiffre…) ne peut pas être injecté comme variable directe — ce serait une <code>SyntaxError</code>. Il reste accessible via la <strong>map <code>named</code></strong> passée en argument implicite à tout script :</p>
+<pre><code><span class="c-com">// Nom d'instance = "1er plan" (espace + chiffre)</span>
+named[<span class="c-str">"1er plan"</span>].x += 1;
+named[<span class="c-str">"1er plan"</span>].opacity = 0.8;</code></pre>
+<p>Les mots réservés (<code>Scene</code>, <code>Game</code>, <code>console</code>, <code>eval</code>, <code>this</code>, <code>var</code>…) sont aussi exclus de l'injection directe (voir la liste <code>RESERVED</code> dans <span class="src">sceneRuntime.js</span>). Utilisez <code>named["var"]</code> en pareil cas.</p>
+
+<h2 id="s12">12. Différences éditeur vs export HTML</h2>
+<p>La même surface d'API est reproduite à l'export (voir <span class="src">exportHTML.js → buildBootstrapScript()</span>), mais quelques nuances subsistent :</p>
+<table>
+  <tr><th>Aspect</th><th>Éditeur</th><th>Export HTML</th></tr>
+  <tr><td>Moteur de scripts</td><td><code>sceneRuntime.js</code> + <code>clipStates.js</code></td><td>Classe <code>MovieClip</code> de <code>tweenRuntime.js</code></td></tr>
+  <tr><td>État d'un clip enfant nommé</td><td><code>clipState.isPlaying</code> via Map</td><td>propriétés directes du <code>MovieClip</code> enfant</td></tr>
+  <tr><td><code>nom.isPlaying</code> / <code>nom.loop</code></td><td><code>isPlaying</code> dispo</td><td>les deux dispo</td></tr>
+  <tr><td><code>addEventListener('complete'|'loop')</code></td><td>non exposé</td><td>dispo sur les clips</td></tr>
+  <tr><td>Création d'éléments (<code>addShape</code>/<code>addInstance</code>)</td><td>dispo</td><td>dispo (ajoute à la première keyframe visible non verrouillée)</td></tr>
+  <tr><td>Variable directe <code>nom.method()</code> sur movieclip</td><td>via l'objet élément + <code>runClipFrameScripts</code></td><td>via un <code>Proxy</code> qui délègue au <code>MovieClip</code> enfant</td></tr>
+  <tr><td>Scène scopée pour un script d'image de clip</td><td><code>runClipFrameScripts</code> construit un <code>clipScene</code></td><td><code>_runChildFrameScript</code> + <code>_buildClipScene</code></td></tr>
+</table>
+
+<div class="note">L'export <strong>n'inclut pas</strong> la dépendance Konva : le rendu est fait par le runtime canvas 2D pur de <code>tweenRuntime.js</code>, importé tel quel (un seul fichier source pour l'éditeur et l'export).</div>
+
+<h2 id="s13">13. Recettes courantes</h2>
+
+<h3>Bouton play/stop sur un clip</h3>
+<pre><code><span class="c-com">// Clip nommé "anim" sur la scène</span>
+Scene.onKeyDown(<span class="c-kw">function</span>(k) {
+  <span class="c-kw">if</span> (k === <span class="c-str">"p"</span>) { anim.isPlaying ? anim.stop() : anim.play(); }
+});</code></pre>
+
+<h3>Changer d'animation sur un personnage</h3>
+<pre><code><span class="c-com">// "hero" a plusieurs étiquettes : "idle", "walk", "jump"</span>
+Scene.onKeyDown(<span class="c-kw">function</span>(k) {
+  <span class="c-kw">if</span> (k === <span class="c-str">"ArrowRight"</span>) hero.gotoAndPlay(<span class="c-str">"walk"</span>);
+  <span class="c-kw">if</span> (k === <span class="c-str">" "</span>)        hero.gotoAndPlay(<span class="c-str">"jump"</span>);
+});
+Scene.onKeyUp(<span class="c-kw">function</span>(k) {
+  <span class="c-kw">if</span> (k === <span class="c-str">"ArrowRight"</span>) hero.gotoAndStop(<span class="c-str">"idle"</span>);
+});</code></pre>
+
+<h3>Synchroniser deux clips (un attend la fin de l'autre)</h3>
+<pre><code><span class="c-com">// clipA fait 30 images ; on lance clipB quand clipA atteint la fin</span>
+Scene.stop();
+clipA.play();
+Scene.onEnterFrame(<span class="c-kw">function</span>() {
+  <span class="c-kw">if</span> (clipA.currentFrame === clipA.frameCount - 1) {
+    clipB.gotoAndPlay(0);
+  }
+});</code></pre>
+
+<h3>Compteur de boucles sur un clip (export)</h3>
+<pre><code><span class="c-kw">var</span> tours = 0;
+roue.loop = <span class="c-kw">true</span>;
+roue.addEventListener(<span class="c-str">"loop"</span>, <span class="c-kw">function</span>() {
+  tours++;
+  Scene.log(<span class="c-str">"Tours :"</span>, tours);
+  <span class="c-kw">if</span> (tours >= 5) roue.stop();
+});</code></pre>
+
+<h3>Stopper la scène à la dernière image d'un clip enfant</h3>
+<pre><code><span class="c-com">// Script d'image à l'intérieur du clip "fin", dernière image</span>
+Scene.stop();        <span class="c-com">// arrête ce clip</span>
+<span class="c-com">// Pour arrêter aussi la racine : passer par un script d'image racine</span>
+<span class="c-com">// qui surveille fin.currentFrame (voir recette ci-dessus)</span></code></pre>
+
+<h2 id="s14">14. Pièges et limites connues</h2>
+<ul>
+  <li><strong>Pas de <code>this.parent</code>.</strong> La communication parent ⇄ enfant se fait uniquement par Noms d'instance, résolus dans le contexte du script qui s'exécute. Un script d'un clip enfant ne voit pas les noms du parent.</li>
+  <li><strong>Les graphic n'ont pas d'état propre.</strong> Un symbole <code>graphic</code> imbriqué suit l'image du parent (modulo <code>frameCount</code>) ; <code>play</code>/<code>stop</code> n'ont aucun effet sur lui.</li>
+  <li><strong>Callbacks vidés à chaque Exécuter.</strong> Relancer un script nommé efface les <code>onEnterFrame</code>/<code>onKey*</code> précédents — pas d'accumulation.</li>
+  <li><strong>Scripts d'image en lecture seulement.</strong> Le scrub manuel de la timeline n'exécute pas les scripts d'image (comme Animate CC).</li>
+  <li><strong>Noms réservés.</strong> Un nom d'instance égal à <code>Scene</code>, <code>Game</code>, <code>console</code>, <code>named</code> ou un mot‑clé JS n'est pas injecté comme variable : passez par <code>named["Scene"]</code>.</li>
+  <li><strong>Deux instances, deux états.</strong> L'indexation se fait par <code>instanceId</code>, pas par <code>symbolId</code> — deux placements du même clip jouent indépendamment.</li>
+  <li><strong><code>addEventListener</code> à l'export uniquement.</strong> Dans l'éditeur, on reproduit la logique avec <code>onEnterFrame</code> + tests de <code>currentFrame</code>/<code>isPlaying</code>.</li>
+</ul>
+
+<div class="footer">
+  Sources principales : <span class="src">src/ui/ScriptsPanel.js</span>, <span class="src">src/runtime/sceneRuntime.js</span>, <span class="src">src/runtime/clipStates.js</span>, <span class="src">src/main.js</span> (boucle de lecture), <span class="src">src/core/model.js</span> (getNamedElements, symbols), <span class="src">src/export/tweenRuntime.js</span> (classe MovieClip), <span class="src">src/export/exportHTML.js</span> (bootstrap d'export).<br>
+  Généré pour TweenJS / Animate-JS v0.1 — Septembre 2026.
+</div>
+
+</body>
+</html>
