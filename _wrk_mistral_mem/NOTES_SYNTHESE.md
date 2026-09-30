@@ -1,6 +1,6 @@
 # NOTES SYNTHESE - Projet TweenJS
-*Mise à jour : 04/09/2026*
-*Dernière session : Implémentation outil Pinceau avec pattern oblique*
+*Mise à jour : 30/09/2026*
+*Dernière session : Correction double point de Plume sur mobile (souris émulée après touchstart)*
 
 ---
 
@@ -138,6 +138,15 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 
 ---
 
+### Session 8 - 30/09/2026
+- Correction bug mobile : l'outil Plume plaçait deux points par tap
+- Cause : après un touchstart, le navigateur rejoue une séquence souris émulée (mousedown/mouseup/click) ; le handler Konva `mousedown touchstart` s'exécutait donc deux fois (un point par événement)
+- Fix : preventDefault() sur touchstart dans Stage.js, à deux endroits :
+  1. Handler de scène konvaStage.on('mousedown touchstart') — corrige plume, pinceau, formes, texte
+  2. attachInteraction() (handler de nœud) — les taps sur les formes avec select/subselect font cancelBubble et contournaient le fix de scène ; sans lui, un double-tap déclenchait dbltap ET dblclick émulé (editPath poussé deux fois à l'entrée d'un symbole)
+- Sans effet de bord : le conteneur de scène est déjà en touch-action: none (style.css)
+- Bundle vanilla regénéré et copié dans Animate_JS_PureVanilla/tweenjs-bundle.js
+- Modifications : src/stage/Stage.js
 ## ETAT ACTUEL
 
 ### Fonctionnalités opérationnelles

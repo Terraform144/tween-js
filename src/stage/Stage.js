@@ -405,6 +405,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   function attachInteraction(node, el) {
     if (state.playing) return;
     node.on('mousedown touchstart', (e) => {
+      // Meme correctif que le handler de scene : sans lui, cancelBubble ci-
+      // dessous empeche le preventDefault de scene de s'appliquer et le
+      // navigateur rejoue la sequence souris emulee apres le touchstart.
+      if (e.evt.type === 'touchstart' && e.evt.cancelable) e.evt.preventDefault();
       if (state.currentTool === 'select') {
         e.cancelBubble = true;
         selectElement(el.id, el.layerId, e.evt.shiftKey);
@@ -661,6 +665,13 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   konvaStage.on('mousedown touchstart', (e) => {
+    // Sur mobile, le navigateur rejoue apres un touchstart une sequence souris
+    // emulee (mousedown puis mouseup puis click). Ce handler etant lie a
+    // 'mousedown touchstart', un simple tap executait donc deux fois l'ajout de point
+    // (plume) ou le debut de trace. preventDefault() sur le touchstart supprime
+    // toute la sequence emulee ; le conteneur de scene est deja en touch-action:
+    // none (voir style.css), aucun geste natif n est perdu.
+    if (e.evt.type === 'touchstart' && e.evt.cancelable) e.evt.preventDefault();
     const tool = state.currentTool;
     if (tool === 'hand') {
       e.cancelBubble = true;
