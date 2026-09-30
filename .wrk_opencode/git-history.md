@@ -23,7 +23,7 @@ f5c692c fix: complete onion skinning implementation and fix missing onionLayer d
 9633fca feat: add onion skinning feature
 ec39b98 feat: disable bones with ENABLE_BONES feature flag
 b13ab43 chore: add production environment config
-307baaa chore: add .[REDACTÉ]_ssh_info.txt to gitignore
+307baaa chore: ignore local SSH info file
 19a8408 docs: add comprehensive Dungeon Crawler walls organization guide
 ```
 
@@ -31,7 +31,7 @@ Points notables :
 - L'onion skinning (peau d'oignon) a été implémenté puis **reverté**
   (`813294e` → retour à `ec39b98`).
 - Le flag `ENABLE_BONES` désactive les ossatures (`ec39b98`).
-- Déploiement prod configuré (`b13ab43`), fichier d'infos SSH [REDACTÉ] ignoré
+- Déploiement prod configuré (`b13ab43`), fichier local d'infos SSH ignoré
   (`307baaa`).
 
 ## État du dépôt (au 02/08/2026)
@@ -39,12 +39,12 @@ Points notables :
 - Sur `TweenJS_simpleV.0.1`, rien de stagé.
 - **Untracked** : `gameTest/` (contient `IIB_AS_HARMAN_TEST/` = SDK AIR
   HARMAN pour tests — volumineux, binaire, à ne pas committer sans décision).
-- `.env`, `Notes.txt`, `Nouveau Document texte.txt` sont **trackés** par git
-  (`.env` non ignoré — attention aux secrets). `Notes.txt` est vide.
+- `Notes.txt`, `Nouveau Document texte.txt` sont **trackés** par git. `Notes.txt` est vide.
+  `.env` est ignoré (30/09/2026) et ne doit jamais être committé (secrets).
 
 ## Fichiers non versionnés / données locales
 
-- `node_modules/`, `dist/`, `.[REDACTÉ]_ssh_info.txt` → ignorés (.gitignore).
+- `node_modules/`, `dist/`, fichiers `*_ssh_info.txt` → ignorés (.gitignore).
 - `_wrk_mistral_mem/session_log.md` : historique des sessions Mistral
   (responsive, import SVG, toolbar delete, …) — encodage cassé (mojibake),
   les accents sont illisibles.

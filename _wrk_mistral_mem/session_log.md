@@ -234,12 +234,12 @@
 - **Skeleton Skinning** : L'influence des bones sur les points utilise `perpendicularDistance` avec un rayon d'influence configurable par bone.
 
 ### ⚠️ Problèmes connus / Limites
-- Le push sur [REDACTÉ] ([REDACTÉ]) n'a pas pu être effectué : manque des informations d'accès SSH
+- Le push sur le serveur de production n'a pas pu être effectué (infos retirees du depot)
 - GitHub a été mis à jour avec succès
 - La déformation de mesh avec courbes de Bézier n'a pas été implémentée (demande spécifique de l'utilisateur non encore clarifiée)
 
 ### 🎯 Prochaines étapes
-- [ ] Obtenir les accès SSH pour [REDACTÉ] pour pousser sur [REDACTÉ]
+- [ ] ~~Accès SSH production~~ (obsolète : déploiement interdit, voir regle NOTES_SYNTHESE.md)
 - [ ] Implémenter la déformation de mesh si l'utilisateur clarifie les besoins
 - [ ] Tester l'IK CCD avec des chaînes de 3+ bones
 
@@ -248,20 +248,15 @@
 
 ## 📅 **Session 6 - 27/07/2026**
 **Heure** : ~ (heure locale)
-**Contexte** : Déploiement sur [REDACTÉ] et mise à jour des accès
+**Contexte** : Déploiement web (details sensibles retires du depot le 30/09/2026)
 
 ### ✅ Actions réalisées
 
-1. **Déploiement réussi sur [REDACTÉ]**
-   - Serveur : [REDACTÉ]:22
-   - Utilisateur : [REDACTÉ]
-   - Mot de passe : **[REDACTÉ]** (enregistré dans .[REDACTÉ]_ssh_info.txt)
-   - Destination : /var/www/AnimateJS
-   - Méthode : Utilisation de `pscp` (PuTTY SCP) avec authentification par mot de passe
-   - Commande : `pscp -P 22 -l [REDACTÉ] -pw [REDACTÉ] -r dist/* [REDACTÉ]:/var/www/AnimateJS/`
+1. **Déploiement web réussi**
+   - (Identifiants, adresse et commande retirés du dépôt le 30/09/2026 pour raisons de sécurité — ne plus jamais stocker de secrets dans git.)
 
 2. **Enregistrement des informations d'accès**
-   - Création de `.[REDACTÉ]_ssh_info.txt` à la racine du projet
+   - Création d'un fichier local d'infos SSH (hors git, ignore par *_ssh_info.txt)
    - Contient toutes les informations nécessaires pour les futurs déploiements
 
 3. **Vérification du déploiement**
@@ -271,10 +266,10 @@
 ### 📌 Notes techniques
 - **Outils utilisés** : `plink` et `pscp` (versions PuTTY) sont disponibles dans le PATH
 - **GitHub** : Déjà poussé sur https://github.com/Terraform144/tween-js.git
-- **[REDACTÉ]** : Copie directe du dossier `dist` (pas un dépôt git)
+- **Serveur de prod** : Copie directe du dossier `dist` (pas un dépôt git)
 
 ### 🎯 Prochaines étapes
-- [ ] Tester l'application sur http://[REDACTÉ]/AnimateJS
+- [ ] Tester l'application en production
 - [ ] Vérifier que les corrections (Bézier, boutons, skinning) fonctionnent sur mobile
 - [ ] Continuer l'implémentation de la déformation de mesh si nécessaire
 
