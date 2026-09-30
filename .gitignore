@@ -1,6 +1,7 @@
 node_modules/
 dist/
-.[REDACTÉ]_ssh_info.txt
+.env
+*_ssh_info.txt
 gameTest/
 
 .gradle-user-home/

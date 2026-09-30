@@ -128,7 +128,7 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - Modifications : model.js, Stage.js
 
 ### Session 6 - 27/07/2026
-- Déploiement sur [REDACTÉ] ([REDACTÉ])
+- Déploiement web (details retires du depot)
 
 ### Session 7 - 04/09/2026
 - Implémentation outil Pinceau simplifié
@@ -169,12 +169,9 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 
 ## CONFIGURATION DEPLOIEMENT
 
-### [REDACTÉ]
-- Serveur : [REDACTÉ]:22
-- Utilisateur : [REDACTÉ]
-- Mot de passe : [REDACTÉ]
-- Destination : /var/www/AnimateJS
-- Commande : pscp -P 22 -l [REDACTÉ] -pw [REDACTÉ] -r dist/* [REDACTÉ]:/var/www/AnimateJS/
+### Production — INTERDIT sans demande explicite
+- **REGLE (demande utilisateur 30/09/2026) : NE JAMAIS POUSSER EN PRODUCTION** - ni git push vers un remote de prod, ni redeploiement du dossier `dist` sur le serveur, sauf demande explicite de l utilisateur. Push git : uniquement vers `origin` (GitHub).
+- Securite (30/09/2026) : tous les identifiants, adresses et mots de passe du serveur ont ete retires du depot et de son historique. Ne plus jamais les committer.
 
 ### GitHub
 - Repository : https://github.com/Terraform144/tween-js.git
