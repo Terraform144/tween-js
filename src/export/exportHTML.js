@@ -260,6 +260,7 @@ export function buildStandaloneHTML(doc) {
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
+<meta name="generator" content="TweenJS export v2 (runtime code inline)" />
 <title>${title} — export TweenJS</title>
 <style>
   html, body { margin: 0; height: 100%; background: #111318; display: flex; align-items: center; justify-content: center; }

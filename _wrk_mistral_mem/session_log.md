@@ -273,3 +273,72 @@
 - [ ] Vérifier que les corrections (Bézier, boutons, skinning) fonctionnent sur mobile
 - [ ] Continuer l'implémentation de la déformation de mesh si nécessaire
 
+
+---
+
+## 📅 **Session 9 - 30/09/2026**
+**Contexte** : Correction mobile version principale, commits/push, puis purge sécurité Ionos
+
+### ✅ Actions réalisées
+
+1. **Correction version principale mobile (plume : deux points par tap)**
+   - Le correctif existait déjà dans src/stage/Stage.js (Session 8) et le bundle vanilla avait été regénéré ; les artefacts de la version principale restaient périmés (assets web de l APK du 08/09, antérieurs au fix)
+   - Rebuild : `npm run build` → `npx cap sync android` → `gradlew assembleDebug` (BUILD SUCCESSFUL 47s)
+   - Correctif vérifié dans le JS embarqué de l APK ; copié dans dist/apk-debug.apk et public/apk-debug.apk
+   - Note : le build régulier a vidé dist/tweenjs-bundle.iife.js (copie de référence intacte dans Animate_JS_PureVanilla)
+
+2. **Commits + push GitHub (origin uniquement)**
+   - Fix plume + APK regenere, puis doc regle anti-production
+
+3. **Règle utilisateur (à respecter en permanence)**
+   - NE JAMAIS pousser sur le serveur de production : ni git push, ni déploiement du dossier dist (pscp), sauf demande explicite de l utilisateur. Push git : uniquement vers origin (GitHub).
+
+4. **Purge sécurité (identifiants Ionos committés par erreur)**
+   - Mot de passe SSH + login root présents dans l historique GitHub → réécriture complète avec git-filter-repo (replace-text sur les contenus + replace-message sur les messages)
+   - Retirés partout : mot de passe, login, IPs, domaines nip.io, commandes pscp, toute mention de l hébergeur
+   - Force-push --force-with-lease des 3 branches ; vérification : 0 occurrence restante (contenus + messages, 87 commits)
+   - Fichiers courants nettoyés : .env supprimé + ignoré, .gitignore (*_ssh_info.txt), sections déploiement réécrites, bloc hébergeur des mentions-legales neutralisé, remote de prod retiré
+   - Backup pré-purge : F:/_SRC/__Debrouillard/AnimateJS-backup-avant-purge-ionos.bundle (contient les secrets : à supprimer une fois validé)
+
+### 📌 Notes techniques
+- git-filter-repo : installer via `pip install git-filter-repo`, lancer via `python -m git_filter_repo` ; --replace-text purifie les blobs, --replace-message purifie les messages de commit (les deux sont nécessaires)
+- filter-repo demande confirmation si .git/filter-repo/already_ran existe → répondre Y (echo Y | ...)
+- Après filter-repo : remotes supprimés → re-add origin, fetch, puis --force-with-lease
+- Les fichiers du projet mélangent CRLF (ex. NOTES_SYNTHESE.md) et LF (ex. session_log.md, .gitignore, mentions-legales.html) : vérifier avant tout edit/replace textuel
+
+### ⚠️ À faire côté utilisateur
+- [ ] Changer le mot de passe du serveur (il a été public sur GitHub)
+- [ ] Demander à GitHub un garbage collection (support) pour purger les anciens commits encore accessibles par SHA
+
+
+---
+
+## Session 10 - 01/10/2026
+**Contexte** : Bug export HTML (menu Fichier) - page blanche dans le fichier exporte.
+
+### Diagnostic
+- Symptome (user) : le HTML exporte souvre sur une page vide ; scene avec symboles imbriques, scripts, images importees.
+- Harnais headless Node (stubs DOM/canvas) sur le SRC : lexport fonctionne (formes, tween, movieclip imbriques, graphic, bitmap, scripts, labels) -> le bug netait pas dans le code dexport.
+- Piste user : version vanilla uniquement. Confirme : le bundle Animate_JS_PureVanilla/tweenjs-bundle.js contenait runtimeSource = chaine morte (export default "// tween-runtime.js..." avec 
+ litteraux, 10180 octets au lieu de 16337).
+- Cause : plugin handle-raw-imports de vite.vanilla.config.js doublait la transformation ?raw deja geree nativement par Vite 8.
+
+### Fix
+- Suppression du plugin dans vite.vanilla.config.js (commentaire explicatif laisse en place).
+- npm run build:vanilla + copie dist/tweenjs-bundle.iife.js vers Animate_JS_PureVanilla/tweenjs-bundle.js.
+- Verifications : runtime inliné == fichier src (16337 octets) ; harnais headless end-to-end OK.
+- Bonus repare : export dobjet de jeu (tween-runtime.js telecharge) etait aussi casse par le meme plugin.
+
+### Livraison test
+- Serveur statique local : http://127.0.0.1:8123/ (dossier Animate_JS_PureVanilla, bundle corrige).
+- Aucun push production (regle utilisateur).
+
+### Complement Session 10 (apres retour user)
+- User a colle l erreur console d un export (IIB_v3_0.html) : TypeError "// tween-runtime.js..." is not a function + canvas non dimensionne = signature exacte de l ANCIEN bug (runtime = chaine morte appelee en fonction). Le fichier avait ete exporte par un bundle vanilla ANCIEN (version en ligne non mise a jour, ou onglet ouvert sur l ancienne version).
+- Ajout marqueur de version dans les exports : meta name=generator "TweenJS export v2 (runtime code inline)" dans buildStandaloneHTML (src/export/exportHTML.js) pour identifier d un coup d oeil le pipeline producteur d un fichier exporte.
+- Rebuild vanilla + copie Animate_JS_PureVanilla (625184 octets). Verifs re-jouees : runtime inliné == src, harnais headless OK, marqueur present dans le bundle servi et dans le HTML exporte.
+- Le serveur statique local (127.0.0.1:8123) sert le bundle a jour (lecture disque par requete).
+
+### Validation user (01/10/2026)
+- User confirme : l export HTML depuis la version PureVanilla corrigee fonctionne (scene qui joue).
+- Fix CLOS cote local. Reste a faire (user) : deployer Animate_JS_PureVanilla/tweenjs-bundle.js sur le serveur en ligne (regle anti-production : pas de push sans demande explicite) et committer les changements (vite.vanilla.config.js, src/export/exportHTML.js, bundle, memo).

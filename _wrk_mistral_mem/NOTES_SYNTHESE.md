@@ -147,6 +147,24 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - Sans effet de bord : le conteneur de scène est déjà en touch-action: none (style.css)
 - Bundle vanilla regénéré et copié dans Animate_JS_PureVanilla/tweenjs-bundle.js
 - Modifications : src/stage/Stage.js
+### Session 9 - 30/09/2026
+- Correction version principale mobile (double point plume) : le src etait deja corrige (Session 8), ce qui trainait etait les artefacts perimes de la version principale (assets APK du 08/09 anterieurs au fix). Rebuild complet : npm run build, npx cap sync android, gradlew assembleDebug ; fix verifie dans le JS embarque de l APK ; APK copie dans dist/ et public/.
+- Commits + push GitHub (origin uniquement) : fix plume + APK regenere, puis regle anti-production.
+- REGLE utilisateur : ne jamais pousser sur le serveur de production (ni git, ni SCP), sauf demande explicite.
+- Purge securite : le mot de passe SSH/root avait ete commite et pousse sur GitHub. Reecriture complete de l historique via git-filter-repo (replace-text + replace-message) : mot de passe, login root, IPs 212.227.x, nip.io, commandes pscp et toutes mentions de l hebergeur retires des 87 commits et des messages. Force-push (--force-with-lease) des 3 branches (TweenJS_simpleV.0.1, TweenJS.V.0.1, master). Verification finale : 0 occurrence.
+- Nettoyage fichiers courants : .env supprime (et ajoute au .gitignore), .gitignore passe sur *_ssh_info.txt, sections deploiement reecrites ("Production - INTERDIT"), bloc hebergeur des mentions-legales.html remplace par une mention neutre, remote de prod retire de la config git locale.
+- Backup pre-purge : F:/_SRC/__Debrouillard/AnimateJS-backup-avant-purge-ionos.bundle (contient encore les secrets - a garder hors de tout depot, a supprimer quand le resultat est valide).
+- Avertissements donnes a l utilisateur : changer le mot de passe serveur (il a ete public), demander a GitHub un garbage collection pour purger les commits anciens encore accessibles par SHA.
+### Session 10 - 01/10/2026
+- Correction bug export HTML en version PureVanilla : le fichier exporte etait une page blanche (MovieClip indefini).
+- Cause racine : le plugin maison handle-raw-imports de vite.vanilla.config.js re-transformait le module ?raw DEJA transformé par Vite 8 (qui gere ?raw nativement) -> double emballage : la chaine runtimeSource inlinée dans le bundle etait un texte mort export default "..." avec 
+ littéraux. Le HTML exporté depuis la version vanilla embarquait donc le runtime comme chaine inerte -> ReferenceError -> page blanche. La version principale (vite.config.js, sans ce plugin) etait saine - bug vanilla uniquement.
+- Meme cause cassait lexport dobjet de jeu (le tween-runtime.js telecharge contenait la chaine morte) : repare par le meme fix.
+- Fix : suppression du plugin dans vite.vanilla.config.js ; rebuild npm run build:vanilla ; copie dist/tweenjs-bundle.iife.js -> Animate_JS_PureVanilla/tweenjs-bundle.js.
+- Verification : runtime inliné du nouveau bundle IDENTIQUE au fichier src (16337 octets, comparaison exacte) ; harnais headless (Node, stubs DOM/canvas) valide lend-to-end de lexport : formes, tween, movieclip 2 niveaux, symbole graphic, bitmap, texte, label dimage, script dimage, script de document + named instances - aucune erreur.
+- Fichiers modifiés : vite.vanilla.config.js, Animate_JS_PureVanilla/tweenjs-bundle.js (regenere). dist/ regenere (gitignore).
+- Servi en local pour test : http://127.0.0.1:8123/ (serveur statique temporaire sur Animate_JS_PureVanilla). Pas de push production (regle).
+
 ## ETAT ACTUEL
 
 ### Fonctionnalités opérationnelles

@@ -34,17 +34,13 @@ export default defineConfig({
     // Copier les assets statiques
     assetsDir: 'assets',
     // Ne pas utiliser les modules ES
-    modulePreload: false,
+    modulePreload: false
   },
-  // Plugins pour gérer les imports spéciaux
-  plugins: [
-    {
-      name: 'handle-raw-imports',
-      transform(src, id) {
-        if (id.includes('?raw')) {
-          return `export default ${JSON.stringify(src)}`;
-        }
-      }
-    }
-  ]
+  // NB : pas de plugin pour les imports `?raw` — Vite les gère nativement
+  // (il transforme lui-même le module en `export default "<contenu>"`).
+  // L'ancien plugin `handle-raw-imports` re-transformait ce résultat déjà
+  // transformé et produisait un double emballage : la source du runtime
+  // inlinée dans le bundle devenait une chaîne inerte `export default "..."`,
+  // ce qui cassait l'export HTML (MovieClip indéfini dans le fichier exporté
+  // = page blanche) et l'export d'objet de jeu.
 });
