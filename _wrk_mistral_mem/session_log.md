@@ -342,3 +342,22 @@
 ### Validation user (01/10/2026)
 - User confirme : l export HTML depuis la version PureVanilla corrigee fonctionne (scene qui joue).
 - Fix CLOS cote local. Reste a faire (user) : deployer Animate_JS_PureVanilla/tweenjs-bundle.js sur le serveur en ligne (regle anti-production : pas de push sans demande explicite) et committer les changements (vite.vanilla.config.js, src/export/exportHTML.js, bundle, memo).
+
+## Session 11 - 02/10/2026 - Import images : 2e import ecrase le 1er
+
+### Symptome
+- Import 1 ok ; le 2e import affichait les pixels de la 1ere image (taille de la 2e), puis apres 1er correctif les DEUX bitmaps affichaient les pixels de la 2e image.
+
+### Cause racine
+- addAsset() appele par l UI (MenuBar.js:99 menu, main.js:249 drop) avec un objet sans id (createAsset jamais utilise) -> doc.assets['undefined'] ; chaque import ecrase le precedent.
+
+### Fixes
+- src/core/model.js : addAsset() attribue un id manquant ; compteur d ids monotone (bumpIdCounterPastDocument ne redescend plus).
+- src/stage/Stage.js : cache d images decodees clee par dataUrl au lieu de assetId.
+- Harnais regression : _wrk_mistral_mem/repro_import.mjs (6 scenarios, node repro_import.mjs).
+- Bundle vanilla regenere + copie ; servi sur http://127.0.0.1:8123/.
+
+### Validation user (02/10/2026)
+- Confirme : les deux imports gardent leurs propres pixels.
+- Aucun push production (regle). Deploy en ligne a faire par l utilisateur.
+

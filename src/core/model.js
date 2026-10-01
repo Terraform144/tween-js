@@ -127,6 +127,11 @@ export function createAsset({ name = 'image', type = 'image/png', dataUrl = '', 
 }
 
 export function addAsset(doc, asset) {
+  // Certains appelants (import menu, glisser-deposer) passent un asset brut
+  // sans id : sans ce garde-fou, il etait stocke sous la cle 'undefined' et
+  // chaque nouvel import ecrasait le precedent (la 1re image changeait de
+  // pixels au 2e import).
+  if (!asset.id) asset.id = nextId('asset');
   doc.assets = doc.assets || {};
   doc.assets[asset.id] = asset;
   return asset;
@@ -614,7 +619,12 @@ export function bumpIdCounterPastDocument(doc) {
     scanLayers(doc.symbols[symId].layers);
   }
   for (const assetId in doc.assets || {}) scan(assetId);
-  resetIdCounter(maxNum + 1);
+  // Le compteur ne redescend jamais : undo/redo restaure un doc plus ancien
+  // (ids plus petits), mais les caches vivant hors du document (images
+  // decodees de la scene, etats de clips du runtime) restent indexes par id
+  // - reemettre un id deja utilise leur ferait servir un contenu perime
+  // (ex. 2e import d'image apres un undo affichant les pixels du 1er).
+  if (maxNum + 1 > idCounter) idCounter = maxNum + 1;
 }
 
 // ---------------------------------------------------------------------------

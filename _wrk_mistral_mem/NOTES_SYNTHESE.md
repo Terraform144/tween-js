@@ -1,6 +1,6 @@
 # NOTES SYNTHESE - Projet TweenJS
-*Mise à jour : 30/09/2026*
-*Dernière session : Correction double point de Plume sur mobile (souris émulée après touchstart)*
+*Mise à jour : 02/10/2026*
+*Dernière session : Fix import d'images — le 2e import écrasait le 1er (assets stockés sous la clé 'undefined')*
 
 ---
 
@@ -155,6 +155,18 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - Nettoyage fichiers courants : .env supprime (et ajoute au .gitignore), .gitignore passe sur *_ssh_info.txt, sections deploiement reecrites ("Production - INTERDIT"), bloc hebergeur des mentions-legales.html remplace par une mention neutre, remote de prod retire de la config git locale.
 - Backup pre-purge : F:/_SRC/__Debrouillard/AnimateJS-backup-avant-purge-ionos.bundle (contient encore les secrets - a garder hors de tout depot, a supprimer quand le resultat est valide).
 - Avertissements donnes a l utilisateur : changer le mot de passe serveur (il a ete public), demander a GitHub un garbage collection pour purger les commits anciens encore accessibles par SHA.
+### Session 11 - 02/10/2026
+- Fix bug import images : le 2e import remplacait les pixels du 1er bitmap pose sur la scene.
+- Cause racine : l UI n appelle jamais createAsset() (seul generateur d id) ; MenuBar.js (menu Importer image) et main.js (glisser-deposer) passaient a addAsset() un objet SANS id -> stocke sous la cle litterale 'undefined' -> chaque nouvel import ecrasait l entree precedente ; les bitmaps deja poses (assetId 'undefined') pointaient alors vers la nouvelle image.
+- Diagnostic eprouve par harnais headless (_wrk_mistral_mem/repro_import.mjs, Node + vrais modules model/history/state) reproduisant le flux exact MenuBar -> addBitmapAsset : echec sur 2 imports directs, OK apres fix sur 6 scenarios (imports directs + undo/redo croises).
+- Fixes (src/core/model.js) :
+  1. addAsset() attribue un id manquant (if (!asset.id) asset.id = nextId('asset')) — LE fix du bug.
+  2. bumpIdCounterPastDocument() ne fait plus redescendre le compteur global (monotonic) : undo/redo restaure un doc aux ids plus petits, mais les caches hors document restent indexes par id — reemettre un id leur ferait servir un contenu perime.
+- Fix (src/stage/Stage.js) : cache d images decodees clee par dataUrl (contenu) au lieu de assetId — deux images differentes ne peuvent plus jamais partager une entree de cache.
+- Bundle vanilla regenere et copie (Animate_JS_PureVanilla/tweenjs-bundle.js, 625212 octets) ; les 3 fixes verifies presents dans le bundle minifie.
+- Servi en local pour test : http://127.0.0.1:8123/. Validation user OK (02/10/2026).
+- Reste a faire (user) : deployer le bundle corrige sur le serveur en ligne (regle anti-production : pas de push sans demande explicite).
+
 ### Session 10 - 01/10/2026
 - Correction bug export HTML en version PureVanilla : le fichier exporte etait une page blanche (MovieClip indefini).
 - Cause racine : le plugin maison handle-raw-imports de vite.vanilla.config.js re-transformait le module ?raw DEJA transformé par Vite 8 (qui gere ?raw nativement) -> double emballage : la chaine runtimeSource inlinée dans le bundle etait un texte mort export default "..." avec 
