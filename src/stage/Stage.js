@@ -74,7 +74,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const handleGroup = new Konva.Group();
   overlayLayer.add(transformer, handleGroup);
 
-  // Cache d'images décodées, indexé par assetId. Tant qu'une image n'est pas
+  // Cache d'images décodées, indexé par dataUrl (immuable par contenu). Tant qu'une image n'est pas
   // décodée (chargement asynchrone depuis le dataUrl), le nœud affiche un
   // placeholder ; le onload déclenche un re-rendu pour la montrer.
   const imageCache = new Map();
@@ -82,17 +82,22 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   function getImage(assetId) {
     const asset = (state.doc.assets || {})[assetId];
     if (!asset || !asset.dataUrl) return null;
-    if (imageCache.has(assetId)) return imageCache.get(assetId);
-    if (imagePending.has(assetId)) return null;
+    // Cle = dataUrl (et non assetId) : les ids d'assets peuvent etre reemis
+    // apres restauration du document (undo/redo, ouverture d'un projet) ;
+    // deux contenus differents ne partagent jamais un dataUrl, le cache ne
+    // peut donc pas servir les pixels d'une autre image.
+    const key = asset.dataUrl;
+    if (imageCache.has(key)) return imageCache.get(key);
+    if (imagePending.has(key)) return null;
     const img = new Image();
-    imagePending.set(assetId, img);
+    imagePending.set(key, img);
     img.onload = () => {
-      imageCache.set(assetId, img);
-      imagePending.delete(assetId);
+      imageCache.set(key, img);
+      imagePending.delete(key);
       render(currentTick);
     };
-    img.onerror = () => imagePending.delete(assetId);
-    img.src = asset.dataUrl;
+    img.onerror = () => imagePending.delete(key);
+    img.src = key;
     return null;
   }
 
