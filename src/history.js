@@ -15,7 +15,13 @@ export function createHistory(state) {
   let lastSnapshot = JSON.stringify(state.doc);
   let restoring = false;
 
-  subscribe(state, () => {
+  // Multi-projets : un historique par fenêtre-projet. attach()/detach()
+  // permettent de n'écouter que le projet actif — sinon les historiques de
+  // tous les projets ouverts snapshotteraient les changements du projet
+  // courant dans leurs piles respectives. attach() reprend la baseline du
+  // doc courant (l'état de la façade au moment de l'activation).
+  let unsub = null;
+  const listener = () => {
     if (restoring) return;
     const current = JSON.stringify(state.doc);
     if (current === lastSnapshot) return;
@@ -23,7 +29,18 @@ export function createHistory(state) {
     if (undoStack.length > MAX_LEVELS) undoStack.shift();
     redoStack.length = 0;
     lastSnapshot = current;
-  });
+  };
+  function attach() {
+    if (unsub) return;
+    lastSnapshot = JSON.stringify(state.doc);
+    unsub = subscribe(state, listener);
+  }
+  function detach() {
+    if (!unsub) return;
+    unsub();
+    unsub = null;
+  }
+  attach();
 
   function restore(json) {
     restoring = true;
@@ -70,5 +87,7 @@ export function createHistory(state) {
     redo,
     canUndo: () => undoStack.length > 0,
     canRedo: () => redoStack.length > 0,
+    attach,
+    detach,
   };
 }

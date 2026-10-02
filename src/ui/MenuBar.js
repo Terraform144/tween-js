@@ -37,7 +37,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   });
 
   const btnNew = iconTextButton('newDoc', 'Nouveau', () => {
-    if (!confirm('Créer un nouveau document ? Le travail non exporté sera perdu.')) return;
+    // Ouvre un nouveau projet dans une nouvelle fenêtre — rien n'est perdu.
     resetDocument(createDocument({}));
   });
 
@@ -195,16 +195,26 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     } else {
       // Tri par timestamp (plus récent en premier)
       projects.sort((a, b) => b.timestamp - a.timestamp);
+      // Homonymes : suffixer la date de sauvegarde pour les distinguer
+      const nameCounts = {};
+      for (const p of projects) nameCounts[p.name || 'Sans titre'] = (nameCounts[p.name || 'Sans titre'] || 0) + 1;
       
       for (const project of projects) {
         const projectBtn = document.createElement('button');
         projectBtn.type = 'button';
         projectBtn.className = 'archive-item';
-        projectBtn.textContent = project.name || 'Sans titre';
+        const label = project.name || 'Sans titre';
+        projectBtn.textContent = nameCounts[label] > 1
+          ? label + ' — ' + new Date(project.timestamp).toLocaleString()
+          : label;
         projectBtn.addEventListener('click', () => {
           closeArchivesMenu();
           const doc = loadProject(project.id);
           if (doc) {
+            // Mémoriser l'entrée d'archive d'où vient ce doc : les Ctrl+S
+            // suivants mettront à jour CETTE entrée (les archives sont
+            // indexées par id, plusieurs scènes du même nom peuvent coexister).
+            doc._archiveId = project.id;
             bumpIdCounterPastDocument(doc);
             onProjectLoad(doc);
           } else {
@@ -374,15 +384,9 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   enableDragScroll(container);
 
   function resetDocument(newDoc) {
-    state.doc = newDoc;
-    state.editPath = [];
-    state.currentFrame = 0;
-    state.selectedLayerId = newDoc.layers[0].id;
-    state.selectedElementIds = [];
-    state.playing = false;
-    onDocReplaced();
-    onStageResize();
-    notify(state);
+    // Non destructif : le document s'ouvre dans une NOUVELLE fenêtre-projet
+    // (multi-documents géré côté main.js), le projet courant reste intact.
+    onDocReplaced(newDoc);
   }
 
   function update() {

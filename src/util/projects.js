@@ -31,21 +31,27 @@ export function saveProject(doc, name = null) {
   const projects = getAllProjects();
   const projectName = name || doc.name || 'Sans titre';
   const timestamp = Date.now();
-  
-  // Créer ou mettre à jour le projet
-  const existingIndex = projects.findIndex(p => p.name === projectName);
+
+  // Indexé par ID d'archive (doc._archiveId), PLUS par nom : deux scènes du
+  // même nom peuvent coexcer dans les archives (utile en multi-fenêtres —
+  // sinon la 2e sauvegarde homonyme écrasait la 1re et on ne pouvait plus
+  // rouvrir que l'une des deux). Un doc sans _archiveId crée une NOUVELLE
+  // entrée ; l'id est ensuite mémorisé sur le doc pour que les sauvegardes
+  // suivantes mettent À JOUR cette même entrée (pas de doublons à répétition).
+  const idxById = doc._archiveId ? projects.findIndex(p => p.id === doc._archiveId) : -1;
   const projectData = {
-    id: existingIndex >= 0 ? projects[existingIndex].id : generateId(),
+    id: idxById >= 0 ? projects[idxById].id : generateId(),
     name: projectName,
     data: JSON.stringify(doc),
     timestamp
   };
-  
-  if (existingIndex >= 0) {
-    projects[existingIndex] = projectData;
+
+  if (idxById >= 0) {
+    projects[idxById] = projectData;
   } else {
     projects.push(projectData);
   }
+  doc._archiveId = projectData.id;
   
   try {
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));

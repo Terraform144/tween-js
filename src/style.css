@@ -46,7 +46,7 @@ html, body {
 
 #app {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
   height: 100vh;
 }
 
@@ -1015,3 +1015,106 @@ button.icon-btn:disabled { opacity: 0.4; cursor: default; }
     outline-offset: -2px;
   }
 }
+
+/* ---------- Fenetres-projets (bandeau sous le menu) ---------- */
+#project-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  min-height: 0;
+}
+/* Strip d'onglets (defile seul) + bouton +New partagent la ligne */
+#project-tabs .project-tabs-strip {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+/* Onglets = petits boutons bruns SANS nom (nom en info-bulle), taille
+   compacte pour rester visibles sur mobile. Blanc = actif, gris = reduit. */
+.project-tab {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;   /* [x] aligné à droite du bouton */
+  gap: 0;
+  padding: 2px 5px;
+  width: 48px;
+  height: 24px;
+  border: 1px solid #9a7a4f;
+  border-radius: 6px;
+  background: #bc9a6b;   /* brun pastel clair */
+  color: #ffffff;
+  cursor: pointer;
+  flex: 0 0 auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 2px rgba(7, 54, 66, 0.2);
+}
+.project-tab:hover { background: #c9ab80; }
+.project-tab.active {
+  background: #a8825a;
+  border-color: #8a6a45;
+}
+.project-tab.minimized { opacity: 0.7; }
+/* Cibles plus larges au doigt (pointer: coarse) */
+@media (pointer: coarse) {
+  .project-tab { width: 60px; height: 30px; }
+}
+/* Bouton [x] : icone au liseret noir sur pastille claire */
+.project-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000000;
+  border-radius: 50%;
+  background: var(--bg-0);
+  color: #000000;
+  cursor: pointer;
+  padding: 0;
+}
+.project-tab-close:hover { background: var(--danger); border-color: #7a1b19; color: #ffffff; }
+/* L'icone SVG fait 16px d'origine : la resizer pour tenir dans le petit [x] */
+.project-tab-close svg { width: 10px; height: 10px; display: block; }
+.project-tab-new {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  border: 1px dashed var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 3px 10px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.project-tab-new:hover { color: var(--accent); border-color: var(--accent); }
+.project-tab-new.disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Scene masquee quand la fenetre active est reduite : placeholder a la place */
+#stage-placeholder {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg-0);
+  color: var(--text-dim);
+  text-align: center;
+  padding: 20px;
+  z-index: 5;
+}
+#stage-wrap.minimized #stage-placeholder { display: flex; }
+#stage-wrap.minimized #stage-container { visibility: hidden; }

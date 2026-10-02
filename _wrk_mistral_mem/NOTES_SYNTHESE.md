@@ -1,6 +1,6 @@
 # NOTES SYNTHESE - Projet TweenJS
 *Mise à jour : 02/10/2026*
-*Dernière session : Fix import d'images — le 2e import écrasait le 1er (assets stockés sous la clé 'undefined')*
+*Dernière session : Fenêtres-projets multi-documents (onglets, façade d'état, historiques par projet)*
 
 ---
 
@@ -155,6 +155,20 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - Nettoyage fichiers courants : .env supprime (et ajoute au .gitignore), .gitignore passe sur *_ssh_info.txt, sections deploiement reecrites ("Production - INTERDIT"), bloc hebergeur des mentions-legales.html remplace par une mention neutre, remote de prod retire de la config git locale.
 - Backup pre-purge : F:/_SRC/__Debrouillard/AnimateJS-backup-avant-purge-ionos.bundle (contient encore les secrets - a garder hors de tout depot, a supprimer quand le resultat est valide).
 - Avertissements donnes a l utilisateur : changer le mot de passe serveur (il a ete public), demander a GitHub un garbage collection pour purger les commits anciens encore accessibles par SHA.
+### Session 12 - 02/10/2026
+- Nouvelle fonctionnalite : FENETRES-PROJETS multi-documents, demandee par l utilisateur (plusieurs scenes dans des fenetres minimisables, juste sous le menu).
+- Choix utilisateur : onglets texte simple (pas de vignettes) ; une seule scene active plein cadre ; bouton + ET Archives/Ouvrir/Nouveau ouvrent une nouvelle fenetre ; pause auto des projets non actifs.
+- Architecture (state = facade) : les champs par projet de l objet state (doc, editPath, currentFrame, selectedLayerId, selectedElementIds, selectedKeyframe, focusFrameScript, playing) pointent toujours sur la fenetre active ; panneaux/scene/runtime lisent la facade dynamiquement donc un seul montage d UI suffit. Chaque session = { history, minimized, saved } ; setCurrentSession() replie la facade dans l ancien projet, detach son historique, charge les saved du nouveau, attach, purge clipStates, playing=false, resize, notify.
+- Modifications :
+  * src/history.js : API attach()/detach() ; attach() reprend la baseline (lastSnapshot) du doc courant — seul l historique du projet ACTIF ecoute notify.
+  * src/ui/ProjectTabs.js (nouveau) : bandeau d onglets, purement presentationnel ({id,name,active,minimized} + callbacks onActivate/onClose/onNew).
+  * src/main.js : sessions, openProjectWindow (non destructif), activation/minimisation (clic onglet actif = reduire ; placeholder #stage-placeholder), fermeture (confirm ; derniere fenetre fermee -> nouveau projet vierge), facade undo/redo deleguee au projet courant, renderAll rafraichit les onglets.
+  * src/ui/MenuBar.js : resetDocument NON destructif -> onDocReplaced(newDoc) (nouvelle fenetre) ; bouton Nouveau sans confirmation.
+  * index.html + Animate_JS_PureVanilla/index.html : #project-tabs sous le menu + #stage-placeholder dans #stage-wrap ; #app passe a 4 rangees (auto auto 1fr auto).
+  * src/style.css (+ copie PureVanilla) : styles .project-tab / .project-tab-close / .project-tab-new / #stage-placeholder / #stage-wrap.minimized.
+- Verification : harnais Node _wrk_mistral_mem/repro_sessions.mjs — 12 controles OK (piles undo isolees par projet, restauration des champs facade, pause auto, undo pre/post-switch). Bundle vanilla regenere et copie ; servi sur http://127.0.0.1:8123/.
+- Docs mises a jour : .wrk_opencode/architecture.md, .wrk_opencode/ui.md, README.md (section Fonctionnalites).
+- Statut fin de journee : servie sur http://127.0.0.1:8123/, NON COMMITTEE. 3 tours de retours UI integres (flex row explicite, +New, plafond 4 fenetres, onglets bruns PASTEL CLAIRS compacts SANS nom (nom en info-bulle, 48px large / 60px coarse, [x] 12px aligne a droite), [x] liseret noir). Prochaine session : validation visuelle puis commit sur TweenJS_simpleV.0.2 (pas de push production - regle).
 ### Session 11 - 02/10/2026
 - Fix bug import images : le 2e import remplacait les pixels du 1er bitmap pose sur la scene.
 - Cause racine : l UI n appelle jamais createAsset() (seul generateur d id) ; MenuBar.js (menu Importer image) et main.js (glisser-deposer) passaient a addAsset() un objet SANS id -> stocke sous la cle litterale 'undefined' -> chaque nouvel import ecrasait l entree precedente ; les bitmaps deja poses (assetId 'undefined') pointaient alors vers la nouvelle image.

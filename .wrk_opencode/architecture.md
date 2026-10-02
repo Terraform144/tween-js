@@ -23,8 +23,9 @@ Ordre d'initialisation (important, des dépendances existent) :
 
 1. `createDocument()` → document vide "Sans titre".
 2. `createEditorState(doc)` → état central.
-3. `createHistory(state)` → s'abonne immédiatement, DOIT voir chaque
-   `notify()` avant le rendu pour que boutons undo/redo soient à jour.
+3. Fenêtres-projets : création de la session initiale (façade + historique
+   attaché tôt, DOIT voir chaque `notify()` avant le rendu pour que boutons
+   undo/redo soient à jour — voir section dédiée plus bas).
 4. `mountTimeline()` + `mountPropertiesPanel()` (référencés dans
    `onSelectionChange` du stage, donc montés avant).
 5. `createStage()` → rendu Konva + outils + sélection ; `onSelectionChange`
@@ -51,6 +52,27 @@ Ordre d'initialisation (important, des dépendances existent) :
 
 Pub/sub minimal : `subscribe(state, fn)` / `notify(state)`.
 
+## Fenêtres-projets (multi-documents, `src/main.js` + `ui/ProjectTabs.js`)
+
+L'objet `state` sert de **façade** : ses champs par projet (`doc`,
+`editPath`, `currentFrame`, `selectedLayerId`, `selectedElementIds`,
+`selectedKeyframe`, `focusFrameScript`, `playing`) pointent toujours sur la
+fenêtre active. Tous les panneaux, la scène et le runtime lisent la façade
+dynamiquement → un seul montage d'UI suffit pour N projets.
+
+- Une **session** = `{ history, minimized, saved }` où `saved` conserve les
+  champs façade du projet quand il n'est pas actif.
+- `setCurrentSession()` : replie la façade dans l'ancien projet, détache son
+  historique, charge les `saved` du nouveau, rattache son historique, purge
+  les états de clips, met `playing = false` (pause auto), redimensionne la
+  scène et notifie.
+- `openProjectWindow(doc)` (bouton +, Nouveau, Ouvrir…, Archives) —
+  non destructif : le projet courant reste intact.
+- Un onglet par fenêtre dans `#project-tabs` ; clic sur l'onglet actif =
+  réduire/restaurer (`#stage-wrap.minimized` + placeholder).
+- Fermer la dernière fenêtre rouvre automatiquement un projet vierge : il y a
+  toujours au moins une session.
+
 ## Annuler/rétablir (`src/history.js`)
 
 - Snapshots **JSON de `state.doc`** uniquement (pas la sélection/l'outil/le
@@ -63,6 +85,11 @@ Pub/sub minimal : `subscribe(state, fn)` / `notify(state)`.
   les sélections/editPath obsolètes, re-notifie.
 - `undo`/`redo` manipulent `undoStack`/`redoStack` ; la pile redo est vidée à
   chaque nouveau changement.
+- Multi-projets : `attach()`/`detach()` — seul l'historique du projet ACTIF
+  écoute `notify` (sinon les historiques de tous les projets ouverts
+  snapshotteraient les changements du courant). `attach()` reprend la
+  baseline (`lastSnapshot`) du doc courant, donc la pile d'un projet reste
+  valable après une session de travail sur un autre projet.
 
 ## Feature flags (`src/config.js`)
 
