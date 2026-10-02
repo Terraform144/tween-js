@@ -361,3 +361,37 @@
 - Confirme : les deux imports gardent leurs propres pixels.
 - Aucun push production (regle). Deploy en ligne a faire par l utilisateur.
 
+
+## Session 12 - 02/10/2026 - Fenetres-projets multi-documents
+
+### Demande
+- Plusieurs fenetres-projet dans la vue, minimisables dans un bandeau sous le menu ; la fenetre active met a jour timeline, proprietes, bibliotheque et scripts, scindes par projet.
+
+### Choix valides par l utilisateur
+- Onglets texte (pas de vignettes) ; une scene active plein cadre ; + / Nouveau / Ouvrir / Archives = nouvelle fenetre ; pause auto en reduisant.
+
+### Implementation
+- state = facade (champs par projet permutes a l activation) ; sessions {history, minimized, saved} dans main.js ; history.js gagne attach()/detach() (baseline reprise a l attachement) ; ProjectTabs.js (nouveau) pour le bandeau ; MenuBar non destructif ; DOM/CSS : #project-tabs, #stage-placeholder, #stage-wrap.minimized.
+
+### Verification
+- repro_sessions.mjs : 12 controles OK (historiques isoles, champs restaures, pause auto).
+- Bundle vanilla regenere, servi sur http://127.0.0.1:8123/ (Ctrl+F5 requis).
+
+### Statut
+- En attente de validation utilisateur. Non committe. Docs a jour (architecture.md, ui.md, README.md).
+### Complement Session 12 (retours UI utilisateur)
+- Retour 1 : onglets empiles verticalement chez l utilisateur -> tres probablement CACHE navigateur sur l ancien style.css (le serveur statique Python n emet pas d en-tete de cache) ; CSS revu avec flex-direction: row explicite partout pour blinder. Rappel utilisateur : Ctrl+F5.
+- Retour 2 : bouton + renomme "+New" ; limite de 4 fenetres simultanees (alert au 5e essai via +, Nouveau, Ouvrir, Archives ; bouton +New grise via {canNew} quand le plafond est atteint) ; onglets restyles en boutons bruns (#8a6d3b, liseret brun fonce, relief leger) texte blanc/gris ; bouton [x] en pastille claire bordee/liseree de noir, icone au trait noir, hover rouge.
+- Retour 3 : NOM DU PROJET RETIRE des onglets (reste en info-bulle) ; onglets compacts 24px (30px sur pointer: coarse) pour la lisibilite mobile.
+- Docs : .wrk_opencode/ui.md et architecture.md a jour ; style.css resynchronise vers Animate_JS_PureVanilla ; bundle vanilla regenere a chaque tour.
+- Statut en fin de journee : fonctionnalite complete et servie sur http://127.0.0.1:8123/, NON COMMITTEE (validation visuelle utilisateur en attente sur le design compact). Prochaine session : validation, puis commit sur TweenJS_simpleV.0.2 (pas de push production - regle).
+### Complement Session 12 - bis : archives homonymes (correctif utilisateur)
+- CORRECTION utilisateur : +New ouvre bien plusieurs scenes ; le vrai defait etait dans Archives/Ouvrir : impossible d ouvrir deux scenes du MEME NOM.
+- Cause racine : saveProject() (src/util/projects.js) indexait les archives PAR NOM (findIndex p.name === projectName) -> la 2e sauvegarde d une scene homonyme ECRASAIT la 1re entree ; il ne restait donc qu une scene ouvrable dans le menu.
+- Fix : archives indexees par ID via doc._archiveId (champ memoire sur le doc) :
+  * saveProject : met a jour l entree correspondant a doc._archiveId si present, sinon cree une NOUVELLE entree (meme nom autorise) puis memorise l id sur le doc (les Ctrl+S suivants mettent a jour EN PLACE, pas de doublons a repetition).
+  * MenuBar (clic sur un item d archive) : doc._archiveId = project.id au chargement (retro-compatible avec les anciennes entrees sans _archiveId).
+  * MenuBar (liste) : quand plusieurs entrees portent le meme nom, le label affiche « nom — date/heure de sauvegarde » pour les distinguer.
+- Test : _wrk_mistral_mem/test_archives.mjs — 9 controles OK (coexistence homonymes, update en place, ids distincts, legacy sans _archiveId).
+- Harnais bundle UI headless (repro_bundle_ui.mjs) : WIP, bloque sur le stub DOM de CodeMirror 6 inlined — conserve pour reprise ulterieure.
+- Bundle vanilla regenere et copie ; servi sur http://127.0.0.1:8123/. Toujours NON COMMITTE (validation utilisateur en attente).

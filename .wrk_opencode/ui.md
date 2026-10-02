@@ -8,9 +8,10 @@ Tous les panneaux sont montés dans des conteneurs du `index.html` par
 ```
 #app
 ├── #menubar        (barre de menu)
+├── #project-tabs   (bandeau de fenêtres-projets : onglets + bouton +)
 ├── #main           (grille)
 │   ├── #toolbar    (colonne d'outils)
-│   ├── #stage-wrap (contient #stage-container + bannière d'édition)
+│   ├── #stage-wrap (contient #stage-container + #stage-placeholder + bannière d'édition)
 │   ├── #sidebar-resizer (poignée de redimensionnement + bouton replier)
 │   └── #sidebar    (piles : #library-panel + #properties-panel)
 └── #timeline
@@ -81,6 +82,23 @@ scrollables à droite + règle + tête de lecture).
 - `mutateSelectedElement(fn)` : insère une clé au besoin puis mute l'élément.
 - Bouton "Supprimer l'objet".
 
+## ProjectTabs.js
+
+Bandeau de fenêtres-projets (multi-documents), monté juste sous la barre de
+menu. Un petit onglet brun PAR projet ouvert — SANS nom affiché (le nom du
+projet reste en info-bulle), état actif (brun foncé) / réduit (atténué),
+bouton [x] au liseret noir pour fermer, et bouton « + New » (grisé au plafond
+de 4 fenêtres). Compact (48 px de large, 60 px au doigt) pour rester visible sur
+mobile ; brun pastel clair, [x] petit calé à droite. Purement présentationnel : reçoit `[{id, name, active, minimized}]`
++ `{canNew}` et rend des callbacks (`onActivate`/`onClose`/`onNew`) — toute
+la logique de sessions vit dans `main.js` (voir architecture.md).
+
+- Clic sur un onglet inactif → active la fenêtre (scène + panneaux).
+- Clic sur l'onglet actif → réduit/restaure la fenêtre (la scène laisse
+  place au placeholder `#stage-placeholder`).
+- `#stage-wrap.minimized` masque la scène via CSS (visibility) — l'onglet
+  du projet réduit reste en évidence dans le bandeau.
+
 ## MenuBar.js
 
 - Brand "TweenJS", undo/redo (Ctrl+Z / Ctrl+Y), Nouveau, menu **Fichier** ▾
@@ -92,7 +110,9 @@ scrollables à droite + règle + tête de lecture).
   extérieur / Échap / scroll / resize.
 - Champs du document : nom, L (largeur), H (hauteur), i/s (frameRate),
   images (frameCount), fond (couleur).
-- `resetDocument` : remplace `state.doc` (utilisé par Nouveau/Ouvrir).
+- `resetDocument` : NON destructif depuis le multi-projets — délègue à
+  `onDocReplaced(newDoc)` qui ouvre le document dans une NOUVELLE fenêtre
+  (le projet courant n'est ni remplacé ni modifié).
 - L'import SVG appelle `parseSvg(text)` puis le callback `onSvgImport`
   (implémenté dans main.js : insère dans la keyframe courante du calque actif).
 

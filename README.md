@@ -55,6 +55,14 @@ Ouvrir l'URL affichée (http://localhost:5173).
 - **Tween de mouvement** : bouton "⇄" sur une image clé pour interpoler
   vers la suivante (position, rotation, échelle, opacité, couleurs), avec
   4 courbes d'accélération choisies dans le panneau Propriétés.
+- **Fenêtres-projets** : plusieurs projets ouverts simultanément, un onglet
+  par fenêtre dans le bandeau sous le menu. Clique un onglet pour afficher la
+  fenêtre, reclique-le pour la réduire ; chaque projet garde sa timeline, ses
+  propriétés, sa bibliothèque, ses scripts, sa sélection et son propre
+  historique annuler/rétablir. Bouton "+ Nouveau" ; "Nouveau", "Ouvrir…" et
+  "Archives" ouvrent désormais dans une nouvelle fenêtre sans rien perdre.
+  La lecture se met en pause automatiquement quand une fenêtre n'est plus
+  active.
 - **Symboles / bibliothèque** : sélectionner des objets puis "Convertir en
   symbole" (F8) crée un symbole Graphic ou MovieClip réutilisable ; double-
   clic sur une instance (ou un élément de la bibliothèque) pour éditer le

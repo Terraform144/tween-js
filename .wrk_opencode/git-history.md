@@ -1,16 +1,18 @@
 # Git — branches, historique, état
 
-## Branches
+## Branches (au 02/10/2026)
 
 ```
-* TweenJS_simpleV.0.1   ← branche courante
+* TweenJS_simpleV.0.2   ← branche courante (créée depuis 5d84922, poussée sur origin)
+  TweenJS_simpleV.0.1   (poussée : fix import d'images 5d84922)
   TweenJS.V.0.1
   list
   master
-  remotes/origin/TweenJS.V.0.1
-  remotes/origin/TweenJS_simpleV.0.1
-  remotes/origin/master
+  remotes/origin/*      (TweenJS_simpleV.0.2, TweenJS_simpleV.0.1, TweenJS.V.0.1, master)
 ```
+
+Règle utilisateur (30/09/2026) : **ne jamais pousser sur le serveur de
+production** — push git uniquement vers `origin` (GitHub), sur demande.
 
 ## Historique récent (10 derniers commits)
 

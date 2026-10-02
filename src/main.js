@@ -8,6 +8,7 @@ import { mountLibraryPanel } from './ui/LibraryPanel.js';
 import { mountScriptsPanel } from './ui/ScriptsPanel.js';
 import { mountPropertiesPanel } from './ui/PropertiesPanel.js';
 import { mountMenuBar } from './ui/MenuBar.js';
+import { mountProjectTabs } from './ui/ProjectTabs.js';
 import { createSceneRuntime } from './runtime/sceneRuntime.js';
 import { getClipState, clearClipStates } from './runtime/clipStates.js';
 import { resolveLayersAtFrame } from './playback/resolve.js';
@@ -20,10 +21,124 @@ const doc = createDocument({ name: 'Sans titre' });
 
 const state = createEditorState(doc);
 
-// Créé tôt : createHistory() s'abonne immédiatement à state, et doit voir
-// chaque notify() AVANT le rendu (voir plus bas) pour que les boutons
-// annuler/rétablir reflètent l'état à jour dès ce même passage.
-const rawHistory = createHistory(state);
+// --- Fenêtres-projets (multi-documents) ----------------------------------
+// `state` sert de façade : ses champs par projet (doc, editPath, sélection,
+// image courante, lecture) pointent toujours sur la fenêtre active. Les
+// panneaux et la scène lisent la façade dynamiquement, donc un seul montage
+// d'UI suffit pour N projets ; chaque projet garde son propre historique,
+// attaché seulement quand il est actif (attach/detach dans history.js).
+const stageWrapEl = document.getElementById('stage-wrap');
+
+const PER_PROJECT_FIELDS = ['doc', 'editPath', 'currentFrame', 'selectedLayerId', 'selectedElementIds', 'selectedKeyframe', 'focusFrameScript', 'playing'];
+let sessions = [];
+let currentSession = null;
+let projectNameCounter = 1;
+const MAX_PROJECT_WINDOWS = 4;
+
+function createSession(newDoc) {
+  const history = createHistory(state);
+  history.detach(); // rattaché à l'activation (baseline = doc du projet)
+  return {
+    history,
+    minimized: false,
+    saved: {
+      doc: newDoc,
+      editPath: [],
+      currentFrame: 0,
+      selectedLayerId: newDoc.layers[0]?.id || null,
+      selectedElementIds: [],
+      selectedKeyframe: null,
+      focusFrameScript: null,
+      playing: false,
+    },
+  };
+}
+
+// Repli les champs façade dans le projet courant avant de basculer.
+function saveFacadeIntoSession() {
+  if (!currentSession) return;
+  for (const f of PER_PROJECT_FIELDS) currentSession.saved[f] = state[f];
+}
+
+function setCurrentSession(session) {
+  if (session === currentSession) return;
+  saveFacadeIntoSession();
+  if (currentSession) currentSession.history.detach();
+  currentSession = session;
+  Object.assign(state, session.saved);
+  state.playing = false; // pause auto : jamais de lecture en arrière-plan
+  session.history.attach();
+  clearClipStates();
+  stageWrapEl.classList.toggle('minimized', session.minimized);
+  stage.resize(false);
+  notify(state);
+}
+
+// Ouvre un document dans une nouvelle fenêtre-projet (bouton +, Archives,
+// Ouvrir…, Nouveau) — non destructif pour le projet courant. Plafonné à
+// MAX_PROJECT_WINDOWS fenêtres simultanées.
+function openProjectWindow(newDoc) {
+  if (sessions.length >= MAX_PROJECT_WINDOWS) {
+    alert('Maximum ' + MAX_PROJECT_WINDOWS + ' fenêtres-projets ouvertes — fermez une fenêtre pour en ouvrir une autre.');
+    return;
+  }
+  const session = createSession(newDoc);
+  sessions.push(session);
+  setCurrentSession(session);
+}
+
+function nextProjectName() {
+  projectNameCounter += 1;
+  return `Sans titre ${projectNameCounter}`;
+}
+
+// Clic sur un onglet : basculer vers la fenêtre, ou réduire/restaurer si
+// c'est déjà la fenêtre affichée.
+function activateProjectTab(session) {
+  if (session === currentSession) {
+    session.minimized = !session.minimized;
+    if (session.minimized) state.playing = false; // pause auto en réduisant
+    else stage.resize(false);
+    stageWrapEl.classList.toggle('minimized', session.minimized);
+    notify(state);
+  } else {
+    session.minimized = false;
+    setCurrentSession(session);
+  }
+}
+
+function closeProjectSession(session) {
+  const name = (session === currentSession ? state.doc.name : session.saved.doc.name) || 'Sans titre';
+  if (!confirm(`Fermer « ${name} » ? Le travail non sauvegardé sera perdu.`)) return;
+  const idx = sessions.indexOf(session);
+  if (idx === -1) return;
+  sessions.splice(idx, 1);
+  if (session === currentSession) {
+    session.history.detach();
+    currentSession = null;
+    const next = sessions[idx] || sessions[idx - 1];
+    if (next) setCurrentSession(next);
+    else openProjectWindow(createDocument({ name: nextProjectName() })); // toujours au moins une fenêtre
+  } else {
+    notify(state); // rafraîchit le bandeau d'onglets
+  }
+}
+
+function updateProjectTabsUI() {
+  projectTabsCtl.update(sessions.map(s => ({
+    id: s,
+    name: (s === currentSession ? state.doc.name : s.saved.doc.name) || 'Sans titre',
+    active: s === currentSession,
+    minimized: s.minimized,
+  })), { canNew: sessions.length < MAX_PROJECT_WINDOWS });
+}
+
+// Session initiale : la façade montre déjà ce document ; on branche son
+// historique tôt (comme l'ancien createHistory à ce même endroit).
+const initialSession = createSession(doc);
+sessions.push(initialSession);
+currentSession = initialSession;
+initialSession.history.attach();
 
 // Doit être déclaré avant renderAll() (appelé plus bas dès le montage) car
 // il y est référencé.
@@ -165,14 +280,14 @@ const scriptsCtl = mountScriptsPanel(document.getElementById('scripts-panel'), s
 // changé (ex. on annule un redimensionnement), donc on redimensionne le
 // Konva.Stage en plus du re-rendu déjà déclenché par notify().
 const history = {
-  undo: () => { rawHistory.undo(); stage.resize(); },
-  redo: () => { rawHistory.redo(); stage.resize(); },
-  canUndo: rawHistory.canUndo,
-  canRedo: rawHistory.canRedo,
+  undo: () => { if (currentSession) { currentSession.history.undo(); stage.resize(); } },
+  redo: () => { if (currentSession) { currentSession.history.redo(); stage.resize(); } },
+  canUndo: () => (currentSession ? currentSession.history.canUndo() : false),
+  canRedo: () => (currentSession ? currentSession.history.canRedo() : false),
 };
 
 const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
-  onDocReplaced: () => {},
+  onDocReplaced: (newDoc) => openProjectWindow(newDoc),
   onStageResize: () => stage.resize(),
   history,
   onSvgImport: (elements) => {
@@ -194,19 +309,19 @@ const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
     addBitmapAsset(asset, { x: state.doc.width / 2, y: state.doc.height / 2 });
   },
   onProjectLoad: (doc) => {
-    // Charger un projet depuis les archives
-    if (!confirm('Charger ce projet ? Le travail non sauvegardé sera perdu.')) return;
-    state.doc = doc;
-    state.editPath = [];
-    state.currentFrame = 0;
-    state.selectedLayerId = doc.layers[0]?.id || null;
-    state.selectedElementIds = [];
-    state.playing = false;
-    // Forcer le redimensionnement de la scène sans réinitialiser le panoramique
-    stage.resize(false);
-    notify(state);
+    // Ouvrir un projet des archives dans une NOUVELLE fenêtre (non destructif)
+    openProjectWindow(doc);
   },
 });
+
+// Bandeau de fenêtres-projets : un onglet par projet ouvert, sous le menu.
+const projectTabsCtl = mountProjectTabs(document.getElementById('project-tabs'), {
+  onActivate: (session) => activateProjectTab(session),
+  onClose: (session) => closeProjectSession(session),
+  onNew: () => openProjectWindow(createDocument({ name: nextProjectName() })),
+});
+const stagePlaceholderEl = document.getElementById('stage-placeholder');
+stagePlaceholderEl.innerHTML = ICONS.movieclip + '<span>Fenêtre réduite — cliquer sur son onglet pour l\'afficher</span>';
 
 // Place une image importée (asset déjà créé dans doc.assets par le menu) dans
 // la keyframe active du calque actif, à la position donnée (centre de la
@@ -391,6 +506,7 @@ function renderAll() {
   menuBarCtl.update();
   updateBanner();
   updateZoomUI();
+  updateProjectTabsUI();
 }
 
 subscribe(state, renderAll);
