@@ -1,0 +1,16 @@
+{
+  "name": "Animate JS",
+  "short_name": "Animate JS",
+  "description": "Éditeur d'animation vectorielle image par image : dessin, timeline, tweens, scripts CreateJS, exports HTML — utilisable hors ligne.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fdf6e3",
+  "theme_color": "#073642",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
