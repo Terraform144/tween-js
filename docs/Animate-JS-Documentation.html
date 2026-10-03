@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Animate JS — Documentation</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #1d2430; font-size: 11pt; line-height: 1.55; }
+  .cover { text-align: center; padding-top: 70mm; page-break-after: always; }
+  .cover h1 { font-size: 34pt; margin: 0 0 6mm; color: #cb4b16; }
+  .cover .sub { font-size: 15pt; color: #5a6575; margin-bottom: 20mm; }
+  .cover .meta { font-size: 11pt; color: #8a93a3; }
+  h1.chap { font-size: 20pt; color: #cb4b16; border-bottom: 2.5px solid #cb4b16; padding-bottom: 2mm; margin: 0 0 6mm; page-break-before: always; page-break-after: avoid; }
+  h1.chap:first-of-type { }
+  h2 { font-size: 14pt; color: #14405c; margin: 8mm 0 3mm; page-break-after: avoid; }
+  h3 { font-size: 12pt; color: #14405c; margin: 6mm 0 2mm; page-break-after: avoid; }
+  p { margin: 2.5mm 0; }
+  ul, ol { margin: 2.5mm 0 4mm; padding-left: 7mm; }
+  li { margin: 1.2mm 0; }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: 9.5pt; background: #f0eee4; border: 1px solid #ddd8c8; border-radius: 3px; padding: 0 2px; color: #35520c; }
+  pre { background: #f7f5ec; border: 1px solid #ddd8c8; border-left: 3.5px solid #cb4b16; border-radius: 4px; padding: 3mm 4mm; overflow-x: hidden; page-break-inside: avoid; }
+  pre code { background: none; border: none; padding: 0; font-size: 9pt; color: #1d2430; line-height: 1.45; }
+  table { border-collapse: collapse; width: 100%; margin: 3mm 0 5mm; font-size: 9.5pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #c9d2dd; padding: 2mm 3mm; text-align: left; vertical-align: top; }
+  th { background: #e8eef4; color: #14405c; }
+  .box { border: 1px solid #c9d2dd; border-left: 3.5px solid #14405c; background: #f2f6fa; border-radius: 4px; padding: 2.5mm 4mm; margin: 4mm 0; page-break-inside: avoid; }
+  .box.warn { border-left-color: #cb4b16; background: #fdf4ec; }
+  .box b { color: #14405c; }
+  .toc { page-break-after: always; }
+  .toc h1 { font-size: 20pt; color: #cb4b16; border-bottom: 2.5px solid #cb4b16; padding-bottom: 2mm; }
+  .toc ol { font-size: 12pt; line-height: 2; }
+  .ex-num { color: #cb4b16; font-weight: 700; }
+  .kbd { font-family: Consolas, monospace; background: #e8eef4; border: 1px solid #c9d2dd; border-bottom-width: 2px; border-radius: 3px; padding: 0 2.5px; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Animate JS</h1>
+  <div class="sub">Éditeur d'animation vectorielle image par image<br />Documentation complète — scripts, CreateJS, exports et intégration jeu</div>
+  <div class="meta">Version 3 — Octobre 2026 · Licence MIT · TweenJS_simpleV.0.2</div>
+</div>
+
+<div class="toc">
+  <h1>Sommaire</h1>
+  <ol>
+    <li>Bien démarrer</li>
+    <li>Tour de l'interface</li>
+    <li>Les scripts : le contrat</li>
+    <li>Exploiter CreateJS dans les scripts</li>
+    <li>Événements et interactions</li>
+    <li>Recettes prêtes à tester</li>
+    <li>Exporter : JSON, HTML, compilé</li>
+    <li>Utiliser un MovieClip dans votre propre jeu</li>
+    <li>Dépannage</li>
+    <li>Annexes : raccourcis et limites connues</li>
+  </ol>
+</div>
+
+<h1 class="chap">1. Bien démarrer</h1>
+<p><b>Animate JS</b> (projet TweenJS) est un éditeur d'animation vectorielle image par image, inspiré d'Adobe Animate/Flash : calques, images clés, interpolation de mouvement, morphing de courbes, symboles, ossature avec IK — le tout en JavaScript vanilla (Konva.js pour le rendu Canvas, Vite pour le build), sans framework.</p>
+<h2>1.1 Lancer l'application</h2>
+<pre><code>npm install        <span style="color:#8a93a3">« une seule fois »</span>
+npm run dev        <span style="color:#8a93a3">« ouvre http://localhost:5173 »</span></code></pre>
+<p>Deux formes de l'application existent, mises à jour ensemble à chaque modification :</p>
+<table>
+  <tr><th>Version</th><th>Où</th><th>Usage</th></tr>
+  <tr><td>Principale</td><td><code>src/</code>, servie par Vite</td><td>Développement, build <code>dist/</code></td></tr>
+  <tr><td>PureVanilla</td><td><code>Animate_JS_PureVanilla/</code> (HTML + bundle statiques)</td><td>Déploiement statique, aucune dépendance CDN (Konva et CreateJS sont des copies locales dans <code>libs/</code>)</td></tr>
+</table>
+<h2>1.2 Créer sa première animation en 60 secondes</h2>
+<ol>
+  <li>Sélectionne l'outil <b>Rectangle</b> (<span class="kbd">R</span>) et dessine un carré sur la scène.</li>
+  <li>Dans la timeline, clique une cellule plus loin (ex. image 12) et appuie sur <span class="kbd">F6</span> : nouvelle image clé contenant le carré.</li>
+  <li>Déplace le carré ailleurs sur la scène, puis clique le bouton <b>⇄</b> de l'image clé 1 : interpolation de mouvement.</li>
+  <li><span class="kbd">Espace</span> : lecture. Le carré glisse.</li>
+</ol>
+<div class="box"><b>Tout repose sur trois idées.</b> (1) Un document = des calques d'images clés contenant des éléments (formes, instances de symboles, images, texte). (2) Entre deux images clés avec <i>tween</i>, tout s'interpole. (3) Les scripts pilotent le document pendant la lecture.</div>
+
+<h1 class="chap">2. Tour de l'interface</h1>
+<h2>2.1 Barre de menus</h2>
+<table>
+  <tr><th>Menu</th><th>Entrées</th></tr>
+  <tr><td><b>Fichier</b></td><td>Nouveau · Ouvrir… (JSON) · Archives · Importer SVG · Importer image… · Enregistrer JSON · <b>Exporter HTML</b> · <b>Compiler un HTML</b></td></tr>
+  <tr><td><b>À propos</b></td><td>Mentions légales &amp; RGPD · Documentation · APK Debug · Code Source</td></tr>
+</table>
+<div class="box warn"><b>Ouvrir…, Nouveau et Archives ouvrent une nouvelle fenêtre-projet</b> sans rien perdre : chaque projet garde sa timeline, sa bibliothèque, ses scripts et son propre historique annuler/rétablir. La lecture d'un projet se met en pause quand sa fenêtre n'est plus active.</div>
+<h2>2.2 Barre d'outils</h2>
+<table>
+  <tr><th>Outil</th><th>Raccourci</th><th>Usage</th></tr>
+  <tr><td>Sélection</td><td><span class="kbd">V</span></td><td>Sélectionner, déplacer, transformer</td></tr>
+  <tr><td>Sous-sélection</td><td><span class="kbd">A</span></td><td>Éditer les points d'une courbe</td></tr>
+  <tr><td>Rectangle / Ellipse</td><td><span class="kbd">R</span> / <span class="kbd">O</span></td><td>Formes</td></tr>
+  <tr><td>Ligne / Plume</td><td><span class="kbd">L</span> / <span class="kbd">P</span></td><td>Traits et courbes de Bézier (clic = point anguleux, clic-glissé = point lisse, Entrée = terminer, Échap = annuler)</td></tr>
+  <tr><td>Pinceau</td><td><span class="kbd">B</span></td><td>Trait libre lissé</td></tr>
+  <tr><td>Texte</td><td><span class="kbd">T</span></td><td>Boîte de texte paragraphe</td></tr>
+</table>
+<p>Suivent les couleurs de remplissage/contour, la taille du pinceau, le zoom et l'outil main (pan). La scène s'adapte à l'écran (mobile/tablette inclus) et passe en plein écran.</p>
+<h2>2.3 Timeline</h2>
+<ul>
+  <li><b>Calques</b> : visibilité, verrouillage, renommage, ajout/suppression.</li>
+  <li><b>Images clés</b> : <span class="kbd">F6</span> image clé, <span class="kbd">F7</span> image clé vide, <span class="kbd">Espace</span> lecture/pause, scrub sur la règle.</li>
+  <li><b>Interpolation</b> : bouton ⇄ sur une image clé — position, rotation, échelle, opacité, couleurs ; 4 courbes d'accélération (Propriétés).</li>
+  <li><b>Morphing</b> : si une courbe tweenée a le même nombre de points sur l'image clé suivante, elle se déforme point à point.</li>
+  <li><b>Étiquette</b> : champ pour nommer une image (ex. <i>Start</i>) — utilisable avec <code>gotoAndPlay("Start")</code>.</li>
+  <li><b>Script d'image</b> : un calque peut porter du code exécuté quand la tête de lecture atteint cette image (comportement Animate CC : en lecture seulement).</li>
+</ul>
+<h2>2.4 Bibliothèque et symboles</h2>
+<ul>
+  <li>Sélectionner des objets puis <span class="kbd">F8</span> : <b>Convertir en symbole</b> — type <i>Graphic</i> (synchro sur le parent) ou <i>MovieClip</i> (timeline indépendante, scripts propres).</li>
+  <li>Double-clic sur une instance (ou un élément de la bibliothèque) : édition du symbole en mode isolé.</li>
+  <li>Glisser un élément de la bibliothèque sur la scène : nouvelle <b>instance</b>. Deux instances du même symbole jouent indépendamment.</li>
+  <li>Bouton d'export « objet de jeu » sur un symbole : voir chapitre 8.</li>
+</ul>
+<h2>2.5 Panneau Propriétés</h2>
+<p>Contextuel à la sélection : <b>Nom d'instance</b>, X/Y, dimensions, rotation, échelle, opacité, remplissage/contour, texte (taille, interligne, alignement). Pour les MovieClips : squelette de skinning. Le <b>Nom d'instance</b> est la clé des scripts : c'est lui qui devient une variable.</p>
+<h2>2.6 Panneau Scripts</h2>
+<p>Éditeur CodeMirror avec plusieurs scripts nommés par onglets, boutons <b>Exécuter</b> (<span class="kbd">Ctrl+Entrée</span>) et Arrêter, et une console de sortie. Le bouton « image » cible le script d'une image précise de la timeline.</p>
+
+<h1 class="chap">3. Les scripts : le contrat</h1>
+<h2>3.1 Qui voit quoi</h2>
+<p>Un script est compilé et exécuté avec <b>cinq paramètres</b> — c'est tout ce qu'il voit :</p>
+<pre><code>Scene  Game  console  named  createjs</code></pre>
+<table>
+  <tr><th>Paramètre</th><th>Contenu</th></tr>
+  <tr><td><code>Scene</code> / <code>Game</code></td><td>L'API de pilotage (alias l'un de l'autre) : lecture, dimensions, création d'éléments, événements</td></tr>
+  <tr><td><code>console</code></td><td>Console (sortie visible dans le panneau)</td></tr>
+  <tr><td><code>named</code></td><td>Map des instances nommées de l'image courante : <code>named["But"]</code></td></tr>
+  <tr><td><code>createjs</code></td><td>La bibliothèque CreateJS complète (EaselJS, TweenJS, SoundJS, PreloadJS) chargée en local</td></tr>
+</table>
+<p>Chaque instance <b>nommée</b> est de plus injectée comme <b>variable directe</b> : écrire <code>But.x += 1</code> fonctionne sans déclaration.</p>
+<div class="box warn"><b>Mode strict.</b> Les scripts s'exécutent en <code>"use strict"</code> : <code>this</code> vaut <code>undefined</code> au niveau supérieur — n'écris pas <code>this.But</code>, écris <code>But</code>.</div>
+<h2>3.2 Quand un script s'exécute</h2>
+<ul>
+  <li><b>Scripts nommés</b> (onglets) : au clic sur Exécuter. Chaque Exécuter repart de zéro (les inscriptions d'événements précédentes sont retirées).</li>
+  <li><b>Scripts d'image</b> : automatiquement quand la lecture atteint l'image, à chaque passage.</li>
+  <li>Les <b>événements de souris</b> ne se déclenchent <b>qu'en lecture</b> : en édition, le clic appartient aux outils.</li>
+</ul>
+<h2>3.3 L'API Scene (essentiel)</h2>
+<pre><code>Scene.width / Scene.height / Scene.frameRate / Scene.frameCount / Scene.backgroundColor
+Scene.play() / Scene.stop()
+Scene.gotoAndPlay(frameOuLabel) / Scene.gotoAndStop(frameOuLabel)   <span style="color:#8a93a3">// ex. gotoAndStop("Start")</span>
+Scene.currentFrame / Scene.playing / Scene.keys
+Scene.onEnterFrame(cb) / Scene.onKeyDown(cb) / Scene.onKeyUp(cb) / Scene.onClick(...)
+Scene.addShape(type, props) / Scene.addInstance(symbolId, props)
+Scene.log(...) / Scene.random(n)</code></pre>
+<div class="box"><b>Règle d'or des handlers.</b> Les inscriptions (<code>But.on("click", ...)</code>) se font <b>une seule fois, au niveau supérieur du script</b> — jamais dans <code>onEnterFrame</code>, sous peine d'empilement. Les handlers posés par Exécuter survivent aux scripts d'image ; les handlers posés par un script d'image sont purgés entre ses passages.</div>
+<h2>3.4 Le quadri-diagnostic (à connaître par cœur)</h2>
+<pre><code>Scene.log("createjs :", typeof createjs);
+Scene.log("nommes :", Object.keys(named).join(", ") || "AUCUN");
+Scene.log("But typeof:", typeof But);
+Scene.log("playing:", Scene.playing);</code></pre>
+<p>Quand quelque chose ne réagit pas, ces quatre lignes éliminent 90 % des causes : bibliothèque absente, instance invisible à cette image, nom mal orthographié, lecture arrêtée.</p>
+
+<h1 class="chap">4. Exploiter CreateJS dans les scripts</h1>
+<p>La bibliothèque <b>CreateJS</b> complète est disponible sous la variable <code>createjs</code> — copie locale (dossier <code>libs/createjs</code>, licence MIT), aucune connexion requise.</p>
+<h2>4.1 TweenJS : les interpolations programmées</h2>
+<pre><code>createjs.Tween.get(cible)              <span style="color:#8a93a3">// cible : un élément nommé, ou tout objet</span>
+  .to({ x: 300, rotation: 180 }, 1000)  <span style="color:#8a93a3">// 1 seconde</span>
+  .wait(300)                            <span style="color:#8a93a3">// pause 300 ms</span>
+  .to({ y: 200 }, 500, createjs.Ease.bounceOut)
+  .call(function () { Scene.log("fini !"); });</code></pre>
+<table>
+  <tr><th>Objet</th><th>Usage</th></tr>
+  <tr><td><code>createjs.Tween</code></td><td>Séquences d'interpolation ; <code>.get(cible)</code>, <code>.to(props, ms, ease)</code>, <code>.wait(ms)</code>, <code>.call(fn)</code>, <code>removeTweens(cible)</code></td></tr>
+  <tr><td><code>createjs.Ease</code></td><td>Courbes : <code>linear</code>, <code>quadOut</code>, <code>cubicInOut</code>, <code>bounceOut</code>, <code>elasticOut</code>, …</td></tr>
+  <tr><td><code>createjs.Ticker</code></td><td>Horloge à ~60 Hz. <b>Mis en pause avec l'éditeur</b> : les tweens s'arrêtent quand tu arrêtes la lecture. <code>e.delta</code> en ms dans le callback.</td></tr>
+  <tr><td><code>createjs.Sound</code></td><td>Sons (<code>Sound.registerSound</code>, <code>Sound.play</code>)</td></tr>
+  <tr><td><code>createjs.LoadQueue</code></td><td>Chargement de fichiers (images, sons, JSON)</td></tr>
+</table>
+<div class="box"><b>Pourquoi c'est fluide.</b> Le document tourne à son frameRate (ex. 24 fps) mais le rendu se fait à chaque frame d'affichage (~60 fps) : un tween CreateJS reste parfaitement lisse, même si la timeline est lente.</div>
+<h2>4.2 Exemples éclair</h2>
+<pre><code><span style="color:#8a93a3">// Clignotement piloté par le Ticker (60 fps)</span>
+createjs.Ticker.addEventListener("tick", function (e) {
+  lampe.opacity = 0.5 + 0.5 * Math.sin(e.delta * 0.01);
+});
+
+<span style="color:#8a93a3">// Chaîne : approche puis rebond</span>
+createjs.Tween.get(Balle)
+  .to({ x: 400 }, 800, createjs.Ease.quadIn)
+  .to({ x: 0 }, 1200, createjs.Ease.bounceOut);</code></pre>
+
+<h1 class="chap">5. Événements et interactions</h1>
+<h2>5.1 Sur une instance nommée (sémantique EaselJS)</h2>
+<pre><code>But.on("click", function (ev) {
+  Scene.log("clic en", ev.stageX, ev.stageY, "sur", ev.target.name);
+});</code></pre>
+<table>
+  <tr><th>Événement</th><th>Émis quand</th></tr>
+  <tr><td><code>click</code></td><td><b>Down et up sur le même élément</b> (règle CreateJS)</td></tr>
+  <tr><td><code>mousedown</code> / <code>mouseup</code> / <code>dblclick</code></td><td>Sur l'élément sous le curseur</td></tr>
+  <tr><td><code>pressmove</code> / <code>pressup</code></td><td>Sur l'élément pressé — pendant et après la pression (base du glisser-déposer)</td></tr>
+  <tr><td><code>mouseover/out</code>, <code>rollover/rollout</code></td><td>Entrée/sortie du survol</td></tr>
+  <tr><td><code>tick</code></td><td>À chaque image de lecture</td></tr>
+</table>
+<p>Également : <code>off</code>/<code>removeEventListener</code>, <code>removeAllEventListeners</code>, <code>hasEventListener</code>, <code>dispatchEvent</code>. Sur <code>Scene</code> : <code>stagemousedown/stagemousemove/stagemouseup/stageclick</code> (tout clic, même dans le vide) et <code>tick</code>.</p>
+<h2>5.2 Scene.onClick — la version rapide</h2>
+<pre><code>Scene.onClick(function (x, y) { ... });        <span style="color:#8a93a3">// tout clic sur la scène</span>
+Scene.onClick("But", function (x, y, el) { ... }); <span style="color:#8a93a3">// clic sur l'instance nommée</span></code></pre>
+<h2>5.3 Où peut-on cliquer ? (hit-testing)</h2>
+<ul>
+  <li><b>Ellipse</b> : le disque réel, pas la boîte englobante.</li>
+  <li><b>Rect, texte, image</b> : boîte englobante ; rotation et échelle prises en compte.</li>
+  <li><b>Ligne/chemin</b> : boîte des points.</li>
+  <li><b>Instance de symbole</b> : enveloppe de tout ce que dessine le symbole (toutes ses images). Un symbole vide n'est cliquable nulle part.</li>
+  <li>Les éléments d'un calque tweené sont testés à la position de leur image clé (approximation).</li>
+</ul>
+<h2>5.4 Navigation par labels</h2>
+<pre><code>Scene.gotoAndPlay("Menu");
+But.on("click", function () { Scene.gotoAndStop("Start"); });</code></pre>
+<p>Les labels se posent dans la timeline (champ Étiquette). Un label introuvable produit un avertissement console et aucun déplacement. Dans un script posé <i>à l'intérieur</i> d'un MovieClip, les labels résolus sont ceux du symbole.</p>
+
+<h1 class="chap">6. Recettes prêtes à tester</h1>
+<p class="goal">Pour chaque recette : nomme une instance comme indiqué (champ « Nom d'instance » des Propriétés), colle le code dans le panneau Scripts, <b>Exécute</b>, et mets la lecture.</p>
+
+<h2><span class="ex-num">Recette 1</span> — Diagnostic universel</h2>
+<pre><code>Scene.log("createjs :", typeof createjs);
+Scene.log("nommes :", Object.keys(named).join(", ") || "AUCUN");
+Scene.play();</code></pre>
+<p><b>Résultat :</b> la console affiche l'état du contrat. Aucune condition.</p>
+
+<h2><span class="ex-num">Recette 2</span> — Bouton de section (le patron « menu »)</h2>
+<pre><code>Scene.play();
+But.on("click", function () {
+  Scene.gotoAndStop("Start");
+});</code></pre>
+<p><b>Résultat :</b> au clic sur l'instance <code>But</code> (pendant la lecture), la tête de lecture saute à l'image étiquetée <i>Start</i> et s'y arrête. Variante visuelle : change <code>But.scaleX/Y</code> à <code>mousedown</code> et remets à 1 à <code>pressup</code>.</p>
+
+<h2><span class="ex-num">Recette 3</span> — Glisser-déposer borné</h2>
+<pre><code>Scene.play();
+var off = null;
+But.on("mousedown", function (ev) { off = { dx: But.x - ev.stageX, dy: But.y - ev.stageY }; });
+But.on("pressmove", function (ev) {
+  if (!off) return;
+  But.x = Math.max(0, Math.min(Scene.width,  ev.stageX + off.dx));
+  But.y = Math.max(0, Math.min(Scene.height, ev.stageY + off.dy));
+});
+But.on("pressup", function () { off = null; });</code></pre>
+<p><b>Résultat :</b> l'instance suit le doigt/souris sans sauter au centre, et ne sort jamais de la scène.</p>
+
+<h2><span class="ex-num">Recette 4</span> — Déplacement au clavier</h2>
+<pre><code>Scene.play();
+Scene.onEnterFrame(function () {
+  var v = 6;
+  if (Scene.keys["ArrowLeft"])  Perso.x -= v;
+  if (Scene.keys["ArrowRight"]) Perso.x += v;
+  if (Scene.keys["ArrowUp"])    Perso.y -= v;
+  if (Scene.keys["ArrowDown"])  Perso.y += v;
+});</code></pre>
+<p><b>Résultat :</b> l'instance <code>Perso</code> bouge aux flèches pendant la lecture. (La saisie dans les panneaux est ignorée automatiquement.)</p>
+
+<h2><span class="ex-num">Recette 5</span> — Tween CreateJS avec suite logique</h2>
+<pre><code>Scene.play();
+createjs.Tween.get(Balle)
+  .to({ x: 400 }, 800, createjs.Ease.quadIn)
+  .to({ x: 0 }, 1200, createjs.Ease.bounceOut)
+  .call(function () { Scene.log("Terminé, retour au départ"); });</code></pre>
+<p><b>Résultat :</b> la balle accélère vers la droite puis rebondit au retour, et la console confirme la fin.</p>
+
+<h2><span class="ex-num">Recette 6</span> — Compteur de score avec tick</h2>
+<pre><code>Scene.play();
+var score = 0;
+Score.on("tick", function () {
+  score = score + 1;
+  Score.text = "Score : " + score;
+});</code></pre>
+<p><b>Résultat :</b> une instance de <b>texte</b> nommée <code>Score</code> s'incrémente à chaque image de lecture. (Remarque : le handler est posé par Exécuter, il survit aux scripts d'image.)</p>
+
+<h2><span class="ex-num">Recette 7</span> — Élément qui suit la souris</h2>
+<pre><code>Scene.play();
+Scene.on("stagemousemove", function (ev) {
+  Viseur.x = ev.stageX;
+  Viseur.y = ev.stageY;
+});</code></pre>
+<p><b>Résultat :</b> l'instance <code>Viseur</code> se colle au curseur pendant la lecture.</p>
+
+<h2><span class="ex-num">Recette 8</span> — Menu complet (trois boutons)</h2>
+<pre><code>Scene.play();
+B1.on("click", function () { Scene.gotoAndStop("Jeu"); });
+B2.on("click", function () { Scene.gotoAndStop("Score"); });
+B3.on("click", function () { Scene.gotoAndStop("Options"); });</code></pre>
+<p><b>Résultat :</b> chaque bouton saute à sa section. Un bouton « Retour » posé sur chaque section peut être la même instance nommée <code>Retour</code> pointant vers <code>"Menu"</code>.</p>
+
+<h1 class="chap">7. Exporter : JSON, HTML, compilé</h1>
+<table>
+  <tr><th>Format</th><th>Contenu</th><th>Quand l'utiliser</th></tr>
+  <tr><td><b>Enregistrer JSON</b> / Ouvrir…</td><td>Le projet complet</td><td>Sauvegarde, reprise de travail</td></tr>
+  <tr><td><b>Exporter HTML</b></td><td>Un fichier HTML <b>autonome</b> qui rejoue l'animation, avec les scripts (exécutés dynamiquement) ; CreateJS inliné si un script l'utilise</td><td>Partager une animation jouable, l'intégrer quelque part</td></tr>
+  <tr><td><b>Compiler un HTML</b></td><td id="">Un fichier HTML où les scripts sont de <b>vraies fonctions</b> dans de vraies balises — zéro eval, preuve embarquée par une CSP qui l'interdit ; données en bloc JSON pur</td><td>Livrer du code lisible et verrouillé ; environnements stricts</td></tr>
+  <tr><td><b>Objet de jeu</b> (bouton sur un symbole)</td><td><code>tween-runtime.js</code> + une classe JS par symbole</td><td>Chapitre 8 — intégrer dans votre propre jeu</td></tr>
+</table>
+<div class="box"><b>Parité.</b> Les deux exports HTML se comportent comme l'éditeur : mêmes événements (clics en lecture), mêmes labels, même <code>Scene.onClick</code>. L'export classique exécute vos scripts dynamiquement (comme l'éditeur) ; le compilé les a transformés en fonctions réelles — ouvrez-le dans un éditeur de texte, votre code y est lisible.</div>
+
+<h1 class="chap">8. Utiliser un MovieClip dans votre propre jeu</h1>
+<p>C'est la sortie pensée pour les développeurs : animez un personnage dans Animate JS (labels « walk », « jump »…), exportez-le, et pilotez-le depuis <b>votre</b> code JavaScript, dans n'importe quelle page ou moteur de jeu.</p>
+<h2>8.1 Exporter</h2>
+<ol>
+  <li>Clique le bouton <b>« objet de jeu »</b> sur le symbole dans la bibliothèque.</li>
+  <li>Deux fichiers sont téléchargés : <code>tween-runtime.js</code> (le moteur, aucune dépendance) et <code>MonPerso.js</code> — une classe qui embarque les données du symbole et de tout ce dont il dépend.</li>
+</ol>
+<pre><code>// MonPerso.js — généré par Animate JS
+import { MovieClip } from './tween-runtime.js';
+
+const DATA = { /* ...calques, images clés, labels, bitmaps... */ };
+
+export class MonPersoClip extends MovieClip {
+  constructor(props) { super(DATA, props); }
+}
+// Labels disponibles pour gotoAndPlay()/gotoAndStop() : "walk", "jump"</code></pre>
+<h2>8.2 L'API MovieClip</h2>
+<table>
+  <tr><th>Membre</th><th>Rôle</th></tr>
+  <tr><td><code>x, y, rotation, scaleX, scaleY, opacity, visible, loop</code></td><td>Transformations — modifiables à tout moment</td></tr>
+  <tr><td><code>play() / stop()</code></td><td>Lecture de la timeline du clip</td></tr>
+  <tr><td><code>gotoAndPlay(frameOuLabel) / gotoAndStop(frameOuLabel)</code></td><td>Saut direct (numéro ou label)</td></tr>
+  <tr><td><code>currentFrame / frameCount / isPlaying</code></td><td>État (lecture seule)</td></tr>
+  <tr><td><code>update(dt)</code></td><td>Avance l'animation — <code>dt</code> en <b>millisecondes</b> ; à appeler une fois par frame de jeu</td></tr>
+  <tr><td><code>draw(ctx)</code></td><td>Dessine sur un contexte Canvas 2D — après <code>update</code></td></tr>
+  <tr><td><code>addEventListener("loop" / "complete", fn)</code></td><td>Boucle terminée / fin de lecture sans boucle</td></tr>
+  <tr><td>imbriqués</td><td>Les MovieClips enfants ont leur propre timeline et avancent avec le parent</td></tr>
+</table>
+<h2>8.3 Exemple complet — page de jeu autonome</h2>
+<pre><code>&lt;!doctype html&gt;
+&lt;html lang="fr"&gt;
+&lt;body&gt;
+&lt;canvas id="jeu" width="640" height="480"&gt;&lt;/canvas&gt;
+&lt;script type="module"&gt;
+  import { MonPersoClip } from './MonPerso.js';
+
+  const canvas = document.getElementById('jeu');
+  const ctx = canvas.getContext('2d');
+
+  const perso = new MonPersoClip({ x: 100, y: 300 });
+  perso.gotoAndPlay('walk');                 <span style="color:#8a93a3">// label posé dans l'éditeur</span>
+
+  perso.addEventListener('complete', function () {
+    console.log('Animation terminée (loop = false)');
+  });
+
+  addEventListener('keydown', function (e) {
+    if (e.key === ' ') perso.gotoAndPlay('jump');  <span style="color:#8a93a3">// Espace : saut</span>
+  });
+
+  let last = null;
+  function gameLoop(t) {
+    requestAnimationFrame(gameLoop);
+    if (last === null) last = t;
+    const dt = t - last;                    <span style="color:#8a93a3">// ms</span>
+    last = t;
+
+    perso.update(dt);                       <span style="color:#8a93a3">// 1. faire avancer l'animation</span>
+    perso.x += 1;                           <span style="color:#8a93a3">// 2. votre logique de jeu</span>
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    perso.draw(ctx);                        <span style="color:#8a93a3">// 3. dessiner</span>
+  }
+  requestAnimationFrame(gameLoop);
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<div class="box"><b>Les trois règles d'intégration.</b> (1) <code>dt</code> est en <b>millisecondes</b>. (2) Un seul <code>update(dt)</code> par frame, <code>draw(ctx)</code> juste après. (3) Chaque instance a son état propre : créez deux <code>new MonPersoClip()</code> pour deux ennemis indépendants.</div>
+
+<h1 class="chap">9. Dépannage</h1>
+<table>
+  <tr><th>Symptôme</th><th>Cause probable</th><th>Remède</th></tr>
+  <tr><td><code>ReferenceError: X is not defined</code></td><td>L'instance n'existe pas à l'image courante, ou le nom diffère (casse, espace)</td><td>Quadri-diagnostic ; vérifier le Nom d'instance et l'image</td></tr>
+  <tr><td>Le clic ne fait rien</td><td>Lecture arrêtée, handler inscrit dans <code>onEnterFrame</code>, ou clic hors zone (hit-test)</td><td>Lecture ; handler au top-level ; vérifier le contour du symbole</td></tr>
+  <tr><td>Le clic déclenche N fois</td><td>Inscription répétée à chaque image</td><td>Déplacer l'inscription au niveau supérieur du script</td></tr>
+  <tr><td>Handler muet malgré tout</td><td>Un script d'image sur un autre calque (ancien bug, corrigé)</td><td>Mettre l'application à jour ; sinon quadri-diagnostic + console</td></tr>
+  <tr><td><code>createjs</code> est <code>undefined</code></td><td>Vieille version déployée</td><td>Reconstruire / redéployer les deux versions</td></tr>
+  <tr><td>L'export HTML est blanc</td><td>Vieille version (bug corrigé)</td><td>Re-exporter depuis une version à jour</td></tr>
+</table>
+
+<h1 class="chap">10. Annexes</h1>
+<h2>10.1 Raccourcis clavier</h2>
+<table>
+  <tr><th>Touche</th><th>Action</th></tr>
+  <tr><td><span class="kbd">V</span> <span class="kbd">A</span> <span class="kbd">R</span> <span class="kbd">O</span> <span class="kbd">L</span> <span class="kbd">P</span> <span class="kbd">B</span> <span class="kbd">T</span></td><td>Outils (sélection, sous-sélection, rectangle, ellipse, ligne, plume, pinceau, texte)</td></tr>
+  <tr><td><span class="kbd">F6</span> / <span class="kbd">F7</span></td><td>Image clé / image clé vide</td></tr>
+  <tr><td><span class="kbd">F8</span></td><td>Convertir en symbole</td></tr>
+  <tr><td><span class="kbd">Espace</span></td><td>Lecture / pause</td></tr>
+  <tr><td><span class="kbd">Ctrl+Entrée</span></td><td>Exécuter le script</td></tr>
+  <tr><td><span class="kbd">Échap</span></td><td>Annuler le tracé en cours (plume, pinceau)</td></tr>
+</table>
+<h2>10.2 Limites connues (octobre 2026)</h2>
+<ul>
+  <li>Hit-test des éléments <b>tweenés</b> : position de l'image clé (approximation).</li>
+  <li>Pinceau : un seul pattern (trait lisse), pas de sensibilité à la pression.</li>
+  <li>Les événements de scripts ne vivent qu'en lecture (choix assumé, comme les scripts d'image d'Animate CC).</li>
+  <li>L'« objet de jeu » exporte un symbole et ses dépendances, pas toute la scène racine.</li>
+</ul>
+<h2>10.3 Pour aller plus loin</h2>
+<ul>
+  <li><b>Cours CreateJS v1 et v2</b> (dossier <code>docs/</code>) : l'intégration expliquée de l'intérieur, avec étude de cas complète.</li>
+  <li><b>Documentation scripts</b> (<code>Scripts-Programmation.pdf</code>) : référence détaillée de l'API Scene.</li>
+  <li><b>CreateJS</b> : documentation officielle des quatre bibliothèques (MIT).</li>
+</ul>
+
+</body>
+</html>
