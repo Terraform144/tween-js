@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cours v2 — CreateJS dans TweenJS : le système complet (éditeur et export)</title>
+<style>
+  :root {
+    --bg: #111318; --panel: #191c23; --panel2: #1f232c; --line: #2c313c;
+    --text: #d8dce4; --muted: #9aa1af; --accent: #7cb342; --accent2: #64b5f6;
+    --warn: #ffb74d; --code-bg: #0d0f13; --kw: #c792ea; --str: #a5d6a7; --com: #6b7280; --num: #f78c6c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.65; font-size: 16px; }
+  .layout { display: flex; max-width: 1280px; margin: 0 auto; }
+  nav.toc { width: 280px; flex-shrink: 0; position: sticky; top: 0; align-self: flex-start;
+    max-height: 100vh; overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--line); }
+  nav.toc h3 { color: var(--accent); margin: 0 0 12px; font-size: 15px; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; }
+  nav.toc a { display: block; padding: 4px 8px; color: var(--muted); text-decoration: none;
+    border-left: 2px solid transparent; font-size: 14px; border-radius: 0 4px 4px 0; }
+  nav.toc a:hover { color: var(--text); background: var(--panel); }
+  main { flex: 1; min-width: 0; padding: 32px 40px 80px; }
+  header.hero { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+  header.hero h1 { margin: 0 0 8px; font-size: 30px; color: #fff; }
+  header.hero p.lead { color: var(--muted); font-size: 17px; margin: 0; }
+  .pill { display: inline-block; background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 2px 12px; font-size: 13px; color: var(--accent2); margin-right: 6px; }
+  section { margin-bottom: 48px; }
+  h2 { color: var(--accent); font-size: 24px; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-top: 8px; }
+  h2 .num { color: var(--muted); font-weight: normal; margin-right: 10px; }
+  h3 { color: var(--accent2); font-size: 19px; margin-top: 28px; }
+  p { margin: 12px 0; }
+  ul, ol.page { margin: 12px 0; padding-left: 28px; }
+  li { margin: 6px 0; }
+  code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 6px; font-family: 'Cascadia Code', Consolas, monospace; font-size: 14px; color: var(--str); }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 18px; overflow-x: auto; line-height: 1.5; }
+  pre code { background: none; border: none; padding: 0; color: var(--text); font-size: 13.5px; }
+  .c { color: var(--com); } .k { color: var(--kw); } .s { color: var(--str); } .n { color: var(--num); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14.5px; }
+  th, td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: var(--panel2); color: var(--accent2); }
+  .box { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--panel);
+    border-radius: 6px; padding: 12px 18px; margin: 18px 0; }
+  .box.warn { border-left-color: var(--warn); }
+  .box h4 { margin: 0 0 6px; color: var(--accent2); }
+  .box p { margin: 6px 0; }
+  .box p:first-of-type { margin-top: 0; } .box p:last-of-type { margin-bottom: 0; }
+  .filetag { color: var(--accent); font-family: Consolas, monospace; font-size: 14px; }
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 16px; margin: 14px 0; }
+  details summary { cursor: pointer; color: var(--accent2); font-weight: 600; }
+  .goal { color: var(--muted); font-style: italic; }
+  footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; padding-top: 16px; }
+  @media (max-width: 900px) { .layout { flex-direction: column; } nav.toc { width: auto; max-height: none; position: static; border-right: none; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <h3>Sommaire</h3>
+  <ol>
+    <li><a href="#p0">0. Ce que la v2 ajoute</a></li>
+    <li><a href="#p1">1. Le contrat d'un script</a></li>
+    <li><a href="#p2">2. Le registre à portées</a></li>
+    <li><a href="#p3">3. Le pipeline pointeur</a></li>
+    <li><a href="#p4">4. Le hit-testing en questions</a></li>
+    <li><a href="#p5">5. Éditeur vs export</a></li>
+    <li><a href="#p6">6. Navigation : labels et images</a></li>
+    <li><a href="#p7">7. Étude de cas : IIB_v3</a></li>
+    <li><a href="#p8">8. Le référentiel complet</a></li>
+    <li><a href="#p9">9. Recettes du jeu</a></li>
+    <li><a href="#p10">10. Exercices v2</a></li>
+  </ol>
+</nav>
+<main>
+
+<header class="hero">
+  <h1>CreateJS dans TweenJS — v2 : le système complet</h1>
+  <p class="lead">La v1 t'a appris les fondations (new Function, injection, UMD, WeakMap). La v2 va plus loin : le registre à portées, le pipeline pointeur, la parité éditeur/export — expliqués sur le bug réel qui les a fait naître. Prérequis : <code>cours-createjs-scripts.html</code> (v1).</p>
+  <p><span class="pill">Niveau : intermédiaire+</span><span class="pill">Session du 03/10/2026</span><span class="pill">Basé sur un bug réel</span></p>
+</header>
+
+<section id="p0">
+  <h2><span class="num">0.</span>Ce que la v2 ajoute</h2>
+  <p>Trois choses ont changé depuis la v1, et chacune est née d'un problème concret :</p>
+  <table>
+    <tr><th>Nouveauté</th><th>Problème qui l'a rendue nécessaire</th></tr>
+    <tr><td>Registre d'événements <strong>à portées</strong> (run / frame / null)</td><td>Un script d'image purgeait les handlers posés par le bouton Exécuter — le clic d'un bouton devenait muet 80 ms après le lancement.</td></tr>
+    <tr><td>Pipeline pointeur <strong>dans l'export HTML</strong></td><td>L'export ne répondait pas aux clics : le bootstrap ne connaissait que le clavier et onEnterFrame.</td></tr>
+    <tr><td><code>gotoAndPlay/gotoAndStop</code> avec <strong>labels</strong> dans l'éditeur</td><td><code>Scene.gotoAndStop("Start")</code> ne fonctionnait que dans l'export.</td></tr>
+  </table>
+</section>
+
+<section id="p1">
+  <h2><span class="num">1.</span>Le contrat d'un script (rappel actif)</h2>
+  <p class="filetag">Rappel de la v1, à connaître par cœur</p>
+  <p>Un script est compilé par <code>new Function</code> et reçoit cinq paramètres : <code>Scene</code>, <code>Game</code> (alias), <code>console</code>, <code>named</code> (map des instances nommées de l'image courante), <code>createjs</code> (la bibliothèque complète). Mode strict : <code>this</code> vaut <code>undefined</code> au niveau supérieur. Les instances nommées sont injectées comme variables directes par un prélude généré (<code>var But = named["But"];</code>).</p>
+  <p>Le réflexe v2 : quand quelque chose ne marche pas, <strong>interroge le contrat</strong> plutôt que deviner :</p>
+  <pre><code>Scene.log("createjs :", <span class="k">typeof</span> createjs);              <span class="c">// la lib est-elle là ?</span>
+Scene.log("nommes :", Object.keys(named).join(", ") || <span class="s">"AUCUN"</span>); <span class="c">// qui est visible ?</span>
+Scene.log(<span class="s">"But typeof:"</span>, <span class="k">typeof</span> But);                  <span class="c">// l'injection a-t-elle eu lieu ?</span>
+Scene.log(<span class="s">"playing:"</span>, Scene.playing);                      <span class="c">// la lecture tourne-t-elle ?</span></code></pre>
+  <p>Ce quadri-diagnostic élimine 90 % des hypothèses en quatre lignes. C'est lui qui a orienté toute l'enquête de la partie 7.</p>
+</section>
+
+<section id="p2">
+  <h2><span class="num">2.</span>Le registre à portées : qui possède un handler ?</h2>
+  <p class="filetag">Fichier étudié : src/runtime/sceneRuntime.js (bloc EVENT_HANDLERS)</p>
+  <h3>Le problème des purges</h3>
+  <p>Deux sorties de scripts partagent le même moteur (<code>execCode</code>) :</p>
+  <ul>
+    <li>les <strong>scripts du document</strong> (panneau Scripts, bouton Exécuter) — rejouables à volonté ;</li>
+    <li>les <strong>scripts d'image</strong> (posés sur une image clé d'un calque) — rejoués automatiquement à chaque passage de la tête de lecture sur l'image.</li>
+  </ul>
+  <p>Si on purge tous les handlers avant chaque exécution (pour éviter l'empilement), les scripts d'image <em>effacent</em> les handlers du bouton Exécuter. Si on ne purge jamais, chaque passage d'un script d'image empile un handler de plus. Les deux moitiés du dilemme sont mauvaises — la solution est de demander : <strong>à qui appartient ce handler ?</strong></p>
+  <h3>La solution : un owner sur chaque handler</h3>
+  <pre><code><span class="c">// Chaque handler porte une PORTEE d'enregistrement :</span>
+<span class="c">//  'run'   -> posé pendant le bouton Exécuter (script du document)</span>
+<span class="c">//  'frame' -> posé pendant un script d'image</span>
+<span class="c">//  null    -> posé en dehors de toute exécution (ex : dans onEnterFrame)</span>
+<span class="k">let</span> CURRENT_HANDLER_REG = <span class="n">null</span>;  <span class="c">// posé autour de l'exécution du script</span>
+
+handlerSet(<span class="k">this</span>, type, <span class="n">true</span>).add({ cb, scope, once, wrapped, owner: CURRENT_HANDLER_REG });</code></pre>
+  <pre><code><span class="c">// La purge devient sélective :</span>
+detachAllEvents(Scene, reg);              <span class="c">// dans execCode : ne purge que SA portée</span>
+<span class="c">// run() fait le reset complet, toutes portées confondues :</span>
+detachAllEvents(Scene, <span class="n">null</span>);
+<span class="k">for</span> (<span class="k">const</span> el <span class="k">of</span> Object.values(named)) detachAllEvents(el, <span class="n">null</span>);</code></pre>
+  <p>Conséquence pratique des trois règles :</p>
+  <table>
+    <tr><th>Tu écris…</th><th>Portée</th><th>Vie du handler</th></tr>
+    <tr><td><code>But.on("click", fn)</code> au top-level du script, lancé par Exécuter</td><td>run</td><td>vit jusqu'au prochain Exécuter ; <strong>survit à tous les scripts d'image</strong></td></tr>
+    <tr><td><code>tst.on("click", fn)</code> dans un script d'image</td><td>frame</td><td>purgé au prochain script d'image exécuté — pas d'empilement d'un passage à l'autre</td></tr>
+    <tr><td><code>tst.on("tick", fn)</code> à l'intérieur d'un <code>onEnterFrame</code></td><td>null</td><td>jamais purgé automatiquement : <strong>anti-pattern</strong> — un handler de plus à chaque image</td></tr>
+  </table>
+  <div class="box warn">
+    <h4>La leçon de conception</h4>
+    <p>Quand une ressource est partagée par plusieurs cycles de vie (ici : les handlers), ne pose pas la question « quand tout purger ? » mais « <strong>à qui appartient chaque entrée ?</strong> ». Un champ <code>owner</code> coûte une ligne et transforme un dilemme en non-problème. C'est le même principe qui distingue <code>removeEventListener</code> ciblé d'un <code>innerHTML = ''</code> brutal.</p>
+  </div>
+</section>
+
+<section id="p3">
+  <h2><span class="num">3.</span>Le pipeline pointeur : anatomie d'un clic</h2>
+  <p class="filetag">Fichiers : sceneRuntime.js (éditeur) et exportHTML.js (export — même logique, style ES5)</p>
+  <p>Un clic sur la scène traverse cinq étapes. C'est en connaissant les cinq que tu peux localiser un silence :</p>
+  <pre><code>1. DOM        mousedown/mouseup/mousemove/dblclick sur le conteneur (éditeur)
+              ou le canvas (export)
+2. PORTE      state.playing (éditeur) / root.isPlaying (export) : hors lecture,
+              RIEN ne passe — en édition, le clic appartient aux outils
+3. COORDONNEES ecran -&gt; scene : pointFromClient (inverse zoom/pan Konva)
+              ou canvas.width/rect.width (export, tolerant au redimensionnement CSS)
+4. HIT-TEST   element le plus HAUT sous le curseur parmi les nommes de l'image
+5. DISPATCH   evenements EaselJS + Scene-level + Scene.onClick</code></pre>
+  <h3>La sémantique EaselJS, fidèlement</h3>
+  <table>
+    <tr><th>Événement</th><th>Émis quand</th></tr>
+    <tr><td><code>mousedown</code> / <code>mouseup</code></td><td>Sur l'élément sous le curseur au moment de l'événement.</td></tr>
+    <tr><td><code>click</code></td><td><strong>Seulement si down et up sur le même élément.</strong> Presse le bouton, relâche à côté : pas de click. C'est la règle CreateJS, pas un caprice.</td></tr>
+    <tr><td><code>pressmove</code> / <code>pressup</code></td><td>Sur l'élément pressé, pendant/après la pression — même si le curseur en est sorti. C'est ce qui rend le glisser-déposer possible.</td></tr>
+    <tr><td><code>mouseover/mouseout</code></td><td>Chaque changement de cible survolée.</td></tr>
+    <tr><td><code>rollover/rollout</code></td><td>Idem, sémantique « entrée/sortie propre » — sur des objets plats, identiques à mouseover/out.</td></tr>
+    <tr><td><code>dblclick</code> / <code>tick</code></td><td>Double-clic sur l'élément ; tick émis à chaque image de lecture (sur les nommés et Scene).</td></tr>
+    <tr><td><code>stagemousedown</code> / <code>stagemousemove</code> / <code>stagemouseup</code> / <code>stageclick</code></td><td>Sur <code>Scene</code>, pour TOUT clic/mouvement — même dans le vide.</td></tr>
+  </table>
+  <div class="box">
+    <h4>L'état de pression, le détail qui tue</h4>
+    <p>Le pipeline mémorise <code>pressTarget</code> au mousedown pour le comparer au mouseup et émettre <code>click</code>. Cet état <strong>ne doit jamais être réinitialisé par un script d'image</strong> : à 12 fps, une pression de 100 ms traverse au moins une image — réinitialiser <code>pressTarget</code> entre-temps tuerait tout clic. C'est exactement le piège qui a été corrigé en même temps que les portées : le reset vit désormais dans <code>run()</code> uniquement.</p>
+  </div>
+</section>
+
+<section id="p4">
+  <h2><span class="num">4.</span>Le hit-testing en questions</h2>
+  <p>« Pourquoi mon clic ne touche pas mon élément ? » — quatre règles :</p>
+  <ol class="page">
+    <li><strong>Ellipse</strong> : test de disque réel (<code>(lx/rx)² + (ly/ry)² ≤ 1</code>), pas la boîte englobante. Cliquer un coin vide d'une ellipse ronde ne compte pas.</li>
+    <li><strong>Rect, texte, bitmap</strong> : boîte englobante, rotation et échelle de l'élément inversées avant le test.</li>
+    <li><strong>Ligne / chemin</strong> : boîte englobante <em>des points</em> — le trait fin a une zone cliquable rectangulaire, épaisseur non comprise.</li>
+    <li><strong>Instance de symbole</strong> : l'enveloppe (hull) de <strong>tout ce que le symbole dessine, sur toutes ses images, récursivement</strong>. Un symbole vide n'est cliquable nulle part. Attention : pour une instance <strong>tweenée</strong>, le hit-test utilise la position de l'image clé (approximation documentée) — les gros déplacements interpolés peuvent décaler la zone sensible.</li>
+  </ol>
+  <p>Ordre de priorité : les éléments des calques <em>supérieurs</em> gagnent — le hit-test parcourt la liste des nommés à l'envers (dernier dessiné = premier testé).</p>
+</section>
+
+<section id="p5">
+  <h2><span class="num">5.</span>Éditeur vs export : une API, deux machines</h2>
+  <p>Depuis cette session, <strong>le contrat est identique des deux côtés</strong> : mêmes événements, mêmes portées, mêmes labels, même <code>Scene.onClick</code>. Mais les machines diffèrent — le savoir te fera gagner des heures :</p>
+  <table>
+    <tr><th></th><th>Éditeur</th><th>Export HTML</th></tr>
+    <tr><td>Scripts du document</td><td>Exécutés au clic sur Exécuter (portée run), rejouables</td><td>Exécutés <strong>une seule fois au chargement</strong> (portée run — jamais purgés, ce qui est cohérent : ils ne rejouent pas)</td></tr>
+    <tr><td>Éléments nommés</td><td>Les objets de données, bruts</td><td>Des <strong>Proxy</strong> qui délèguent <code>play/stop/gotoAndX</code> au MovieClip enfant et le reste à l'élément brut</td></tr>
+    <tr><td>Subtilité du registre</td><td>WeakMap keyée par l'élément</td><td>WeakMap keyée par l'élément <strong>brut</strong> (<code>__rawElement</code>) — les proxies sont recréés à chaque collecte, keyer sur eux perdraient les handlers</td></tr>
+    <tr><td>Porte des événements</td><td><code>state.playing</code></td><td><code>root.isPlaying</code></td></tr>
+    <tr><td>Rendu</td><td>Konva (canvas + panneau d'outils)</td><td>Canvas 2D seul, <code>ctx.drawImage</code> etc.</td></tr>
+    <tr><td>CreateJS</td><td>Chargé par index.html (libs locales)</td><td>Inliné dans le fichier <strong>si et seulement si</strong> un script le mentionne</td></tr>
+  </table>
+  <div class="box">
+    <h4>Le réflexe du pont</h4>
+    <p>Chaque fois que tu habilles des objets que tu ne possèdes pas (ici : les données du document, via des Proxy), choisis <strong>une seule clé d'identité</strong> pour tout ce qui doit leur être attaché (handlers, caches). Ici : l'élément brut. Un Proxy est une <em>vue</em>, jamais une identité.</p>
+  </div>
+</section>
+
+<section id="p6">
+  <h2><span class="num">6.</span>Navigation : labels et images</h2>
+  <p>Dans l'éditeur comme dans l'export :</p>
+  <pre><code>Scene.gotoAndPlay(<span class="n">0</span>);          <span class="c">// numéro d'image</span>
+Scene.gotoAndPlay(<span class="s">"Logo"</span>);     <span class="c">// label d'image (champ Étiquette de la timeline)</span>
+Scene.gotoAndStop(<span class="s">"Start"</span>);    <span class="c">// idem, en stoppant la lecture</span></code></pre>
+  <p>Label introuvable → avertissement console + <strong>aucun déplacement</strong> (silence volontaire, fidèle à CreateJS). À l'intérieur d'un MovieClip, un script d'image du clip reçoit la même résolution, mais avec <strong>les labels du symbole</strong> (le champ Étiquette, quand tu édites le symbole).</p>
+  <p>Patron classique de menu — celui de l'étude de cas : l'image 0 porte le menu, chaque section est une image labellisée, chaque bouton y saute :</p>
+  <pre><code>Scene.play();
+But.on(<span class="s">"click"</span>, <span class="k">function</span> () { Scene.gotoAndStop(<span class="s">"Start"</span>); });
+Options.on(<span class="s">"click"</span>, <span class="k">function</span> () { Scene.gotoAndStop(<span class="s">"Options"</span>); });</code></pre>
+</section>
+
+<section id="p7">
+  <h2><span class="num">7.</span>Étude de cas : l'affaire du bouton muet (IIB_v3)</h2>
+  <p>Rejouons l'enquête qui a fait naître les portées — c'est la méthode qui est transférable, plus que le code.</p>
+  <h3>Symptôme</h3>
+  <p>Dans l'app, <code>But.on("click", ...)</code> posé par Exécuter ne réagit jamais. Le quadri-diagnostic dit : createjs object, nommés présents, But object, lecture en cours. Tout est vert — et pourtant rien.</p>
+  <h3>Le raisonnement, étape par étape</h3>
+  <ol class="page">
+    <li><strong>Le mécanisme est-il sain ?</strong> → Harnais Node : 21 contrôles OK, puis E2E navigateur (dessiner, nommer, exécuter, cliquer) : le clic fonctionne sur une forme ET une instance. Donc le bug est <em>dans la scène du document</em>, pas dans le moteur.</li>
+    <li><strong>Qu'est-ce que ce document a que mes tests n'ont pas ?</strong> → En le lisant ligne par ligne : un calque « action » avec <strong>un script d'image</strong> (<code>gotoAndPlay("Logo")</code>). C'est la seule différence structurelle.</li>
+    <li><strong>Quelle interaction ce script a-t-il avec les handlers ?</strong> → Relire <code>execCode</code> : il purgeait <em>tous</em> les handlers avant chaque exécution, sans distinction d'origine. Le script d'image s'exécute dès l'arrivée sur l'image 1 — 80 ms après <code>Scene.play()</code> — et efface le handler d'Exécuter.</li>
+    <li><strong>Reproduire avant de corriger.</strong> → Harnais : un handler run + un script d'image → le clic est muet. Corrigé (portées) → 28 contrôles OK. E2E avec le document réel → clic + <code>gotoAndStop("Start")</code> fonctionnent.</li>
+  </ol>
+  <div class="box">
+    <h4>Les trois leçons d'enquête à retenir</h4>
+    <p><strong>1. « Ça marche chez moi » ne prouve rien tant que le cas réel n'est pas reproduit.</strong> Mes tests étaient sains — et aveugles : aucun n'avait de script d'image. Le document de l'utilisateur était un meilleur test que mes tests.</p>
+    <p><strong>2. Quand tout est vert et que ça ne marche pas, cherche ce qui est diffèrent chez le client</strong> — pas ce qui est cassé chez toi. La diff structurale (un script d'image) était visible en lisant son JSON.</p>
+    <p><strong>3. La correction d'un bug doit se verrouiller par un test qui échouait avant.</strong> La section 13 du harnais échoue sur l'ancien code, passe sur le nouveau : le bug ne pourra pas revenir en silence.</p>
+  </div>
+</section>
+
+<section id="p8">
+  <h2><span class="num">8.</span>Le référentiel complet</h2>
+  <table>
+    <tr><th>API</th><th>Éditeur</th><th>Export</th><th>Notes</th></tr>
+    <tr><td><code>Scene.play/stop/gotoAndPlay/gotoAndStop</code></td><td>oui</td><td>oui</td><td>Numéro ou label (labels du contexte / du symbole dans un clip)</td></tr>
+    <tr><td><code>Scene.currentFrame</code> / <code>playing</code> / <code>frameCount</code></td><td>oui</td><td>oui</td><td>Lecture seule côté export</td></tr>
+    <tr><td><code>Scene.onEnterFrame(cb)</code> / <code>onKeyDown</code> / <code>onKeyUp</code> / <code>Scene.keys</code></td><td>oui</td><td>oui</td><td>cb reçoit le numéro d'image (onEnterFrame)</td></tr>
+    <tr><td><code>Scene.onClick(cb)</code> / <code>Scene.onClick('nom', cb)</code></td><td>oui</td><td>oui</td><td>Pendant la lecture ; (x, y) en coordonnées scène</td></tr>
+    <tr><td><code>Scene.on/off/dispatchEvent</code> + <code>stagemouse*</code> / <code>stageclick</code> / <code>tick</code></td><td>oui</td><td>oui</td><td>Portée EaselJS ; tick à chaque image de lecture</td></tr>
+    <tr><td><code>Scene.addShape/addInstance</code></td><td>oui</td><td>oui</td><td>Sur le calque actif non verrouillé</td></tr>
+    <tr><td><code>nom.on/off/…/dispatchEvent</code></td><td>oui</td><td>oui</td><td>click, mousedown, mouseup, pressmove, pressup, dblclick, mouseover/out, rollover/out, tick</td></tr>
+    <tr><td><code>nom.play/stop/gotoAndX</code> (instance movieclip)</td><td>—</td><td>oui</td><td>Export uniquement : le Proxy délègue au MovieClip enfant. Dans l'éditeur, pilote le clip via un script posé DANS le symbole</td></tr>
+    <tr><td><code>createjs.*</code> (Tween, Ticker, Sound, LoadQueue, Ease…)</td><td>oui</td><td>si utilisé</td><td>Injecté en paramètre ; inliné à l'export si mentionné</td></tr>
+  </table>
+</section>
+
+<section id="p9">
+  <h2><span class="num">9.</span>Recettes du jeu</h2>
+  <h3>Recette A — Bouton de section (le patron IIB)</h3>
+  <pre><code>Scene.play();
+But.on(<span class="s">"click"</span>, <span class="k">function</span> () {
+  Scene.gotoAndStop(<span class="s">"Start"</span>);
+});</code></pre>
+  <h3>Recette B — Bouton pressable avec retour visuel</h3>
+  <pre><code>Scene.play();
+But.on(<span class="s">"mousedown"</span>, <span class="k">function</span> () { But.scaleX = <span class="n">0.95</span>; But.scaleY = <span class="n">0.95</span>; });
+But.on(<span class="s">"pressup"</span>,   <span class="k">function</span> () { But.scaleX = <span class="n">1</span>; But.scaleY = <span class="n">1</span>; });
+But.on(<span class="s">"click"</span>,     <span class="k">function</span> () { Scene.gotoAndStop(<span class="s">"Start"</span>); });</code></pre>
+  <h3>Recette C — Tween piloté par bouton (CreateJS)</h3>
+  <pre><code>Scene.play();
+Panel.on(<span class="s">"click"</span>, <span class="k">function</span> () {
+  createjs.Tween.get(Panel).to({ x: <span class="n">300</span> }, <span class="n">500</span>, createjs.Ease.quadOut);
+});
+Panel.on(<span class="s">"rollout"</span>, <span class="k">function</span> () {
+  createjs.Tween.get(Panel).to({ x: <span class="n">0</span> }, <span class="n">300</span>);
+});</code></pre>
+  <p>Le Ticker est mis en pause hors lecture : tes tweens s'arrêtent avec l'éditeur. À l'export, ils vivent leur vie tant que la page tourne (pas de bouton pause).</p>
+  <h3>Recette D — Glisser une instance (dans le cadre)</h3>
+  <pre><code>Scene.play();
+<span class="k">let</span> off = <span class="n">null</span>;
+But.on(<span class="s">"mousedown"</span>, (ev) =&gt; { off = { dx: But.x - ev.stageX, dy: But.y - ev.stageY }; });
+But.on(<span class="s">"pressmove"</span>, (ev) =&gt; {
+  <span class="k">if</span> (!off) <span class="k">return</span>;
+  But.x = Math.max(<span class="n">0</span>, Math.min(Scene.width,  ev.stageX + off.dx));
+  But.y = Math.max(<span class="n">0</span>, Math.min(Scene.height, ev.stageY + off.dy));
+});
+But.on(<span class="s">"pressup"</span>, () =&gt; { off = <span class="n">null</span>; });</code></pre>
+</section>
+
+<section id="p10">
+  <h2><span class="num">10.</span>Exercices v2</h2>
+  <p class="goal">Tous se font dans ton éditeur, puis se valident par export HTML : ce qui doit marcher des deux côtés.</p>
+  <h3>Exercice 1 — Le menu trois boutons</h3>
+  <p>Trois images labellisées (<code>Menu</code>, <code>Jeu</code>, <code>Score</code>) et trois boutons nommés (<code>B1</code>, <code>B2</code>, <code>B3</code>) sur l'image Menu. Chaque bouton saute à sa section ; un bouton « Retour » (présent sur les sections) ramène au Menu. Valide dans l'export.</p>
+  <details><summary>Indice</summary>
+  <p>Un seul script du document suffit : les trois handlers en top-level. Le bouton Retour peut être le même nom d'instance posé sur chaque image de section — le handler reste valable (les variables sont injectées par image, mais les handlers vivent sur l'élément à chaque collecte... attention : vérifie dans l'export !).</p>
+  </details>
+  <h3>Exercice 2 — Prédire avant de tester</h3>
+  <p>Un calque porte un script d'image à l'image 5 : <code>tst.on("tick", function(){ n++; });</code> (n étant une variable globale posée par le script du document). Sans exécuter : combien de fois <code>n</code> s'incrémente-t-il par passage sur l'image 5 après trois boucles ? Justifie avec les portées.</p>
+  <details><summary>Corrigé</summary>
+  <p>Trois. À chaque arrivée sur l'image 5, le script d'image est exécuté en portée 'frame' : la purge retire le handler du passage précédent (même portée), puis en repose un. Toujours exactement un handler actif — c'est précisément ce que les portées garantissent. Sur l'ancien système (sans purge sélective), ce serait 1, 2 puis 3 handlers → 6 incréments au troisième passage.</p>
+  </details>
+  <h3>Exercice 3 — Le clic fantôme</h3>
+  <p>Un utilisateur se plaint : « mon bouton ne réagit qu'une fois sur douze ». Son bouton est une instance nommée <code>Go</code>, sur un calque tweené de l'image 0 à l'image 11. Diagnostique, puis propose LA correction côté scène (pas côté code).</p>
+  <details><summary>Corrigé</summary>
+  <p>Le hit-test d'une instance tweenée utilise la position de l'image clé (approximation documentée). Selon l'image courante, le bouton dessiné est ailleurs que la zone cliquable — d'où « une fois sur douze » (aux images proches de la position de la clé). Corrections de scène : retirer le tween sur ce calque (bouton statique), ou viser une zone sensible stable. Côté code, on ne peut pas deviner la position interpolée — c'est une limite assumée.</p>
+  </details>
+</section>
+
+<footer>
+  <p>Cours v2 généré le 03/10/2026 — complémente <code>docs/cours-createjs-scripts.html</code> (v1, fondamentaux). Sources : <code>src/runtime/sceneRuntime.js</code>, <code>src/export/exportHTML.js</code>, harnais <code>_wrk_mistral_mem/repro_createjs.mjs</code> (28 contrôles) et <code>repro_e2e_export.mjs</code>. Fichier autonome, aucune dépendance.</p>
+</footer>
+
+</main>
+</div>
+</body>
+</html>

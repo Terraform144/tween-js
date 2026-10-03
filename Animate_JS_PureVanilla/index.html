@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TweenJS - Pure Vanilla</title>
   
-  <!-- Konva JS - doit être chargé avant le bundle -->
-  <script src="https://unpkg.com/konva@9.3.16/konva.min.js"></script>
-  
-  <!-- CodeMirror CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@6.0.2/dist/index.css">
+  <!-- Konva JS - copie locale (9.3.22, meme version que le package npm) :
+       doit etre charge avant le bundle. Aucune dependance CDN, marche hors ligne. -->
+  <script src="libs/konva.min.js"></script>
   
   <!-- Styles de l'application -->
   <link rel="stylesheet" href="style.css" />
@@ -37,6 +35,13 @@
     </div>
     <div id="timeline"></div>
   </div>
+  
+  <!-- CreateJS complet (EaselJS + TweenJS + SoundJS + PreloadJS), copie locale
+       MIT dans libs/createjs — injecté dans les scripts utilisateur -->
+  <script src="libs/createjs/easeljs.min.js"></script>
+  <script src="libs/createjs/tweenjs.min.js"></script>
+  <script src="libs/createjs/soundjs.min.js"></script>
+  <script src="libs/createjs/preloadjs.min.js"></script>
   
   <!-- Bundle de l'application - doit être chargé après les dépendances -->
   <script src="tweenjs-bundle.js"></script>

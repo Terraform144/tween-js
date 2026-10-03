@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cours — CreateJS dans les scripts TweenJS (la technique du capitaine)</title>
+<style>
+  :root {
+    --bg: #111318; --panel: #191c23; --panel2: #1f232c; --line: #2c313c;
+    --text: #d8dce4; --muted: #9aa1af; --accent: #7cb342; --accent2: #64b5f6;
+    --warn: #ffb74d; --code-bg: #0d0f13; --kw: #c792ea; --str: #a5d6a7; --com: #6b7280; --num: #f78c6c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.65; font-size: 16px; }
+  .layout { display: flex; max-width: 1280px; margin: 0 auto; }
+  nav.toc { width: 280px; flex-shrink: 0; position: sticky; top: 0; align-self: flex-start;
+    max-height: 100vh; overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--line); }
+  nav.toc h3 { color: var(--accent); margin: 0 0 12px; font-size: 15px; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; }
+  nav.toc a { display: block; padding: 4px 8px; color: var(--muted); text-decoration: none;
+    border-left: 2px solid transparent; font-size: 14px; border-radius: 0 4px 4px 0; }
+  nav.toc a:hover { color: var(--text); background: var(--panel); }
+  main { flex: 1; min-width: 0; padding: 32px 40px 80px; }
+  header.hero { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+  header.hero h1 { margin: 0 0 8px; font-size: 30px; color: #fff; }
+  header.hero p.lead { color: var(--muted); font-size: 17px; margin: 0; }
+  .pill { display: inline-block; background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 2px 12px; font-size: 13px; color: var(--accent2); margin-right: 6px; }
+  section { margin-bottom: 48px; }
+  h2 { color: var(--accent); font-size: 24px; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-top: 8px; }
+  h2 .num { color: var(--muted); font-weight: normal; margin-right: 10px; }
+  h3 { color: var(--accent2); font-size: 19px; margin-top: 28px; }
+  p { margin: 12px 0; }
+  ul, ol.page { margin: 12px 0; padding-left: 28px; }
+  li { margin: 6px 0; }
+  code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 6px; font-family: 'Cascadia Code', Consolas, monospace; font-size: 14px; color: var(--str); }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 18px; overflow-x: auto; line-height: 1.5; }
+  pre code { background: none; border: none; padding: 0; color: var(--text); font-size: 13.5px; }
+  .c { color: var(--com); } .k { color: var(--kw); } .s { color: var(--str); } .n { color: var(--num); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14.5px; }
+  th, td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: var(--panel2); color: var(--accent2); }
+  .box { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--panel);
+    border-radius: 6px; padding: 12px 18px; margin: 18px 0; }
+  .box.warn { border-left-color: var(--warn); }
+  .box h4 { margin: 0 0 6px; color: var(--accent2); }
+  .box p { margin: 6px 0; }
+  .box p:first-of-type { margin-top: 0; } .box p:last-of-type { margin-bottom: 0; }
+  .filetag { color: var(--accent); font-family: Consolas, monospace; font-size: 14px; }
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 16px; margin: 14px 0; }
+  details summary { cursor: pointer; color: var(--accent2); font-weight: 600; }
+  details[open] { padding-bottom: 14px; }
+  .goal { color: var(--muted); font-style: italic; }
+  footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; padding-top: 16px; }
+  @media (max-width: 900px) { .layout { flex-direction: column; } nav.toc { width: auto; max-height: none; position: static; border-right: none; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <h3>Sommaire</h3>
+  <ol>
+    <li><a href="#p0">0. La carte du territoire</a></li>
+    <li><a href="#p1">1. Comment naît un script</a></li>
+    <li><a href="#p2">2. Les instances nommées</a></li>
+    <li><a href="#p3">3. Charger CreateJS en local</a></li>
+    <li><a href="#p4">4. Le mécanisme d'injection</a></li>
+    <li><a href="#p5">5. Le système d'événements</a></li>
+    <li><a href="#p6">6. TweenJS et l'horloge</a></li>
+    <li><a href="#p7">7. Le hit-testing</a></li>
+    <li><a href="#p8">8. Recettes pratiques</a></li>
+    <li><a href="#p9">9. L'export HTML</a></li>
+    <li><a href="#p10">10. La technique de travail</a></li>
+    <li><a href="#p11">11. Exercices</a></li>
+    <li><a href="#p12">12. Pour aller plus loin</a></li>
+  </ol>
+</nav>
+<main>
+
+<header class="hero">
+  <h1>CreateJS dans les scripts TweenJS</h1>
+  <p class="lead">Comment la bibliothèque CreateJS a été intégrée de A à Z dans le panneau Scripts de ton éditeur — et comment toi, tu peux faire pareil. Un cours de terrain : chaque concept est illustré par du code <em>réel</em> du projet.</p>
+  <p><span class="pill">Niveau : intermédiaire</span><span class="pill">JS vanilla</span><span class="pill">Session du 02/10/2026</span></p>
+</header>
+
+<section id="p0">
+  <h2><span class="num">0.</span>La carte du territoire</h2>
+  <p>Avant d'épluder le code, garde en tête le voyage complet d'un clic sur le bouton <em>Exécuter</em> :</p>
+  <pre><code>index.html                 <span class="c">-- 4 &lt;script&gt; UMD chargent createjs sur la globale window.createjs</span>
+  |
+  v
+public/libs/createjs/*.min.js   <span class="c">-- EaselJS, TweenJS, SoundJS, PreloadJS (MIT)</span>
+  |
+  v
+src/main.js                <span class="c">-- crée le stage, l'état, puis le runtime :</span>
+  |                           createSceneRuntime({ state, stageContainer, toScenePoint })
+  v
+src/runtime/sceneRuntime.js <span class="c">-- compile et exécute TON script</span>
+  |
+  v
+new Function('Scene','Game','console','named','createjs', ...tonCode)
+                            <span class="c">-- ton code tourne avec 5 paramètres</span></code></pre>
+  <p>Trois idées force le dispositif :</p>
+  <ol class="page">
+    <li><strong>Le script utilisateur est une fonction, pas un fichier.</strong> On ne l'évalue pas « dans » l'application : on le compile avec <code>new Function</code> et on lui <em>passe</em> tout ce qu'il a le droit de voir.</li>
+    <li><strong>CreateJS n'est pas modifié ni réécrit.</strong> C'est la vraie bibliothèque, chargée comme n'importe quelle page web la chargerait. On se contente de la rendre visible dans la sandbox du script.</li>
+    <li><strong>Rien ne fuit dans le document.</strong> Les éléments nommés reçoivent des méthodes d'événements, mais le document sauvegardé en JSON reste strictement identique (on verra l'astuce).</li>
+  </ol>
+</section>
+
+<section id="p1">
+  <h2><span class="num">1.</span>Comment naît et meurt un script</h2>
+  <p class="filetag">Fichier étudié : src/runtime/sceneRuntime.js</p>
+  <p>Quand tu cliques <em>Exécuter</em> dans le panneau Scripts, le panneau appelle <code>runtime.run(code)</code>. Voici ce qui se passe réellement, sans raccourci :</p>
+  <pre><code><span class="c">// sceneRuntime.js (simplifié pour lire, fidèle pour comprendre)</span>
+<span class="k">function</span> run(code, consoleCb) {
+  onConsole = consoleCb;               <span class="c">// la console du panneau capte console.log</span>
+  enterFrameCbs.clear();               <span class="c">// on vide TOUTES les inscriptions</span>
+  keyDownCbs.clear();
+  keyUpCbs.clear();
+  clickCbs.clear();
+  execCode(code);                      <span class="c">// ...puis on exécute une seule fois</span>
+  <span class="k">return</span> Scene;
+}</code></pre>
+  <div class="box">
+    <h4>Leçon de conception n°1 : vider avant d'exécuter</h4>
+    <p>Chaque <em>run</em> repart de zéro. Sans ça, chaque exécution empilerait des doublons : deux <code>onEnterFrame</code>, deux <code>onKeyDown</code>... et ton animation accélérerait à chaque Exécuter. Un runtime de script doit être <strong>idempotent</strong> : rejouer ne change pas le résultat.</p>
+  </div>
+  <h3>Le cœur : execCode</h3>
+  <pre><code><span class="k">function</span> execCode(code) {
+  <span class="k">const</span> named = namedNow();              <span class="c">// instances nommées de l'image courante</span>
+  detachAllEvents(Scene);                 <span class="c">// nettoyage des handlers d'événements</span>
+  <span class="k">for</span> (<span class="k">const</span> el <span class="k">of</span> Object.values(named)) detachAllEvents(el);
+  <span class="k">const</span> prelude = namedVarNames(named)
+    .map((n) =&gt; `var ${n} = named[${JSON.stringify(n)}];`)   <span class="c">// voir partie 2</span>
+    .join('\n');
+  <span class="k">const</span> fn = <span class="k">new</span> Function(
+    'Scene', 'Game', 'console', 'named', ...SCRIPT_LIBS,     <span class="c">// 'createjs'</span>
+    '"use strict";\n' + prelude + '\n' + code);
+  fn(Scene, Scene, proxyConsole, named, ...scriptLibValues());
+}</code></pre>
+  <p>Deux choses à méditer :</p>
+  <ul>
+    <li><strong><code>"use strict"</code> est mis en première ligne.</strong> Conséquence directe : <code>this</code> vaut <code>undefined</code> au niveau supérieur du script. C'est exactement pour ça que ton premier essai <code>this.tst.on("click", ...)</code> plantait : en mode strict, un script n'a pas de « soi ». Les variables sont les seuls points d'entrée.</li>
+    <li><strong>Toute la sécurité est dans la liste des paramètres.</strong> Le script ne voit pas l'application ; il voit cinq paramètres : <code>Scene</code>, <code>Game</code> (alias), <code>console</code>, <code>named</code>, <code>createjs</code>. Tu veux donner autre chose à un script ? Tu l'ajoutes à cette liste. C'est le contrat, noir sur blanc.</li>
+  </ul>
+  <div class="box warn">
+    <h4>Pourquoi new Function et pas eval ?</h4>
+    <p><code>eval</code> s'exécute dans la portée ambiante : le script verrait les variables internes du runtime (et l'inverse : tes variables pourraient être écrasées). <code>new Function</code> crée une fonction dont la seule portée englobante est la <em>portée globale</em>. Tout ce que le script touche doit donc lui être <em>donné explicitement</em>. On fabrique une frontière au lieu de laisser une porte ouverte.</p>
+  </div>
+</section>
+
+<section id="p2">
+  <h2><span class="num">2.</span>Les instances nommées : de la donnée à la variable</h2>
+  <p class="filetag">Fichiers étudiés : src/core/model.js (getNamedElements), sceneRuntime.js</p>
+  <p>Dans l'éditeur, un élément posé sur la scène n'est pas un objet graphique : c'est une <strong>donnée</strong> — un objet JavaScript simple, sérialisable en JSON, qui décrit la forme (<code>x</code>, <code>y</code>, <code>width</code>, <code>fill</code>, <code>points</code>...). Konva, lui, ne fait que <em>dessiner</em> cette donnée.</p>
+  <pre><code><span class="c">// model.js — le nom devient une clé de map</span>
+<span class="k">export function</span> getNamedElements(doc, editPath, frameIndex) {
+  <span class="k">const</span> layers = getContextLayers(doc, editPath);
+  <span class="k">const</span> out = {};
+  <span class="k">for</span> (<span class="k">const</span> layer <span class="k">of</span> layers) {
+    <span class="k">const</span> kf = getActiveKeyframe(layer, frameIndex);
+    <span class="k">if</span> (!kf) <span class="k">continue</span>;
+    <span class="k">for</span> (<span class="k">const</span> el <span class="k">of</span> kf.elements) {
+      <span class="k">const</span> name = (el.name || '').trim();
+      <span class="k">if</span> (name) out[name] = el;      <span class="c">// &lt;-- la référence VIVE de l'élément</span>
+    }
+  }
+  <span class="k">return</span> out;
+}</code></pre>
+  <p>Ensuite, <code>execCode</code> fabrique un <em>prélude</em> : quelques lignes de déclaration collées devant ton code :</p>
+  <pre><code><span class="c">// ce que reçoit vraiment ton script, par exemple :</span>
+<span class="k">var</span> tst = named["tst"];
+<span class="k">var</span> circ = named["circ"];
+"use strict";
+<span class="c">// ...ton code, ici...</span></code></pre>
+  <p>C'est pour ça que <code>tst.x += 1</code> fonctionne sans import ni déclaration : la variable existe avant ta première ligne. Et comme c'est la <em>référence vive</em> (pas une copie), modifier <code>tst.x</code> modifie le document — le rendu suit.</p>
+  <h3>Le piège des mots réservés</h3>
+  <p>Que se passe-t-il si tu nommes une instance <code>class</code>, <code>this</code> ou <code>new</code> ? Le prélude deviendrait <code>var class = ...</code> : erreur de syntaxe, script mort. Le runtime maintient donc une liste <code>RESERVED</code> et exclut ces noms de l'injection. L'instance reste accessible par la porte de secours : <code>named["class"]</code>. Retiens le réflexe : <strong>toute génération de code par code doit se demander « et si la donnée contient un truc illégal ? »</strong></p>
+  <pre><code><span class="k">function</span> namedVarNames(named) {
+  <span class="k">return</span> Object.keys(named)
+    .filter((n) =&gt; /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(n) &amp;&amp; !RESERVED.has(n));
+}</code></pre>
+</section>
+
+<section id="p3">
+  <h2><span class="num">3.</span>Charger CreateJS en local, pour de vrai</h2>
+  <p class="filetag">Fichiers étudiés : index.html, public/libs/createjs/</p>
+  <p>CreateJS est un ensemble de quatre bibliothèques MIT, historiquement livrées en fichiers <strong>UMD</strong> : un seul fichier JavaScript qui s'installe sur une variable globale, ici <code>createjs</code>. Ouvre <code>easeljs.min.js</code> et regarde le tout début :</p>
+  <pre><code>this.createjs = this.createjs || {}, ...</code></pre>
+  <p>Traduction : « mets-toi sur la globale <code>createjs</code>, en la créant si elle n'existe pas ». Les quatre fichiers s'empilent sur la même globale : <code>createjs.Event</code> (EaselJS), <code>createjs.Tween</code> (TweenJS), <code>createjs.Sound</code> (SoundJS), <code>createjs.LoadQueue</code> (PreloadJS).</p>
+  <h3>Le chargement</h3>
+  <pre><code><span class="c">&lt;!-- index.html, avant le module de l'application --&gt;</span>
+&lt;script src="/libs/createjs/easeljs.min.js"&gt;&lt;/script&gt;
+&lt;script src="/libs/createjs/tweenjs.min.js"&gt;&lt;/script&gt;
+&lt;script src="/libs/createjs/soundjs.min.js"&gt;&lt;/script&gt;
+&lt;script src="/libs/createjs/preloadjs.min.js"&gt;&lt;/script&gt;</code></pre>
+  <p>Deux détails qui comptent :</p>
+  <ul>
+    <li><strong>L'ordre est significatif.</strong> Les balises <code>script</code> classiques (sans <code>type="module"</code>) s'exécutent dans l'ordre du document. TweenJS s'attend à trouver le <code>createjs</code> d'EaselJS déjà là. Respecter les dépendances d'une pile de bibliothèques est une compétence à part entière : quand ça casse, pense <em>ordre</em> avant tout.</li>
+    <li><strong>Pourquoi <code>public/</code> ?</strong> Vite sert le contenu de <code>public/</code> à la racine en dev <em>et</em> le copie tel quel dans <code>dist/</code> au build. Un seul rangement, deux environnements.</li>
+  </ul>
+  <div class="box">
+    <h4>Leçon de terrain : les versions disponibles ne sont pas celles du site</h4>
+    <p>Sur npm, SoundJS et PreloadJS s'arrêtent à 1.0.1 alors qu'EaselJS/TweenJS sont en 1.0.2. Toujours vérifier ce qui existe <em>réellement</em> dans le canal de distribution que tu utilises, au lieu de supposer que tout est aligné. Et toujours garder les fichiers <code>LICENSE</code> à côté des <code>.min.js</code> : c'est une exigence de la MIT et un bon réflexe professionnel.</p>
+  </div>
+</section>
+
+<section id="p4">
+  <h2><span class="num">4.</span>Le mécanisme d'injection : trois lignes extensibles</h2>
+  <p class="filetag">Fichier étudié : sceneRuntime.js (haut du fichier)</p>
+  <p>Voici tout le mécanisme qui rend <code>createjs</code> disponible dans les scripts — il tient en trois lignes :</p>
+  <pre><code><span class="k">const</span> SCRIPT_LIBS = ['createjs'];
+
+<span class="k">function</span> scriptLibValues() {
+  <span class="k">return</span> SCRIPT_LIBS.map((name) =&gt;
+    (<span class="k">typeof</span> globalThis[name] === 'undefined' ? undefined : globalThis[name]));
+}</code></pre>
+  <p>et il est branché aux deux endroits où un code utilisateur est compilé :</p>
+  <pre><code><span class="k">const</span> fn = <span class="k">new</span> Function('Scene', 'Game', 'console', 'named', ...SCRIPT_LIBS, ...);
+fn(Scene, Scene, proxyConsole, named, ...scriptLibValues());</code></pre>
+  <p>Regarde bien la symétrie : <code>SCRIPT_LIBS</code> sert <strong>deux fois</strong> — une fois comme noms de <em>paramètres</em> de la fonction compilée, une fois comme <em>valeurs</em> passées à l'appel. Ajouter une bibliothèque demain, c'est ajouter un mot dans ce tableau. Rien d'autre ne change : ni <code>RESERVED</code> (il est construit avec <code>...SCRIPT_LIBS</code> dedans), ni la signature, ni l'appel.</p>
+  <div class="box">
+    <h4>Leçon de conception n°2 : le registre plutôt que le cas particulier</h4>
+    <p>La version naïve aurait été : <code>new Function('Scene', ..., 'createjs', ...)</code> codée en dur. Ça marche... une fois. La version registre transforme « un cas » en « une catégorie ». C'est le mécanisme qui réalisera ta demande de pouvoir charger n'importe quelle bibliothèque : charger le fichier, ajouter le nom de sa globale dans <code>SCRIPT_LIBS</code>, finito.</p>
+  </div>
+  <h3>Pourquoi globalThis et pas window ?</h3>
+  <p><code>globalThis</code> désigne l'objet global <em>quel que soit l'environnement</em> : <code>window</code> dans un navigateur, <code>global</code> dans Node. Grâce à ça, le même fichier <code>sceneRuntime.js</code> tourne dans l'application <em>et</em> dans le harnais de test Node (voir partie 10). Chaque fois que tu écris « l'environnement », demande-toi si <code>window</code> est vraiment ce que tu veux dire.</p>
+</section>
+
+<section id="p5">
+  <h2><span class="num">5.</span>Le système d'événements : recevoir des méthodes sans salir la donnée</h2>
+  <p class="filetag">Fichier étudié : sceneRuntime.js (bloc EVENT_HANDLERS)</p>
+  <p>Objectif : que <code>tst.on("click", fn)</code> fonctionne, avec la sémantique d'EaselJS, sur des objets qui sont... de la donnée JSON. Le défi : ajouter des méthodes à un objet <strong>sans qu'elles apparaissent dans le document sauvegardé</strong>. Deux outils font tout le travail :</p>
+  <table>
+    <tr><th>Outil</th><th>Rôle</th></tr>
+    <tr><td><code>WeakMap</code></td><td>Les <em>handlers</em> sont rangés dans une map <em>à côté</em> des éléments, pas dedans. La donnée reste pure.</td></tr>
+    <tr><td><code>Object.defineProperty</code><br>(<code>enumerable: false</code>)</td><td>Les méthodes (<code>on</code>, <code>off</code>, <code>dispatchEvent</code>...) sont posées sur l'élément mais <strong>non énumérables</strong>. <code>JSON.stringify</code>, <code>Object.keys</code> et le panneau Propriétés ne les voient jamais.</td></tr>
+  </table>
+  <pre><code><span class="k">const</span> EVENT_HANDLERS = <span class="k">new</span> WeakMap();  <span class="c">// élément -&gt; Map(type -&gt; Set de handlers)</span>
+
+<span class="k">function</span> attachEventApi(obj) {
+  <span class="k">if</span> (obj.__hasEventApi) <span class="k">return</span> obj;
+  <span class="k">const</span> methods = { on: ..., off: ..., dispatchEvent: ... };
+  <span class="k">for</span> (<span class="k">const</span> name <span class="k">in</span> methods) {
+    Object.defineProperty(obj, name, {
+      value: methods[name], enumerable: <span class="n">false</span>, configurable: <span class="n">true</span>
+    });
+  }
+  ...
+  <span class="k">return</span> obj;
+}</code></pre>
+  <p>Un <code>WeakMap</code> (map « faible ») ne retient pas fortement son contenu : quand un élément disparaît du document, son entrée peut être ramassée par le ramasse-miettes. Pas de fuite mémoire, pas de nettoyage manuel. Retiens cette alliance : <strong>WeakMap pour les données annexes, defineProperty non-énumérable pour les méthodes</strong> — c'est un pattern réutilisable dès que tu dois « habiller » des données qui ne t'appartiennent pas.</p>
+  <h3>L'API obtenue (sémantique EaselJS)</h3>
+  <table>
+    <tr><th>Méthode</th><th>Comportement</th></tr>
+    <tr><td><code>el.on(type, fn)</code> (alias <code>addEventListener</code>)</td><td>Inscrit un handler ; renvoie un <em>wrapper</em> utilisable dans <code>off</code>.</td></tr>
+    <tr><td><code>el.off(type, fn|wrapper)</code> (alias <code>removeEventListener</code>)</td><td>Désinscrit par handler d'origine <em>ou</em> par wrapper renvoyé par <code>on</code>.</td></tr>
+    <tr><td><code>el.removeAllEventListeners(type?)</code></td><td>Tout (ou tout un type).</td></tr>
+    <tr><td><code>el.hasEventListener(type)</code></td><td>Interrogation.</td></tr>
+    <tr><td><code>el.dispatchEvent(evt|string)</code></td><td>Déclenche à la main ; remplit <code>target</code> si absent.</td></tr>
+  </table>
+  <h3>Le pipeline pointeur</h3>
+  <p>Les événements souris ne tombent pas du ciel : le runtime pose quatre écouteurs DOM sur le conteneur du stage (<code>mousedown</code>, <code>mousemove</code>, <code>mouseup</code>, <code>dblclick</code>) et traduit chaque geste :</p>
+  <pre><code>mousedown  --&gt; hit-test  --&gt; el.dispatchEvent("mousedown")   + Scene "stagemousedown"
+mousemove  --&gt; si pressé : "pressmove" sur l'élément pressé
+               si survol change : "rollout"+"mouseout" sur l'ancien,
+                                   "rollover"+"mouseover" sur le nouveau
+mouseup    --&gt; "mouseup" sur la cible, "pressup" sur l'élément pressé,
+               "click" SI ET SEULEMENT SI down et up sur le même élément</code></pre>
+  <p>La règle du clic EaselJS est fidèle : <strong>un click = down et up sur le même objet</strong>. Clique un carré, relâche à côté : pas de <code>click</code>. C'est le comportement auquel s'attendent tous les gens qui viennent de CreateJS — être compatible, c'est d'abord <em>respecter les règles subtiles</em>, pas juste les noms de fonctions.</p>
+  <div class="box warn">
+    <h4>Pourquoi rien ne se déclenche hors lecture ?</h4>
+    <p>En édition, un clic sur la scène appartient aux outils (sélection, dessin). Si les scripts pouvaient aussi réagir, tu aurais des alertes au milieu d'un tracé de plume. Le runtime applique donc une règle simple et documentée : <strong>les événements de script ne vivent que pendant la lecture</strong>, exactement comme les scripts d'image. Devant chaque ressource partagée, pose-toi la question : « à qui appartient ce clic ? »</p>
+  </div>
+</section>
+
+<section id="p6">
+  <h2><span class="num">6.</span>TweenJS et l'horloge : deux temps, un seul bouton pause</h2>
+  <p class="filetag">Fichier étudié : src/main.js (boucle loop)</p>
+  <p>Problème délicat de l'intégration : <code>createjs.Tween</code> avance sur <strong>sa propre horloge</strong> (le <code>Ticker</code> de CreateJS, typiquement à 60 Hz via <code>requestAnimationFrame</code>), alors que l'éditeur avance <strong>à la cadence du document</strong> (24 images/s par défaut). Si on ne fait rien, deux bugs d'expérience :</p>
+  <ul>
+    <li>tu mets l'éditeur sur pause... et les tweens continuent en coulisses ;</li>
+    <li>les tweens avancent à 60 Hz mais la scène ne se redessine qu'à chaque image de timeline (24 Hz) : animation saccadée.</li>
+  </ul>
+  <p>Deux réglages, dans la boucle <code>loop()</code> de main.js :</p>
+  <pre><code><span class="c">// 1. Le Ticker CreateJS respire avec l'éditeur</span>
+<span class="k">const</span> createjs = globalThis.createjs;
+<span class="k">if</span> (createjs &amp;&amp; createjs.Ticker) createjs.Ticker.paused = !state.playing;
+
+<span class="c">// 2. Pendant la lecture, on redessine à CHAQUE frame d'affichage,</span>
+<span class="c">//    pas seulement à chaque image de timeline</span>
+stage.render(tick);   <span class="c">// en fin de loop(), exécuté à ~60 Hz</span></code></pre>
+  <p><code>Ticker.paused</code> est une propriété documentée de CreateJS 1.0 : le tick continue d'être émis, mais marqué <code>paused: true</code>, et les tweens l'ignorent. Résultat : <em>un seul</em> bouton pause pilote les deux mondes. Cherche toujours le <strong>point de synchronisation</strong> entre deux systèmes qui ont chacun leur horloge — c'est presque toujours là que se cache le bug.</p>
+</section>
+
+<section id="p7">
+  <h2><span class="num">7.</span>Le hit-testing : des maths simples, bien rangées</h2>
+  <p class="filetag">Fichier étudié : sceneRuntime.js (hitTestElement)</p>
+  <p>Pour savoir si ton clic touche <code>tst</code>, il faut ramener le point du <em>repère scène</em> vers le <em>repère local</em> de l'élément (position, rotation, échelle inversées), puis tester selon le type de forme :</p>
+  <pre><code><span class="k">function</span> hitTestElement(el, px, py, doc) {
+  <span class="k">const</span> dx = px - (el.x || 0), dy = py - (el.y || 0);
+  <span class="k">const</span> rot = -(el.rotation || 0) * Math.PI / 180;   <span class="c">// degrés -&gt; radians, signe inversé</span>
+  <span class="k">const</span> cos = Math.cos(rot), sin = Math.sin(rot);
+  <span class="k">const</span> lx = dx * cos - dy * sin;                  <span class="c">// rotation inverse appliquée</span>
+  <span class="k">const</span> ly = dx * sin + dy * cos;
+  <span class="k">const</span> sx = el.scaleX == <span class="n">null</span> ? <span class="n">1</span> : el.scaleX;
+  <span class="k">const</span> sy = el.scaleY == <span class="n">null</span> ? <span class="n">1</span> : el.scaleY;
+  <span class="k">if</span> (el.shapeType === 'ellipse') {
+    <span class="c">// test de disque : (lx/rx)² + (ly/ry)² &lt;= 1</span>
+  }
+  <span class="c">// lignes/chemins : boîte englobante des points</span>
+  <span class="c">// instances : hull du symbole (partie 9) ; le reste : boîte englobante</span>
+}</code></pre>
+  <p>Trois choix pédagogiques dans cette fonction :</p>
+  <ol class="page">
+    <li><strong>Ellipse = test de disque, pas de boîte.</strong> Le facile aurait été une boîte englobante pour tout. Le joueur qui clique dans un coin vide d'une ellipse ronde ne doit pas être récompensé.</li>
+    <li><strong><code>el.x || 0</code> partout.</strong> La donnée vient d'un document utilisateur : des champs peuvent manquer. Chaque accès est défensif — <code>(el.x || 0)</code>, <code>(el.scaleX == null ? 1 : el.scaleX)</code>. Ton code doit survivre aux données imparfaites.</li>
+    <li><strong>Les instances sont le cas dur.</strong> Une instance n'a pas de largeur : sa taille est celle du symbole qu'elle référencie. Solution : calculer l'<em>enveloppe</em> (hull) de tout ce que le symbole dessine, sur toutes ses images, récursivement.</li>
+  </ol>
+</section>
+
+<section id="p8">
+  <h2><span class="num">8.</span>Recettes pratiques : ton tour de jouer</h2>
+  <p>Toutes ces recettes s'écrivent dans le panneau Scripts, au <strong>niveau supérieur</strong> du script (jamais dans <code>onEnterFrame</code> — voir la règle d'or ci-dessous).</p>
+  <div class="box warn">
+    <h4>La règle d'or des handlers</h4>
+    <p>Les inscriptions d'événements se font <strong>une fois</strong>, au top-level du script. Un <code>tst.on("click", ...)</code> écrit dans <code>onEnterFrame</code> serait réexécuté à chaque image et empilerait les handlers. Le runtime nettoie tout à chaque Exécuter précisément pour que tu puisses réessayer tranquillement — profites-en, mais écris les inscriptions au bon endroit.</p>
+  </div>
+  <h3>Recette 1 — Clic sur une instance nommée</h3>
+  <pre><code>Scene.play();   <span class="c">// les événements ne vivent qu'en lecture</span>
+tst.on("click", <span class="k">function</span> (ev) {
+  Scene.log("clic en", ev.stageX, ev.stageY, "sur", ev.target.name);
+});</code></pre>
+  <h3>Recette 2 — Tween de base (la façon CreateJS)</h3>
+  <pre><code>Scene.play();
+createjs.Tween.get(tst)                       <span class="c">// cible : l'élément nommé</span>
+  .to({ x: <span class="n">400</span>, rotation: <span class="n">180</span> }, <span class="n">1000</span>)        <span class="c">// 1 seconde, easing linéaire par défaut</span>
+  .wait(<span class="n">300</span>)                                 <span class="c">// pause de 300 ms</span>
+  .to({ y: <span class="n">300</span> }, <span class="n">500</span>, createjs.Ease.bounceOut);  <span class="c">// avec rebond</span></code></pre>
+  <p><code>createjs.Ease</code> est le catalogue de courbes d'accélération (<code>linear</code>, <code>quadOut</code>, <code>bounceOut</code>, <code>elasticOut</code>...) : on passe la fonction voulue en 3e paramètre de <code>to()</code>. Sans paramètre, l'interpolation est linéaire.</p>
+  <h3>Recette 3 — Glisser-déposer à la EaselJS</h3>
+  <pre><code>Scene.play();
+tst.on("mousedown", <span class="k">function</span> (ev) { tst._drag = <span class="n">true</span>; });
+tst.on("pressmove", <span class="k">function</span> (ev) {
+  <span class="k">if</span> (!tst._drag) <span class="k">return</span>;
+  tst.x = ev.stageX;   <span class="c">// au centre ; pour un déplacement relatif,</span>
+  tst.y = ev.stageY;   <span class="c">// garde le delta à mousedown et soustrais-le</span>
+});
+tst.on("pressup", <span class="k">function</span> () { tst._drag = <span class="n">false</span>; });</code></pre>
+  <p>Attention : <code>tst._drag</code> s'écrit dans la donnée de l'élément et finira dans le document sauvegardé. Pour un état vraiment éphémère, utilise une variable du script (fermeture) plutôt que l'élément.</p>
+  <h3>Recette 4 — Ticker : sa propre cadence</h3>
+  <pre><code>Scene.play();
+<span class="k">let</span> t = <span class="n">0</span>;
+createjs.Ticker.addEventListener("tick", <span class="k">function</span> (e) {
+  t += e.delta / <span class="n">1000</span>;                 <span class="c">// delta en ms -&gt; secondes</span>
+  circ.x = <span class="n">300</span> + Math.sin(t * <span class="n">3</span>) * <span class="n">50</span>; <span class="c">// orbite douce</span>
+});
+<span class="c">// e.paused vaut true quand l'éditeur est en pause : le callback</span>
+<span class="c">// reçoit toujours le tick, à toi de respecter e.paused si tu le veux strict</span></code></pre>
+  <h3>Recette 5 — Scene-level : tout clic, même dans le vide</h3>
+  <pre><code>Scene.play();
+Scene.onClick(<span class="k">function</span> (x, y) {            <span class="c">// API de l'éditeur</span>
+  Scene.log("clic scène à", x, y);
+});
+Scene.on("stageclick", <span class="k">function</span> (ev) {      <span class="c">// forme EaselJS, équivalent</span>
+  Scene.log("stageclick", ev.stageX, ev.stageY);
+});
+Scene.onClick("tst", <span class="k">function</span> (x, y, el) {   <span class="c">// ciblé par nom</span>
+  el.rotation += <span class="n">15</span>;
+});</code></pre>
+</section>
+
+<section id="p9">
+  <h2><span class="num">9.</span>L'export HTML : embarquer CreateJS proprement</h2>
+  <p class="filetag">Fichier étudié : src/export/exportHTML.js</p>
+  <p>« Exporter HTML » génère un fichier <strong>autonome</strong> : il doit marcher hors ligne, sans le dossier <code>public/</code>. Deux contraintes opposées :</p>
+  <ul>
+    <li>si un script utilise <code>createjs</code>, l'export doit contenir la bibliothèque (~280 Ko) ;</li>
+    <li>sinon, les coller partout gonflerait chaque export de 280 Ko de code mort.</li>
+  </ul>
+  <p>La solution est un <strong>chargement conditionnel</strong> :</p>
+  <pre><code><span class="k">function</span> collectAllScripts(doc) { ... }   <span class="c">// scripts nommés + scripts d'image</span>
+                                          <span class="c">// (racine + tous les symboles)</span>
+<span class="k">if</span> (collectAllScripts(doc).some((code) =&gt; /\bcreatejs\b/.test(code))) {
+  libScripts = (await loadCreateJsSources())       <span class="c">// fetch des 4 .min.js</span>
+    .map((src) =&gt; '&lt;script&gt;\n' + src + '\n&lt;/script&gt;\n')
+    .join('');
+}
+<span class="c">// puis, dans le HTML final :</span>
+<span class="c">// &lt;canvas id="stage"&gt;&lt;/canvas&gt;</span>
+<span class="c">// ${libScripts}&lt;script type="module"&gt;...bootstrap...&lt;/script&gt;</span></code></pre>
+  <p>Et dans le bootstrap exporté, chaque <code>new Function</code> reçoit le paramètre <code>createjs</code> protégé par une garde :</p>
+  <pre><code><span class="k">var</span> fn = <span class="k">new</span> Function('Scene','Game','console','named','createjs', ...);
+fn(Scene, Scene, console, named,
+   (<span class="k">typeof</span> createjs !== 'undefined' ? createjs : undefined));</code></pre>
+  <p>La garde <code>typeof</code> est le seul moyen en JavaScript de tester une variable <em>peut-être non déclarée</em> sans lancer de <code>ReferenceError</code>. Si les libs manquent, le script ne crashe pas au chargement : <code>createjs</code> vaut <code>undefined</code> et l'erreur, si erreur il y a, pointera la ligne de l'utilisateur.</p>
+  <div class="box">
+    <h4>Le détail qui tue les exports : <code>&lt;/script&gt;</code></h4>
+    <p>Inliner du JavaScript dans un bloc <code>&lt;script&gt;</code> d'un fichier HTML est sûr <em>sauf</em> si la source contient la séquence <code>&lt;/script&gt;</code> (qui fermerait le bloc prématurément) ou <code>&lt;!--</code>. On l'a vérifié sur les quatre fichiers avant de s'autoriser l'inlining direct. Quand tu colles du code dans du code, liste toujours les séquences qui <em>cassent l'enveloppe</em> et vérifie-les.</p>
+  </div>
+</section>
+
+<section id="p10">
+  <h2><span class="num">10.</span>La technique de travail : comment on arrive au résultat</h2>
+  <p>Le code, tu viens de le lire. Ce qui fait la différence, c'est la méthode autour. Voici les habitudes que j'ai appliquées sur cette intégration — ce sont elles que je te propose de faire tiennes.</p>
+  <ol class="page">
+    <li><strong>Lire avant d'écrire.</strong> Avant la moindre modification, j'ai lu <code>sceneRuntime.js</code>, <code>main.js</code> (la boucle), <code>exportHTML.js</code> et cherché ce qui existait déjà (<code>pointFromClient</code>, <code>getNamedElements</code>). Réutiliser une fonction existante vaut mieux qu'en écrire une neuve.</li>
+    <li><strong>Changer peu, garder le style.</strong> Le diff final touche six fichiers et s'aligne sur les conventions du projet (commentaires français explicatifs, même style d'indentation). Modifier le minimum n'est pas de la paresse : c'est de la réduction de surface de risque.</li>
+    <li><strong>Prouver, pas croire.</strong> Un harnais Node (<code>_wrk_mistral_mem/repro_createjs.mjs</code>) charge les <em>vraies</em> bibliothèques dans une sandbox <code>node:vm</code> et vérifie 21 comportements : tween réel, clics, hit-tests, absence d'empilement, sérialisation intacte. « Ça marche » n'existe pas tant que rien ne l'a observé.</li>
+    <li><strong>Se méfier des couches d'échappement.</strong> Un outil d'édition doublait les backslashes : le gabarit de script s'est retrouvé cassé par <code>l'instance</code> (une apostrophe fermait la chaîne) et par <code>\\n</code>. La loi : après toute écriture contenant des backslashes, on relit les <em>octets</em> (<code>tr '\\' '#'</code>, <code>od -c</code>), pas l'affichage. L'affichage ment ; les octets non.</li>
+    <li><strong>Quand un test échoue, suspecter le test d'abord.</strong> Sur 21 contrôles, les 2 échecs venaient du harnais lui-même (un point de clic « hors ellipse » placé en réalité dedans ; un survol déjà actif). Le réflexe : recalculer l'hypothèse du test avant d'accuser le code.</li>
+    <li><strong>Écrire pour le prochain lecteur.</strong> Chaque décision non évidente est un commentaire <em>de pourquoi</em> dans le code (WeakMap non-énumérable, Ticker.paused, garde typeof). Le code dit <em>ce qui</em> ; les commentaires disent <em>pourquoi</em>.</li>
+    <li><strong>Tenir un journal.</strong> Le dossier <code>_wrk_mistral_mem/</code> archive chaque session : ce qui a été fait, ce qui reste, les pièges rencontrés. Une mémoire écrite vaut dix souvenirs.</li>
+  </ol>
+</section>
+
+<section id="p11">
+  <h2><span class="num">11.</span>Exercices</h2>
+  <p class="goal">À faire dans ton éditeur : ouvre un projet, nomme une instance (champ « Nom d'instance » dans les propriétés), ouvre le panneau Scripts, et mets la lecture. Les corrigés sont repliés : cherche d'abord seul, c'est là que ça s'apprend.</p>
+
+  <h3>Exercice 1 — Le phare</h3>
+  <p>Fais tourner un rectangle nommé <code>lampe</code> en continu sur lui-même, de deux façons : (a) uniquement avec l'API <code>Scene</code>, (b) uniquement avec <code>createjs.Tween</code>. Puis fais-le s'arrêter quand on clique dessus, et repartir quand on clique sur la scène (dans le vide).</p>
+  <details><summary>Corrigé</summary>
+<pre><code>Scene.play();
+<span class="c">// (a) API Scene</span>
+Scene.onEnterFrame(() =&gt; { lampe.rotation = (lampe.rotation + <span class="n">3</span>) % <span class="n">360</span>; });
+<span class="c">// (b) Tween : tourner indéfiniment = tween court + appel à on complete</span>
+<span class="k">function</span> tourne() {
+  createjs.Tween.get(lampe).to({ rotation: <span class="n">360</span> }, <span class="n">1000</span>)
+    .call(() =&gt; { lampe.rotation = <span class="n">0</span>; tourne(); });
+}
+tourne();
+<span class="c">// stop / reprise</span>
+lampe.on("click", ()  =&gt; { createjs.Tween.removeTweens(lampe); });
+Scene.onClick((x, y) =&gt; { <span class="k">if</span> (!hitLampe(x, y)) tourne(); });</code></pre>
+  <p>Remarque : <code>Scene.onClick</code> « dans le vide » peut aussi se filtrer en comparant au hit de <code>lampe</code> via l'événement <code>stageclick</code> + les coordonnées.</p>
+  </details>
+
+  <h3>Exercice 2 — Drag propre</h3>
+  <p>Améliore la recette 3 : le déplacement doit être <em>relatif</em> (l'élément ne saute pas au centre du curseur), et l'élément ne doit jamais sortir des limites de la scène (<code>Scene.width</code>, <code>Scene.height</code>).</p>
+  <details><summary>Corrigé</summary>
+<pre><code>Scene.play();
+<span class="k">let</span> off = <span class="n">null</span>;                              <span class="c">// état dans la fermeture, pas dans la donnée</span>
+tst.on("mousedown", (ev) =&gt; { off = { dx: tst.x - ev.stageX, dy: tst.y - ev.stageY }; });
+tst.on("pressmove", (ev) =&gt; {
+  <span class="k">if</span> (!off) <span class="k">return</span>;
+  tst.x = Math.max(<span class="n">0</span>, Math.min(Scene.width,  ev.stageX + off.dx));
+  tst.y = Math.max(<span class="n">0</span>, Math.min(Scene.height, ev.stageY + off.dy));
+});
+tst.on("pressup", () =&gt; { off = <span class="n">null</span>; });</code></pre>
+  </details>
+
+  <h3>Exercice 3 — Ta première bibliothèque</h3>
+  <p>Réalise toi-même la « demande n°2 » : fabrique un fichier <code>public/libs/monoutil.js</code> qui s'installe sur une globale <code>MonUtil</code> (une fonction <code>distance(x1,y1,x2,y2)</code> suffit), charge-le par une balise script dans <code>index.html</code>, puis rends-le disponible dans les scripts <em>sans toucher à rien d'autre que SCRIPT_LIBS</em>.</p>
+  <details><summary>Corrigé</summary>
+<pre><code><span class="c">// public/libs/monoutil.js</span>
+<span class="k">this</span>.MonUtil = {
+  distance(x1, y1, x2, y2) {
+    <span class="k">return</span> Math.hypot(x2 - x1, y2 - y1);
+  }
+};
+<span class="c">// index.html : &lt;script src="/libs/monoutil.js"&gt;&lt;/script&gt; (avant le module)</span>
+<span class="c">// sceneRuntime.js :</span>
+<span class="k">const</span> SCRIPT_LIBS = ['createjs', 'MonUtil'];
+<span class="c">// c'est tout. RESERVED et les paramètres suivent automatiquement.</span></code></pre>
+  </details>
+
+  <h3>Exercice 4 — Lecture de code (le plus formateur)</h3>
+  <p>Ouvre <code>sceneRuntime.js</code> et réponds sans exécuter : que se passe-t-il précisément si l'utilisateur clique <em>dehors</em> de tous les éléments nommés ? Énumère les événements émis, dans l'ordre, en nommant les fonctions traversées. Vérifie ensuite avec un <code>Scene.log</code> dans chaque handler.</p>
+  <details><summary>Corrigé</summary>
+  <p><code>onStageMouseDown</code> : <code>topHit</code> renvoie null → aucun mousedown d'élément, mais <code>Scene "stagemousedown"</code> est émis. Puis <code>pressTarget = null</code>. Au <code>mouseup</code> : pas de « mouseup » d'élément ni de « pressup » (pas de pressTarget), <code>dispatchClick(null, ...)</code> : pas de « click » d'élément, mais <code>Scene "stageclick"</code> et les <code>Scene.onClick</code> globaux sont déclenchés. Enfin <code>"stagemouseup"</code>.</p>
+  </details>
+</section>
+
+<section id="p12">
+  <h2><span class="num">12.</span>Pour aller plus loin</h2>
+  <ul>
+    <li><strong>Les sources de la vérité</strong> : <code>src/runtime/sceneRuntime.js</code> (injection + événements), <code>src/main.js</code> (boucle, Ticker), <code>src/export/exportHTML.js</code> (inline conditionnel), <code>_wrk_mistral_mem/repro_createjs.mjs</code> (le harnais — le lire, c'est apprendre à tester).</li>
+    <li><strong>Documentation CreateJS</strong> : les fichiers <code>README.md</code> livrés dans chaque paquet npm sont la doc officielle de l'époque ; l'API EaselJS (DisplayObject, EventDispatcher, Ticker) est celle que ce cours t'a fait parcourir de l'intérieur.</li>
+    <li><strong>Terrains d'entraînement suivants</strong> : brancher les événements pointer dans l'export HTML (le pipeline existe côté éditeur, il « suffit » de l'écrire dans le bootstrap exporté) ; remplacer le hit-test de boîte du texte par un hit-test réel ; écrire un mini-harnais pour l'export.</li>
+  </ul>
+  <p>Le fil rouge à retenir : <em>un bon intégrateur ne modifie ni la bibliothèque ni l'utilisateur — il construit le pont entre les deux, le rend mesurable, et documente chaque choix.</em></p>
+</section>
+
+<footer>
+  <p>Cours généré le 02/10/2026 pour le projet TweenJS — toute l'implémentation décrite ici est dans le dépôt, non commise à la date de rédaction. Ouvre ce fichier dans n'importe quel navigateur, il n'a aucune dépendance.</p>
+</footer>
+
+</main>
+</div>
+</body>
+</html>

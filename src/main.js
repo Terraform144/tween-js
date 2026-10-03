@@ -270,7 +270,14 @@ const libraryCtl = mountLibraryPanel(document.getElementById('library-panel'), s
   addInstanceAt: stage.addInstanceAt,
 });
 
-const sceneRuntime = createSceneRuntime({ state, onResize: () => stage.resize() });
+// stageContainer/toScenePoint branchent Scene.onClick() sur la scène réelle :
+// les clics écran sont convertis en coordonnées document via pointFromClient.
+const sceneRuntime = createSceneRuntime({
+  state,
+  onResize: () => stage.resize(),
+  stageContainer: document.getElementById('stage-container'),
+  toScenePoint: (cx, cy) => stage.pointFromClient(cx, cy),
+});
 
 const scriptsCtl = mountScriptsPanel(document.getElementById('scripts-panel'), state, {
   runtime: sceneRuntime,
@@ -545,6 +552,12 @@ function advanceClipsForLayer(layers, parentFrame) {
 function loop(time) {
   requestAnimationFrame(loop);
 
+  // TweenJS (createjs.Tween) avance sur l'horloge de son propre Ticker ;
+  // on le met en pause hors lecture pour que les tweens créés par script
+  // s'arrêtent avec l'éditeur (même modèle que les scripts d'image).
+  const createjs = globalThis.createjs;
+  if (createjs && createjs.Ticker) createjs.Ticker.paused = !state.playing;
+
   if (state.playing && !wasPlaying) { lastTime = time; acc = 0; clearClipStates(); sceneRuntime.runFrameScripts(state.currentFrame); }
   wasPlaying = state.playing;
   if (!state.playing) return;
@@ -570,8 +583,11 @@ function loop(time) {
     // (pour refléter l'arrêt) mais on n'avance plus les clips ni la timeline.
     if (!state.playing) { stage.render(tick); timelineCtl.update(); return; }
     advanceClipsForLayer(getContextLayers(state.doc, state.editPath), state.currentFrame);
-    stage.render(tick);
     timelineCtl.update();
   }
+  // Rendu à chaque rAF pendant la lecture (et pas seulement à chaque
+  // avancée d'image) : les tweens createjs avancent à l'horloge du Ticker
+  // (typiquement 60 fps), indépendamment du frameRate du document.
+  stage.render(tick);
 }
 requestAnimationFrame(loop);
