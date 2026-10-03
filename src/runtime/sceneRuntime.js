@@ -345,6 +345,66 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
     if (stageContainer) stageContainer.addEventListener(type, handler);
   }
 
+  // Tactile : Stage.js fait preventDefault() sur tout touchstart (correctif
+  // plume, cf. Stage.js) pour couper la séquence souris émulée du navigateur.
+  // Résultat : sur mobile, les écouteurs mouse* ci-dessus ne reçoivent RIEN —
+  // le clic restait muet en lecture dans l'éditeur, alors que les exports HTML
+  // (sans preventDefault) fonctionnent via l'émulation. On branche donc le
+  // tactile directement sur les mêmes handlers. La porte est identique
+  // (scenePoint -> state.playing + cible canvas) ; hors lecture, on ne
+  // preventDefault pas et scenePoint renvoie null : les outils gardent leur
+  // flux (déjà géré par Stage.js).
+  let lastTap = null; // { time, clientX, clientY } — double-tap -> dblclick
+  function touchSynth(e) {
+    const touches = (e.type === 'touchend' || e.type === 'touchcancel') ? e.changedTouches : e.touches;
+    const t = touches && touches[0];
+    if (!t) return null;
+    return { clientX: t.clientX, clientY: t.clientY, target: e.target };
+  }
+  function onStageTouchStart(e) {
+    const s = touchSynth(e);
+    if (!s) return;
+    if (state.playing && e.cancelable) e.preventDefault();
+    onStageMouseDown(s);
+  }
+  function onStageTouchMove(e) {
+    const s = touchSynth(e);
+    if (!s) return;
+    if (state.playing && e.cancelable) e.preventDefault();
+    onStageMouseMove(s);
+  }
+  function onStageTouchEnd(e) {
+    const s = touchSynth(e);
+    if (!s) return;
+    if (state.playing && e.cancelable) e.preventDefault();
+    onStageMouseUp(s);
+    // Double-tap -> dblclick : l'émulation dblclick du navigateur est coupée
+    // par le preventDefault de Stage.js, on la remplace (fenêtre 350 ms /
+    // 30 px, même sémantique que l'export où l'émulation existe).
+    const now = Date.now();
+    if (lastTap && now - lastTap.time <= 350 &&
+        Math.hypot(s.clientX - lastTap.clientX, s.clientY - lastTap.clientY) <= 30) {
+      onStageDoubleClick(s);
+      lastTap = null;
+    } else {
+      lastTap = { time: now, clientX: s.clientX, clientY: s.clientY };
+    }
+  }
+  function onStageTouchCancel() {
+    pressTarget = null;
+    hoverTarget = null;
+    lastTap = null;
+  }
+  const TOUCH_EVENTS = [
+    ['touchstart', onStageTouchStart],
+    ['touchmove', onStageTouchMove],
+    ['touchend', onStageTouchEnd],
+    ['touchcancel', onStageTouchCancel],
+  ];
+  for (const [type, handler] of TOUCH_EVENTS) {
+    if (stageContainer) stageContainer.addEventListener(type, handler);
+  }
+
   function activeLayer() {
     const layers = getContextLayers(state.doc, state.editPath);
     return layers.find((l) => l.id === state.selectedLayerId) || layers[layers.length - 1];
@@ -563,6 +623,9 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
     window.removeEventListener('keydown', onKeyDown);
     window.removeEventListener('keyup', onKeyUp);
     if (stageContainer) for (const [type, handler] of POINTER_EVENTS) {
+      stageContainer.removeEventListener(type, handler);
+    }
+    if (stageContainer) for (const [type, handler] of TOUCH_EVENTS) {
       stageContainer.removeEventListener(type, handler);
     }
   }
