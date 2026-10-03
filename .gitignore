@@ -8,6 +8,9 @@ gameTest/
 android/
 public/*
 !public/apk-debug.apk
+!public/manifest.webmanifest
+!public/sw.js
+!public/icons/
 capacitor.config.json
 dev-server.err.log
 dev-server.log

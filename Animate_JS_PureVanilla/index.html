@@ -4,7 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TweenJS - Pure Vanilla</title>
-  
+
+  <!-- PWA : manifeste, icônes et couleur de thème (service worker en bas de
+       page). Chemins RELATIFS : fonctionne aussi servé dans un sous-dossier. -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="theme-color" content="#073642" />
+
   <!-- Konva JS - copie locale (9.3.22, meme version que le package npm) :
        doit etre charge avant le bundle. Aucune dependance CDN, marche hors ligne. -->
   <script src="libs/konva.min.js"></script>
@@ -50,5 +57,39 @@
   
   <!-- Bundle de l'application - doit être chargé après les dépendances -->
   <script src="tweenjs-bundle.js"></script>
+
+  <!-- PWA : enregistre le service worker puis, une fois actif, lui transmet
+       la liste des ressources réellement chargées — le cache hors ligne est
+       complet dès la première visite (stratégies dans sw.js). -->
+  <script>
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+      var register = function () {
+        navigator.serviceWorker.register('sw.js').then(function (reg) {
+          return navigator.serviceWorker.ready.then(function () { return reg; });
+        }).then(function (reg) {
+          var worker = reg.active || reg.waiting || reg.installing;
+          if (!worker) return;
+          var urls = [
+            location.href,
+            'manifest.webmanifest',
+            'icons/icon-192.png',
+            'icons/icon-512.png',
+            'icons/apple-touch-icon.png'
+          ];
+          if (performance && performance.getEntriesByType) {
+            performance.getEntriesByType('resource').forEach(function (r) {
+              if (r.name && urls.indexOf(r.name) === -1) urls.push(r.name);
+            });
+          }
+          worker.postMessage({ type: 'CACHE_URLS', urls: urls });
+        }).catch(function (err) {
+          console.warn('[PWA] service worker non enregistré :', err);
+        });
+      };
+      if (document.readyState === 'complete') register();
+      else window.addEventListener('load', register);
+    })();
+  </script>
 </body>
 </html>
