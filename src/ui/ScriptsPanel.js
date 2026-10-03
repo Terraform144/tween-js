@@ -15,7 +15,8 @@ import { ICONS } from './icons.js';
 const SCENE_COMPLETIONS = [
   'width', 'height', 'frameRate', 'backgroundColor', 'name', 'frameCount',
   'playing', 'currentFrame', 'play', 'stop', 'gotoAndPlay', 'gotoAndStop',
-  'addShape', 'addInstance', 'onEnterFrame', 'onKeyDown', 'onKeyUp', 'keys', 'random',
+  'addShape', 'addInstance', 'onEnterFrame', 'onKeyDown', 'onKeyUp', 'onClick',
+  'keys', 'random', 'log',
 ];
 
 const sceneCompletionSource = (context) => {

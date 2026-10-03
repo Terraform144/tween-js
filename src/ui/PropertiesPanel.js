@@ -2,6 +2,18 @@ import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, get
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 
+// Lie un <label> à son champ via un id/name unique : sans cette association
+// (attribut for), DevTools signale « form field without id or name » et
+// « label not associated with a form field », et l'accessibilité
+// (focus au clic sur le libellé, lecteurs d'écran) ne fonctionne pas.
+let fieldSeq = 0;
+function linkLabelToField(l, field) {
+  const id = 'prop-field-' + (++fieldSeq);
+  field.id = id;
+  field.name = id;
+  l.htmlFor = id;
+}
+
 export function mountPropertiesPanel(container, state) {
   const { body } = createPanel(container, { key: 'propertiesCollapsed', label: 'Propriétés' });
 
@@ -28,6 +40,7 @@ export function mountPropertiesPanel(container, state) {
     if (opts.step) input.step = opts.step;
     input.value = Math.round(value * 100) / 100;
     input.addEventListener('change', () => onChange(parseFloat(input.value) || 0));
+    linkLabelToField(l, input);
     row.append(l, input);
     body.appendChild(row);
     return input;
@@ -45,6 +58,7 @@ export function mountPropertiesPanel(container, state) {
     // pendant que l'on choisit la couleur — un re-rendu à chaque événement
     // détruirait l'élément et refermerait le nuancier avant confirmation.
     input.addEventListener('change', () => onChange(input.value));
+    linkLabelToField(l, input);
     row.append(l, input);
     body.appendChild(row);
   }
@@ -59,6 +73,7 @@ export function mountPropertiesPanel(container, state) {
     input.value = value || '';
     if (opts.title) input.title = opts.title;
     input.addEventListener('change', () => onChange(input.value));
+    linkLabelToField(l, input);
     row.append(l, input);
     body.appendChild(row);
   }
@@ -78,6 +93,7 @@ export function mountPropertiesPanel(container, state) {
     textarea.rows = opts.rows || 5;
     if (opts.title) textarea.title = opts.title;
     textarea.addEventListener('change', () => onChange(textarea.value));
+    linkLabelToField(l, textarea);
     row.append(l, textarea);
     body.appendChild(row);
     return textarea;
@@ -97,6 +113,7 @@ export function mountPropertiesPanel(container, state) {
       select.appendChild(opt);
     }
     select.addEventListener('change', () => onChange(select.value));
+    linkLabelToField(l, select);
     row.append(l, select);
     body.appendChild(row);
     return select;
@@ -124,6 +141,7 @@ export function mountPropertiesPanel(container, state) {
     }
     
     select.addEventListener('change', () => onChange(select.value === '' ? null : select.value));
+    linkLabelToField(l, select);
     row.append(l, select);
     body.appendChild(row);
     return select;
@@ -146,6 +164,7 @@ export function mountPropertiesPanel(container, state) {
       select.appendChild(opt);
     }
     select.addEventListener('change', () => { kf.tween.easing = select.value; notify(state); });
+    linkLabelToField(l, select);
     row.append(l, select);
     body.appendChild(row);
 

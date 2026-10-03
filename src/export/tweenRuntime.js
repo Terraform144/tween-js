@@ -243,6 +243,11 @@ export class MovieClip {
     // (comportement identique à Adobe Animate CC).
     this._onFrameScript = props.onFrameScript || null;
     this._lastScriptFrame = -1;
+    // Exécuteur externe des scripts d'image des clips ENFANTS (mode compilé
+    // — exportCompiled.js) : function(symbolData, layerId, frame, clipScene).
+    // S'il est absent, les scripts sont exécutés dynamiquement (comportement
+    // historique des exports classiques et de l'éditeur).
+    this._clipScriptExecutor = props.clipScriptExecutor || null;
   }
 
   get currentFrame() { return this._frame; }
@@ -349,6 +354,7 @@ export class MovieClip {
             { ...symbol, frameRate: this.data.frameRate, symbols: this.data.symbols, assets: this.data.assets },
             {
               onFrameScript: function (frame) { parent._runChildFrameScript(child, frame); },
+              clipScriptExecutor: this._clipScriptExecutor,
             }
           );
           this._children.set(el.id, child);
@@ -367,8 +373,14 @@ export class MovieClip {
       if (!kf || !kf.script || !kf.script.trim()) continue;
       try {
         const clipScene = this._buildClipScene(childClip);
-        var fn = new Function('Scene', 'Game', 'console', 'named', '"use strict";\n' + kf.script);
-        fn(clipScene, clipScene, console, {});
+        if (this._clipScriptExecutor) {
+          this._clipScriptExecutor(childClip.data, layer.id, frame, clipScene);
+        } else {
+          /* TJS_NOEVAL_START (repli retiré par l'export compilé — exportCompiled.js) */
+          var fn = new Function('Scene', 'Game', 'console', 'named', 'createjs', '"use strict";\n' + kf.script);
+          fn(clipScene, clipScene, console, {}, (typeof createjs !== 'undefined' ? createjs : undefined));
+          /* TJS_NOEVAL_END */
+        }
       } catch (err) { console.error(err); }
     }
   }

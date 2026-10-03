@@ -81,6 +81,18 @@ Ouvrir l'URL affichée (http://localhost:5173).
   autonome (aucune dépendance, aucun build) qui rejoue toute l'animation
   avec un runtime Canvas 2D minimal embarqué. "Enregistrer JSON" / "Ouvrir…"
   permettent de sauvegarder et recharger le projet.
+- **Scripts + CreateJS complet** : le panneau Scripts exécute du JavaScript
+  avec l'API `Scene`/`Game` (play/stop/gotoAndPlay, onEnterFrame, onKeyDown,
+  onClick...) et les instances nommées en variables directes. La bibliothèque
+  CreateJS complète (EaselJS + TweenJS + SoundJS + PreloadJS 1.0.x, copie
+  locale MIT dans `public/libs/createjs`) est injectée dans les scripts :
+  `createjs.Tween.get(nom).to({x: 300}, 1000)`, `createjs.Sound`,
+  `createjs.LoadQueue`, `createjs.Ticker`... Les instances nommées portent
+  aussi les événements EaselJS (`nom.on("click", fn)`, mousedown, pressmove,
+  rollover, tick...) pendant la lecture ; le Ticker CreateJS est mis en
+  pause avec l'éditeur. L'export HTML inline automatiquement les libs
+  CreateJS quand un script les utilise et offre la même API événements
+  que l'éditeur (portées run/frame, pipeline pointeur, labels).
 
 ## Structure
 

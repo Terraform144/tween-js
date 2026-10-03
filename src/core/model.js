@@ -28,7 +28,7 @@ export function createDocument({ name = 'Sans titre', width = 550, height = 400,
     symbols: {}, // { [symbolId]: Symbol }
     frameLabels: {}, // { [frameIndex]: 'label' } — pour gotoAndPlay('label') à l'export
     assets: {}, // { [assetId]: Asset } — images bitmap embarquées (dataUrl base64)
-    scripts: [createScript('Script 1', '// Code exécuté avec Scene (alias Game)\n// Exemple :\nScene.log(\"Bonjour\", Scene.width, \"x\", Scene.height);\nScene.play();\n// Les objets nommés (Nom d\'instance dans les propriétés) sont accessibles\n// directement, comme des movieclips : nom.x += 1; // bouge de 1 px\nScene.onEnterFrame(() => {\n  // ... boucle de jeu, appelée à chaque image pendant la lecture\n});')],
+    scripts: [createScript('Script 1', '// Code exécuté avec Scene (alias Game)\n// Exemple :\nScene.log("Bonjour", Scene.width, "x", Scene.height);\nScene.play();\n// Les objets nommés (Nom d\'instance dans les propriétés) sont accessibles\n// directement, comme des movieclips : nom.x += 1; // bouge de 1 px\nScene.onEnterFrame(() => {\n  // ... boucle de jeu, appelée à chaque image pendant la lecture\n});\nScene.onClick("nom", (x, y) => {\n  // clic sur l\'instance nommée (pendant la lecture seulement)\n});\n// CreateJS complet (copie locale ./libs/createjs) :\n// createjs.Tween.get(nom).to({ x: 300 }, 1000);\n// createjs.Sound, createjs.LoadQueue, createjs.Ticker...\n// Événements EaselJS sur les instances nommées : nom.on("click", fn)')],
   };
 }
 

@@ -1,0 +1,440 @@
+{
+  "id": "doc12",
+  "name": "IIB v3.0",
+  "width": 400,
+  "height": 700,
+  "frameRate": 12,
+  "backgroundColor": "#000000",
+  "frameCount": 5,
+  "layers": [
+    {
+      "id": "layer13",
+      "name": "Calque 1",
+      "visible": true,
+      "locked": true,
+      "keyframes": [
+        {
+          "index": 0,
+          "elements": [
+            {
+              "kind": "instance",
+              "id": "inst18",
+              "symbolId": "sym16",
+              "name": "bLogo",
+              "x": 5.29025726888438,
+              "y": 120.21099932292861,
+              "rotation": 0,
+              "scaleX": 0.9794890914410583,
+              "scaleY": 0.9794890914410583,
+              "opacity": 1
+            }
+          ],
+          "tween": null,
+          "script": ""
+        },
+        {
+          "index": 2,
+          "elements": [
+            {
+              "kind": "instance",
+              "id": "inst22",
+              "symbolId": "sym19",
+              "name": "",
+              "x": -21.909610002728602,
+              "y": 28.8541109447769,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1
+            }
+          ],
+          "tween": null,
+          "script": ""
+        }
+      ]
+    },
+    {
+      "id": "layer23",
+      "name": "action",
+      "visible": true,
+      "locked": false,
+      "keyframes": [
+        {
+          "index": 0,
+          "elements": [
+            {
+              "kind": "instance",
+              "id": "inst27",
+              "symbolId": "sym24",
+              "name": "But",
+              "x": 25.592498779296875,
+              "y": -401.9241943359375,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1
+            }
+          ],
+          "tween": null,
+          "script": ""
+        },
+        {
+          "index": 1,
+          "elements": [],
+          "tween": null,
+          "script": "// Exécuté une fois quand la tête de lecture atteint cette image\nScene.gotoAndPlay(\"Logo\");\n"
+        }
+      ]
+    }
+  ],
+  "symbols": {
+    "sym16": {
+      "id": "sym16",
+      "name": "Logo",
+      "type": "movieclip",
+      "frameCount": 24,
+      "layers": [
+        {
+          "id": "layer17",
+          "name": "Calque 1",
+          "visible": true,
+          "locked": false,
+          "keyframes": [
+            {
+              "index": 0,
+              "elements": [
+                {
+                  "kind": "bitmap",
+                  "id": "bitmap15",
+                  "name": "",
+                  "x": 204,
+                  "y": 275,
+                  "width": 192,
+                  "height": 261,
+                  "rotation": 0,
+                  "scaleX": 1,
+                  "scaleY": 1,
+                  "opacity": 1
+                }
+              ],
+              "tween": {
+                "easing": "linear"
+              },
+              "script": ""
+            },
+            {
+              "index": 10,
+              "elements": [
+                {
+                  "kind": "bitmap",
+                  "id": "bitmap15",
+                  "name": "",
+                  "x": 204.0627712630603,
+                  "y": 295.2379891217557,
+                  "width": 192,
+                  "height": 261,
+                  "rotation": 0,
+                  "scaleX": 1,
+                  "scaleY": 1,
+                  "opacity": 1
+                }
+              ],
+              "tween": {
+                "easing": "linear"
+              },
+              "script": ""
+            },
+            {
+              "index": 22,
+              "elements": [
+                {
+                  "kind": "bitmap",
+                  "id": "bitmap15",
+                  "name": "",
+                  "x": 204,
+                  "y": 275,
+                  "width": 192,
+                  "height": 261,
+                  "rotation": 0,
+                  "scaleX": 1,
+                  "scaleY": 1,
+                  "opacity": 1
+                }
+              ],
+              "tween": null,
+              "script": ""
+            },
+            {
+              "index": 23,
+              "elements": [
+                {
+                  "kind": "bitmap",
+                  "id": "bitmap15",
+                  "name": "",
+                  "x": 204,
+                  "y": 275,
+                  "width": 192,
+                  "height": 261,
+                  "rotation": 0,
+                  "scaleX": 1,
+                  "scaleY": 1,
+                  "opacity": 1
+                }
+              ],
+              "tween": null,
+              "script": "// Exécuté une fois quand la tête de lecture atteint cette image\nScene.gotoAndPlay(1);\n"
+            }
+          ]
+        }
+      ],
+      "frameLabels": {}
+    },
+    "sym19": {
+      "id": "sym19",
+      "name": "Labyrinth",
+      "type": "movieclip",
+      "frameCount": 24,
+      "layers": [
+        {
+          "id": "layer20",
+          "name": "Calque 1",
+          "visible": true,
+          "locked": false,
+          "keyframes": [
+            {
+              "index": 0,
+              "elements": [
+                {
+                  "kind": "shape",
+                  "id": "shape21",
+                  "name": "",
+                  "shapeType": "path",
+                  "x": 27.977195945945944,
+                  "y": 685.7756331160261,
+                  "width": 380.3842905405405,
+                  "height": 589.4742398648649,
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0,
+                      "cIn": null,
+                      "cOut": null,
+                      "smooth": false
+                    },
+                    {
+                      "x": 102.61824324324326,
+                      "y": -112.54222972972968,
+                      "cIn": {
+                        "x": 3.0088682432432563,
+                        "y": -0.5720396299619779
+                      },
+                      "cOut": {
+                        "x": -3.0088682432432563,
+                        "y": 0.5720396299619779
+                      },
+                      "smooth": true
+                    },
+                    {
+                      "x": 80.65878378378378,
+                      "y": -341.744108457823,
+                      "cIn": {
+                        "x": 3.378378378378372,
+                        "y": 3.659903036581511
+                      },
+                      "cOut": {
+                        "x": -3.378378378378372,
+                        "y": -3.659903036581511
+                      },
+                      "smooth": true
+                    },
+                    {
+                      "x": 44.02449324324325,
+                      "y": -463.2073685929581,
+                      "cIn": {
+                        "x": -2.0059121621621614,
+                        "y": 10.75097161370357
+                      },
+                      "cOut": {
+                        "x": 2.0059121621621614,
+                        "y": -10.75097161370357
+                      },
+                      "smooth": true
+                    },
+                    {
+                      "x": 118.77111486486487,
+                      "y": -556.5350609856682,
+                      "cIn": {
+                        "x": 3.2728040540540633,
+                        "y": 3.888661152607682
+                      },
+                      "cOut": {
+                        "x": -3.2728040540540633,
+                        "y": -3.888661152607682
+                      },
+                      "smooth": true
+                    },
+                    {
+                      "x": 272.9096283783784,
+                      "y": -564.9986060889992,
+                      "cIn": {
+                        "x": 3.0616554054054177,
+                        "y": -0.4574853020745451
+                      },
+                      "cOut": {
+                        "x": -3.0616554054054177,
+                        "y": 0.4574853020745451
+                      },
+                      "smooth": true
+                    },
+                    {
+                      "x": 296.875,
+                      "y": -384.0618030444995,
+                      "cIn": null,
+                      "cOut": null,
+                      "smooth": false
+                    },
+                    {
+                      "x": 275.2322635135135,
+                      "y": -272.66330203494505,
+                      "cIn": {
+                        "x": 4.117398648648646,
+                        "y": -0.914991224134269
+                      },
+                      "cOut": {
+                        "x": -4.117398648648646,
+                        "y": 0.914991224134269
+                      },
+                      "smooth": true
+                    },
+                    {
+                      "x": 284.41722972972974,
+                      "y": -100.64755001583615,
+                      "cIn": {
+                        "x": 3.0616554054054177,
+                        "y": -2.0586993243243796
+                      },
+                      "cOut": {
+                        "x": -3.0616554054054177,
+                        "y": 2.0586993243243796
+                      },
+                      "smooth": true
+                    },
+                    {
+                      "x": 380.3842905405405,
+                      "y": 24.47563377586573,
+                      "cIn": null,
+                      "cOut": null,
+                      "smooth": false
+                    },
+                    {
+                      "x": 4.856418918918919,
+                      "y": -8.69231352934969,
+                      "cIn": {
+                        "x": 5.701013513513512,
+                        "y": -6.633614205025424
+                      },
+                      "cOut": {
+                        "x": -5.701013513513512,
+                        "y": 6.633614205025424
+                      },
+                      "smooth": true
+                    }
+                  ],
+                  "rotation": 0,
+                  "scaleX": 1,
+                  "scaleY": 1,
+                  "opacity": 1,
+                  "fill": "#54513d",
+                  "stroke": "#073642",
+                  "strokeWidth": 2,
+                  "closed": true,
+                  "text": "",
+                  "fontSize": 24,
+                  "fontFamily": "Arial",
+                  "align": "center",
+                  "lineHeight": 1.2,
+                  "skeletonId": null,
+                  "boneId": null
+                }
+              ],
+              "tween": null,
+              "script": ""
+            }
+          ]
+        }
+      ],
+      "frameLabels": {}
+    },
+    "sym24": {
+      "id": "sym24",
+      "name": "bouton",
+      "type": "movieclip",
+      "frameCount": 24,
+      "layers": [
+        {
+          "id": "layer25",
+          "name": "Calque 1",
+          "visible": true,
+          "locked": false,
+          "keyframes": [
+            {
+              "index": 0,
+              "elements": [
+                {
+                  "kind": "shape",
+                  "id": "shape26",
+                  "name": "",
+                  "shapeType": "rect",
+                  "x": 183.01943969726562,
+                  "y": 528.0126953125,
+                  "width": 190.42041015625,
+                  "height": 40.428466796875,
+                  "points": [],
+                  "rotation": 0,
+                  "scaleX": 1,
+                  "scaleY": 1,
+                  "opacity": 1,
+                  "fill": "#cb4b16",
+                  "stroke": "#073642",
+                  "strokeWidth": 2,
+                  "closed": false,
+                  "text": "",
+                  "fontSize": 24,
+                  "fontFamily": "Arial",
+                  "align": "center",
+                  "lineHeight": 1.2,
+                  "skeletonId": null,
+                  "boneId": null
+                }
+              ],
+              "tween": null,
+              "script": ""
+            }
+          ]
+        }
+      ],
+      "frameLabels": {}
+    }
+  },
+  "frameLabels": {
+    "0": "Logo",
+    "2": "Start"
+  },
+  "assets": {
+    "undefined": {
+      "name": "T144_logo_short-e1615462919437.png",
+      "type": "image/png",
+      "dataUrl": "data:image/png;base64,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",
+      "width": 192,
+      "height": 261
+    }
+  },
+  "scripts": [
+    {
+      "id": "script14",
+      "name": "Script 1",
+      "code": "// Code exécuté avec Scene (alias Game)\n// Exemple :\nScene.log(\"Bonjour\", Scene.width, \"x\", Scene.height);\nScene.play();\n// Les objets nommés (Nom d'instance dans les propriétés) sont accessibles\n But.on(\"click\", handleClick);\n function handleClick(event) {\n   alert(\"clicked\");\n   Scene.gotoAndStop(\"Start\");\n } \n//directement, comme des movieclips : nom.x += 1; // bouge de 1 px\nScene.onEnterFrame(() => {\n  // ... boucle de jeu, appelée à chaque image pendant la lecture\n \n\n});"
+    }
+  ],
+  "_archiveId": "proj_1790968617972_1we3i1km9"
+}
