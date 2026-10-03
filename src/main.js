@@ -180,18 +180,21 @@ stageFullscreenBtn.addEventListener('click', (e) => {
 // La classe body.sheet-fullscreen (voir style.css) fait passer le contrôle de
 // zoom en fixed en haut à gauche de l'écran pendant le plein écran de la
 // feuille ; à la sortie il retrouve le coin bas-gauche de la feuille.
-// Le pan (outil Main) n'est permis qu'en plein écran de la feuille : hors
-// plein écran le bouton est grisé/inactif et l'outil est rendu à la sélection.
-// NB : référencé après la création de btnHand (plus bas) pour éviter la TDZ.
+// Synchronise l'UI au plein écran de la feuille. Les boutons flottants
+// (contrôle de zoom + bouton plein écran) changent de parent selon le mode :
+// hors plein écran ils vivent dans #stage-wrap — ancrés au viewport de la
+// zone scène, ils restent visibles quand le pan déplace la page entière
+// (voir Stage.js applyPanTransform) ; en plein écran ils retournent dans
+// #stage-container car l'API native ne rend QUE le sous-arbre de l'élément
+// fullscreen (body.sheet-fullscreen fixe déjà le contrôle de zoom en haut
+// à gauche). NB : référencé après la création de btnHand/zoomControls (plus
+// bas) pour éviter la TDZ.
 const updateFsUi = () => {
   const fs = isSheetFullscreen();
   document.body.classList.toggle('sheet-fullscreen', fs);
-  btnHand.disabled = !fs;
-  btnHand.title = fs ? 'Main — déplacer la scène (M)' : 'Main — disponible uniquement en plein écran';
-  if (!fs && state.currentTool === 'hand') {
-    state.currentTool = 'select';
-    notify(state);
-  }
+  const host = fs ? stageContainer : stageWrapEl;
+  if (zoomControls.parentElement !== host) host.appendChild(zoomControls);
+  if (stageFullscreenBtn.parentElement !== host) host.appendChild(stageFullscreenBtn);
 };
 onFullscreenChange(() => { updateFsBtn(); updateFsUi(); stage.resize(); });
 

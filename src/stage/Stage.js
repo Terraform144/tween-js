@@ -3,7 +3,7 @@ import { getContextLayers, insertKeyframe, createShape, createInstance, createPa
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
-import { fullscreenElement, isElementFullscreen } from '../util/fullscreen.js';
+import { fullscreenElement } from '../util/fullscreen.js';
 import { ICONS } from '../ui/icons.js';
 
 const HANDLE_DRAG_THRESHOLD = 3; // px, avant qu'un clic-glissé plume ne devienne un point lisse
@@ -43,12 +43,13 @@ function clonePathPoint(p) {
 export function createStage({ container, state, onSelectionChange = () => {} }) {
   const initialDoc = state.doc;
 
-  // Le pan (outil main) translate ce wrapper interne et non `container`
-  // lui-même : en plein écran natif, la feuille de style UA du navigateur
-  // impose `transform: none !important` à l'élément fullscreen (spec WHATWG
-  // §5.2), ce qui écraserait silencieusement tout transform inline posé sur
-  // le conteneur — la scène devenait impossible à déplacer. Un enfant de
-  // l'élément fullscreen n'est pas visé par cette règle.
+  // Le pan (outil main) translate `container` hors plein écran (la page
+  // entière suit) et ce wrapper interne en plein écran : la feuille de style
+  // UA du navigateur impose `transform: none !important` à l'élément
+  // fullscreen (spec WHATWG §5.2), ce qui écraserait silencieusement tout
+  // transform inline posé sur le conteneur en ce mode. Un enfant de
+  // l'élément fullscreen n'est pas visé par cette règle (voir
+  // applyPanTransform).
   const panLayer = document.createElement('div');
   panLayer.className = 'stage-pan-layer';
   container.appendChild(panLayer);
@@ -162,7 +163,21 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   let panOffset = { x: 0, y: 0 }; // décalage CSS translate courant du conteneur
 
   function applyPanTransform() {
-    panLayer.style.transform = (panOffset.x || panOffset.y) ? `translate(${panOffset.x}px, ${panOffset.y}px)` : '';
+    const t = (panOffset.x || panOffset.y) ? `translate(${panOffset.x}px, ${panOffset.y}px)` : '';
+    if (fullscreenElement() === container) {
+      // Plein écran : la feuille de style UA impose transform:none
+      // !important à l'élément fullscreen — le translate s'applique au
+      // wrapper interne (panLayer), comme historiquement.
+      panLayer.style.transform = t;
+      container.style.transform = '';
+    } else {
+      // Hors plein écran, la PAGE ENTIÈRE suit le pan (fond blanc +
+      // canvas ensemble — le canvas ne glisse plus hors de sa feuille).
+      // Les boutons flottants vivent dans #stage-wrap (cf. main.js
+      // updateFsUi) : ils restent ancrés au viewport.
+      panLayer.style.transform = '';
+      container.style.transform = t;
+    }
   }
 
   function resetPan() {
@@ -681,7 +696,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (tool === 'hand') {
       e.cancelBubble = true;
       const evt = e.evt;
-      panStart = { mouseX: evt.clientX, mouseY: evt.clientY, offsetX: panOffset.x, offsetY: panOffset.y };
+      // Tactile : e.evt est un TouchEvent SANS clientX (il est sur
+      // touches[0]) -> panStart undefined -> NaN au move -> pan figé.
+      const src = (evt.touches && evt.touches[0]) || evt;
+      panStart = { mouseX: src.clientX, mouseY: src.clientY, offsetX: panOffset.x, offsetY: panOffset.y };
       container.classList.add('grabbing');
       return;
     }
@@ -798,10 +816,15 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     overlayLayer.batchDraw();
   }
 
-  konvaStage.on('mousemove touchmove', () => {
+  konvaStage.on('mousemove touchmove', (e) => {
     if (panStart) {
-      const dx = event.clientX - panStart.mouseX;
-      const dy = event.clientY - panStart.mouseY;
+      const evt = e.evt;
+      // Tactile : l'implicite `event` (window.event) est un TouchEvent SANS
+      // clientX -> NaN -> transform invalide -> pan figé sur mobile. On lit
+      // e.evt et, pour un touchmove, son premier touch.
+      const src = (evt.touches && evt.touches[0]) || evt;
+      const dx = src.clientX - panStart.mouseX;
+      const dy = src.clientY - panStart.mouseY;
       panOffset.x = panStart.offsetX + dx;
       panOffset.y = panStart.offsetY + dy;
       applyPanTransform();
@@ -961,8 +984,6 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   window.addEventListener('keydown', (e) => {
     if (isTypingTarget(e.target)) return;
     if (e.key === 'm' || e.key === 'M') {
-      // Le pan n'est permis qu'en plein écran de la feuille (voir main.js)
-      if (!isElementFullscreen(container)) return;
       if (state.currentTool === 'hand') { state.currentTool = 'select'; } else { state.currentTool = 'hand'; }
       notify(state);
       return;
