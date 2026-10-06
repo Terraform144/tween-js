@@ -54,9 +54,7 @@ check('Icône cœur affichée', info.found && info.hasHeart);
 await page.click('.file-menu-panel.open button.donate-btn');
 const opens = await page.evaluate(() => window.__opens);
 check('Clic ouvre l\'URL PayPal', opens.length === 1
-  && decodeURIComponent(opens[0]).includes('beuzard.jl@gmail.com')
-  && opens[0].includes('cmd=_donations')
-  && opens[0].includes('currency_code=EUR'));
+  && opens[0] === 'https://www.paypal.com/donate/?hosted_button_id=HCDEXV9E52EAW');
 
 await browser.close();
 console.log(failed === 0 ? 'TOUS LES TESTS PASSENT' : `${failed} ÉCHEC(S)`);
