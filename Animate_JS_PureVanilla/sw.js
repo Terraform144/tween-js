@@ -13,7 +13,7 @@
 // postérieurs à l'activation du SW passeraient par le fetch handler.
 'use strict';
 
-var CACHE_NAME = 'animatejs-v1';
+var CACHE_NAME = 'animatejs-v2';
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
