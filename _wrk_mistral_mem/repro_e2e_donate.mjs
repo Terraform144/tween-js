@@ -48,7 +48,7 @@ const info = await page.evaluate(() => {
 check('Bouton donate-btn présent', info.found);
 check('Bouton en première position du menu', info.found && info.first);
 check('Libellé « Faire un don »', info.found && info.label === 'Faire un don');
-check('Fond jaune', info.found && info.bg === 'rgb(255, 221, 87)');
+check('Fond jaune vif', info.found && info.bg === 'rgb(255, 215, 0)');
 check('Icône cœur affichée', info.found && info.hasHeart);
 
 await page.click('.file-menu-panel.open button.donate-btn');
