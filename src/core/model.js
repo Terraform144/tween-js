@@ -709,7 +709,9 @@ export function getSymbolContentBounds(doc, symbolId, depth = 0) {
       for (const el of kf.elements) {
         if (el.kind === 'instance') {
           const b = getSymbolContentBounds(doc, el.symbolId, depth + 1);
-          if (b.width > 0 || b.height > 0) acc(el.x + b.x, el.y + b.y, b.width, b.height);
+          // Pivot de transformation : le contenu de l'instance est décalé de
+          // son pivot dans l'espace du parent (origine du nœud = pivot).
+          if (b.width > 0 || b.height > 0) acc(el.x - (el.pivotX || 0) + b.x, el.y - (el.pivotY || 0) + b.y, b.width, b.height);
         } else if (el.shapeType === 'line' || el.shapeType === 'path') {
           // Points relatifs à (x,y) ; on inclut les poignées de courbe pour
           // une boîte fidèle au tracé visible.

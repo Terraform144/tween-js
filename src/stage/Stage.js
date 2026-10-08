@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
+import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
@@ -73,7 +74,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     anchorSize: 8,
   });
   const handleGroup = new Konva.Group();
-  overlayLayer.add(transformer, handleGroup);
+  // Réticule du pivot de transformation (outil sélection, sélection simple)
+  const pivotGroup = new Konva.Group();
+  overlayLayer.add(transformer, handleGroup, pivotGroup);
 
   // Cache d'images décodées, indexé par dataUrl (immuable par contenu). Tant qu'une image n'est pas
   // décodée (chargement asynchrone depuis le dataUrl), le nœud affiche un
@@ -314,11 +317,24 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
           node = new Konva.Rect({ width: 1, height: 1, fill: 'red' });
       }
     }
+    // Pivot de transformation (registration point à la Animate CC) :
+    // offsetX/offsetY placent le pivot sur l'origine du nœud — la rotation
+    // (Transformer, interpolations, lecture) se fait autour de lui. Sans
+    // pivot explicite, chaque type garde son centre historique : centre de
+    // la boîte pour rect/ellipse/texte/bitmap, origine du nœud (premier
+    // point) pour ligne/chemin, origine du symbole pour une instance, tête
+    // d'os pour un bone (pas de pivot sur les bones, l'IK en dépend).
+    if (el.kind !== 'bone') {
+      const piv = pivotNodeOffset(el, el.shapeType === 'text' ? node.height() : null);
+      node.offsetX(piv.x);
+      node.offsetY(piv.y);
+    }
     node.setAttrs({ x: el.x, y: el.y, rotation: el.rotation, scaleX: el.scaleX, scaleY: el.scaleY, opacity: el.opacity });
     node.id(el.id);
     node.setAttr('elKind', el.kind);
     node.setAttr('elShapeType', el.shapeType || null);
     node.setAttr('elLayerId', el.layerId);
+    node.setAttr('hasPivot', hasPivot(el));
     if (el.kind === 'instance') node.setAttr('symbolId', el.symbolId);
     if (el.kind === 'bone') {
       node.setAttr('boneLength', el.length);
@@ -419,6 +435,94 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       .map((id) => contentLayer.findOne('#' + id))
       .filter(Boolean);
     transformer.nodes(state.playing ? [] : nodes);
+    refreshPivotHandle();
+  }
+
+  // ------------------------------------------------ pivot de transformation
+  // Réticule draggable (cercle + croix, comme le registration point
+  // d'Animate CC) posé sur le pivot de l'élément sélectionné. Le glisser
+  // déplace le pivot SANS bouger l'objet à l'écran : x/y sont compensés en
+  // continu (rotation/échelle incluses, voir pivotMoveDelta). Le commit en
+  // modèle ne se fait qu'au dragend — pendant le drag on ne touche qu'au
+  // nœud Konva, même principe que les poignées de la plume.
+  let pivotDrag = null; // { id, layerId, startNodeX, startNodeY, startOff, rot, sx, sy }
+
+  function refreshPivotHandle() {
+    pivotGroup.destroyChildren();
+    pivotDrag = null;
+    if (state.playing || state.currentTool !== 'select') return;
+    if (state.selectedElementIds.length !== 1) return;
+    const id = state.selectedElementIds[0];
+    const node = contentLayer.findOne('#' + id);
+    if (!node || node.getAttr('elKind') === 'bone') return;
+    if (isLocked(node.getAttr('elLayerId'))) return;
+
+    const world = node.getAbsoluteTransform(konvaStage).point({ x: node.offsetX(), y: node.offsetY() });
+    const cross = new Konva.Group({ x: world.x, y: world.y, draggable: true });
+    const ring = new Konva.Circle({
+      radius: 6, fill: 'rgba(253, 246, 227, 0.9)', stroke: '#cb4b16', strokeWidth: 1.5,
+      hitStrokeWidth: 22, // cible tactile confortable
+    });
+    const hLine = new Konva.Line({ points: [-10, 0, 10, 0], stroke: '#cb4b16', strokeWidth: 1.2, listening: false });
+    const vLine = new Konva.Line({ points: [0, -10, 0, 10], stroke: '#cb4b16', strokeWidth: 1.2, listening: false });
+    cross.add(ring, hLine, vLine);
+    cross.on('mousedown touchstart', (e) => {
+      // Comme les formes (session 8) : sans preventDefault sur touchstart, le
+      // navigateur rejoue la séquence souris émulée et le drag Konva partait
+      // deux fois. cancelBubble : ni sélection, ni marquee sous le réticule.
+      if (e.evt.type === 'touchstart' && e.evt.cancelable) e.evt.preventDefault();
+      e.cancelBubble = true;
+    });
+    cross.on('dragstart', () => {
+      pivotDrag = {
+        id,
+        layerId: node.getAttr('elLayerId'),
+        startNodeX: node.x(),
+        startNodeY: node.y(),
+        startOff: { x: node.offsetX(), y: node.offsetY() },
+        rotation: node.rotation(),
+        scaleX: node.scaleX(),
+        scaleY: node.scaleY(),
+      };
+    });
+    cross.on('dragmove', () => {
+      if (!pivotDrag) return;
+      const abs = node.getAbsoluteTransform(konvaStage);
+      // Position du pointeur dans l'espace de dessin du nœud = nouveau pivot
+      const local = abs.copy().invert().point(cross.position());
+      node.offsetX(local.x);
+      node.offsetY(local.y);
+      // Compensation : l'origine du nœud (= position du pivot) suit pour
+      // que le contenu reste immobile sous la rotation/échelle courantes.
+      const d = pivotMoveDelta(pivotDrag, pivotDrag.startOff, local);
+      node.x(pivotDrag.startNodeX + d.dx);
+      node.y(pivotDrag.startNodeY + d.dy);
+      // Reticule recalé sur le pivot (qui vient de bouger avec l'origine)
+      const world2 = node.getAbsoluteTransform(konvaStage).point(local);
+      cross.position(world2);
+      transformer.forceUpdate();
+      contentLayer.batchDraw();
+      overlayLayer.batchDraw();
+    });
+    cross.on('dragend', () => {
+      if (!pivotDrag) return;
+      const layer = currentLayers().find((l) => l.id === pivotDrag.layerId);
+      pivotDrag = null;
+      if (!layer || layer.locked) { refreshPivotHandle(); return; }
+      const kf = insertKeyframe(layer, state.currentFrame);
+      const el = kf.elements.find((e) => e.id === id);
+      if (!el) { refreshPivotHandle(); return; }
+      const box = pivotBoxFromNode(el, { x: node.offsetX(), y: node.offsetY() });
+      el.pivotX = box.x;
+      el.pivotY = box.y;
+      // x/y du modèle = position du pivot (l'objet n'a pas bougé, le
+      // réticule si) — valeurs déjà compensées par le dragmove.
+      el.x = node.x();
+      el.y = node.y();
+      notify(state);
+    });
+    pivotGroup.add(cross);
+    overlayLayer.batchDraw();
   }
 
   // ----------------------------------------------------------- interaction
@@ -539,7 +643,40 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     notify(state);
   }
 
+  // Le Transformer Konva fait tourner l'élément autour du CENTRE de sa
+  // boîte englobante (rotateAroundCenter dans la source de Konva), pas
+  // autour de l'offset du nœud qui porte le pivot : sans correctif, le
+  // pivot se déplacait à l'écran dès la première rotation. Pour un élément
+  // à pivot EXPLICITE (sélection simple, pas un bone — les autres cas
+  // gardent le comportement historique), on restaure x/y pendant la
+  // rotation : l'offset (= pivot, dont x/y EST la position) reste alors en
+  // place et l'élément tourne autour de lui, comme dans Animate CC.
+  let rotPin = null; // { node, x, y, rotation, scaleX, scaleY }
+  transformer.on('transformstart', () => {
+    rotPin = null;
+    const nodes = transformer.nodes();
+    if (nodes.length !== 1) return;
+    const n = nodes[0];
+    if (n.getAttr('elKind') === 'bone' || !n.getAttr('hasPivot')) return;
+    rotPin = {
+      node: n,
+      x: n.x(), y: n.y(),
+      rotation: n.rotation(),
+      scaleX: n.scaleX(), scaleY: n.scaleY(),
+    };
+  });
+  transformer.on('transform', () => {
+    if (!rotPin) return;
+    const n = rotPin.node;
+    // Rotation pure (l'échelle ne bouge pas) : bloquer le pivot sur place.
+    if (n.scaleX() === rotPin.scaleX && n.scaleY() === rotPin.scaleY && n.rotation() !== rotPin.rotation) {
+      n.x(rotPin.x);
+      n.y(rotPin.y);
+    }
+    rotPin.rotation = n.rotation();
+  });
   transformer.on('transformend', () => {
+    rotPin = null;
     for (const node of transformer.nodes()) {
       commitTransform(node.id(), node.getAttr('elLayerId'), node);
     }
@@ -1204,7 +1341,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     });
     cancelDraw();
     addElement(el);
-    state.currentTool = 'select';
+    // Garder le pinceau actif pour enchaîner les traits sans recliquer
     notify(state);
   }
 

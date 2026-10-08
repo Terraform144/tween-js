@@ -32,7 +32,12 @@ export function lerpColor(hexA, hexB, t) {
   return rgbToHex(lerp(a.r, b.r, t), lerp(a.g, b.g, t), lerp(a.b, b.b, t));
 }
 
-const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height'];
+// pivotX/pivotY (point de rotation déplaçable, cf. core/pivot.js) sont
+// interpolables : un pivot qui bouge entre deux images clés déplace le
+// centre de rotation pendant le tween, comme le registration point animé
+// d'Animate. Absents d'un côté => pas d'interpolation de ce champ
+// (typeof number requis des deux côtés).
+const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height', 'pivotX', 'pivotY'];
 const COLOR_PROPS = ['fill', 'stroke'];
 
 function lerpHandle(h1, h2, t) {

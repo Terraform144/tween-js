@@ -36,7 +36,8 @@ function lerpColor(hexA, hexB, t) {
   return '#' + r + g + bl;
 }
 
-const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height'];
+// pivotX/pivotY interpolables (voir playback/interpolate.js côté éditeur).
+const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height', 'pivotX', 'pivotY'];
 const COLOR_PROPS = ['fill', 'stroke'];
 
 function lerpHandle(h1, h2, t) {
@@ -164,11 +165,49 @@ function wrapTextLines(ctx, text, maxWidth) {
   return lines;
 }
 
+// Pivot de transformation (registration point à la Animate CC) — copie
+// autonome de la logique de src/core/pivot.js : ce fichier est inliné tel
+// quel (?raw) dans les exports HTML et l'objet de jeu, aucun import
+// possible. Le pivot est en coordonnées de boîte locale ((0,0) = coin
+// haut-gauche de l'objet ; espace du symbole pour une instance).
+function hasPivot(el) {
+  return el.kind !== 'bone' && el.pivotX != null && el.pivotY != null;
+}
+
+// Décalage à appliquer au contenu (après translate/rotate/scale de
+// l'élément) pour que le pivot tombe sur l'origine : la rotation se fait
+// autour de lui. null = aucun pivot explicite (comportement historique).
+function pivotDrawShift(ctx, el) {
+  if (!hasPivot(el)) return null;
+  if (el.kind === 'instance') return { x: -el.pivotX, y: -el.pivotY };
+  if (el.shapeType === 'line' || el.shapeType === 'path') {
+    const pts = el.points || [];
+    let minX = 0, minY = 0;
+    if (pts.length) {
+      minX = Math.min(...pts.map((p) => p.x));
+      minY = Math.min(...pts.map((p) => p.y));
+    }
+    return { x: -(minX + el.pivotX), y: -(minY + el.pivotY) };
+  }
+  let h = el.height || 0;
+  if (el.shapeType === 'text') {
+    // Le pivot d'un texte est relatif au haut de la boîte réellement rendue
+    // (hauteur = lignes × interligne), comme l'éditeur Konva.
+    const fontSize = el.fontSize || 24;
+    ctx.font = fontSize + 'px ' + (el.fontFamily || 'Arial');
+    const lineHeight = (el.lineHeight != null ? el.lineHeight : 1.2) * fontSize;
+    h = wrapTextLines(ctx, el.text || '', el.width).length * lineHeight;
+  }
+  return { x: (el.width || 0) / 2 - el.pivotX, y: h / 2 - el.pivotY };
+}
+
 function drawShape(ctx, el, data) {
   ctx.save();
   ctx.translate(el.x, el.y);
   ctx.rotate((el.rotation || 0) * Math.PI / 180);
   ctx.scale(el.scaleX || 1, el.scaleY || 1);
+  const piv = pivotDrawShift(ctx, el);
+  if (piv) ctx.translate(piv.x, piv.y);
   ctx.globalAlpha *= (el.opacity == null ? 1 : el.opacity);
   ctx.fillStyle = el.fill || '#000';
   ctx.strokeStyle = el.stroke || '#000';
@@ -421,6 +460,9 @@ export class MovieClip {
     ctx.translate(el.x, el.y);
     ctx.rotate((el.rotation || 0) * Math.PI / 180);
     ctx.scale(el.scaleX || 1, el.scaleY || 1);
+    // Pivot explicite de l'instance (coordonnées du symbole) : le contenu
+    // est décalé pour que le pivot tombe sur l'origine (parité éditeur).
+    if (hasPivot(el)) ctx.translate(-el.pivotX, -el.pivotY);
     ctx.globalAlpha *= (el.opacity == null ? 1 : el.opacity);
     if (symbol.type === 'graphic') {
       const childFrame = parentFrame % Math.max(1, symbol.frameCount);
