@@ -328,9 +328,11 @@ html, body {
   touch-action: none;
   position: relative;
 }
-/* Porte le translate du pan (outil main) : en plein écran natif, la feuille
+/* Ne porte le translate du pan (outil main) qu'EN PLEIN ÉCRAN : la feuille
    UA impose transform:none !important à l'élément fullscreen — le déplacement
-   doit donc s'appliquer à ce wrapper interne (voir Stage.js#createStage). */
+   s'applique alors à ce wrapper interne (voir Stage.js applyPanTransform).
+   Hors plein écran, c'est #stage-container (la page entière) qui est
+   translaté et ce wrapper reste à l'identité. */
 .stage-pan-layer {
   position: relative;
 }
@@ -354,7 +356,11 @@ html, body {
   box-shadow: 0 2px 6px rgba(7, 54, 66, 0.18);
 }
 .stage-fullscreen-btn:hover { background: var(--bg-3); border-color: var(--accent); color: var(--accent); }
-/* Contrôle de zoom posé sur la feuille, en bas à gauche. */
+/* Contrôle de zoom, en bas à gauche. Le parent change selon le mode (voir
+   main.js updateFsUi) : #stage-wrap hors plein écran (ancré au viewport, il
+   ne bouge pas quand le pan déplace la page) ; #stage-container en plein
+   écran (le CSS body.sheet-fullscreen le passe alors en fixed, en haut à
+   gauche — la feuille défile/déplacée à la main). */
 .stage-zoom-controls {
   position: absolute;
   bottom: 8px;
