@@ -76,7 +76,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const handleGroup = new Konva.Group();
   // Réticule du pivot de transformation (outil sélection, sélection simple)
   const pivotGroup = new Konva.Group();
-  overlayLayer.add(transformer, handleGroup, pivotGroup);
+  // Retenu visuel de l'outil rotation : rayon pivot->pointeur + angle
+  const rotateGroup = new Konva.Group({ listening: false });
+  overlayLayer.add(transformer, handleGroup, pivotGroup, rotateGroup);
 
   // Cache d'images décodées, indexé par dataUrl (immuable par contenu). Tant qu'une image n'est pas
   // décodée (chargement asynchrone depuis le dataUrl), le nœud affiche un
@@ -417,6 +419,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (drawState && drawState.tool === 'pen' && state.currentTool !== 'pen') cancelDraw();
     if (drawState && drawState.tool === 'boneChain' && state.currentTool !== 'boneChain') finishBoneChain();
     if (drawState && drawState.tool === 'brush' && state.currentTool !== 'brush') finishBrush();
+    if (rotateDrag && state.currentTool !== 'rotate') finishRotate();
     currentTick = tick;
     const doc = state.doc;
     bgRect.width(doc.width);
@@ -450,7 +453,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   function refreshPivotHandle() {
     pivotGroup.destroyChildren();
     pivotDrag = null;
-    if (state.playing || state.currentTool !== 'select') return;
+    if (state.playing || (state.currentTool !== 'select' && state.currentTool !== 'rotate')) return;
     if (state.selectedElementIds.length !== 1) return;
     const id = state.selectedElementIds[0];
     const node = contentLayer.findOne('#' + id);
@@ -522,6 +525,65 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       notify(state);
     });
     pivotGroup.add(cross);
+    overlayLayer.batchDraw();
+  }
+
+  // ---------------------------------------------------------- outil rotation
+  // Outil dédié (Q) : le glissé sur un élément le tourne autour de SON
+  // pivot (l'offset Konva posé par buildNode — pivot explicite ou défaut
+  // historique du type). Le pivot ne bouge pas : el.x/el.y SONT sa position,
+  // on ne touche qu'à la rotation, le commit passe par commitTransform.
+  // Le réticule du pivot reste visible/draggable (refreshPivotHandle accepte
+  // l'outil rotation) : on voit autour de quoi on tourne, comme dans Animate.
+  let rotateDrag = null; // { id, layerId, node, pivot, startPointerAngle, startRotation }
+
+  function startRotateDrag(node) {
+    const id = node.id();
+    const layerId = node.getAttr('elLayerId');
+    if (isLocked(layerId)) return;
+    if (!state.selectedElementIds.includes(id)) selectElement(id, layerId, false);
+    const pivot = node.getAbsoluteTransform(konvaStage).point({ x: node.offsetX(), y: node.offsetY() });
+    const p = stagePointer();
+    if (!p) return;
+    rotateDrag = {
+      id, layerId, node,
+      pivot,
+      startPointerAngle: Math.atan2(p.y - pivot.y, p.x - pivot.x),
+      startRotation: node.rotation(),
+    };
+    refreshRotateFeedback(p, node.rotation());
+    contentLayer.batchDraw();
+    overlayLayer.batchDraw();
+  }
+
+  function refreshRotateFeedback(p, deg) {
+    rotateGroup.destroyChildren();
+    if (!rotateDrag) return;
+    rotateGroup.add(new Konva.Line({
+      points: [rotateDrag.pivot.x, rotateDrag.pivot.y, p.x, p.y],
+      stroke: '#cb4b16', strokeWidth: 1.2, dash: [4, 3],
+    }));
+    rotateGroup.add(new Konva.Text({
+      x: p.x + 12, y: p.y - 20, text: Math.round(deg) + '°',
+      fontSize: 12, fontFamily: 'inherit', fill: '#cb4b16',
+    }));
+  }
+
+  function finishRotate() {
+    const rd = rotateDrag;
+    rotateDrag = null;
+    rotateGroup.destroyChildren();
+    overlayLayer.batchDraw();
+    if (!rd) return;
+    commitTransform(rd.id, rd.layerId, rd.node);
+  }
+
+  function cancelRotate() {
+    if (!rotateDrag) return;
+    rotateDrag.node.rotation(rotateDrag.startRotation);
+    rotateDrag = null;
+    rotateGroup.destroyChildren();
+    contentLayer.batchDraw();
     overlayLayer.batchDraw();
   }
 
@@ -874,6 +936,21 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       return;
     }
 
+    if (tool === 'rotate') {
+      if (state.playing) return;
+      // Remonter au nœud de l'élément depuis la cible du hit (les enfants
+      // d'un groupe d'instance n'ont pas l'attr elKind, l'ancêtre si).
+      let n = e.target;
+      while (n && n !== contentLayer && !n.getAttr('elKind')) n = n.getParent();
+      // Bones exclus : leur rotation fait partie du workflow IK (tête),
+      // les Transformer/poignées dédiées restent leur chemin.
+      if (n && n.getAttr('elKind') && n.getAttr('elKind') !== 'bone') {
+        e.cancelBubble = true;
+        startRotateDrag(n);
+      }
+      return;
+    }
+
     if (tool === 'rect' || tool === 'ellipse' || tool === 'line') {
       drawState = { tool, start: p, last: null };
       let node;
@@ -976,6 +1053,19 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       overlayLayer.batchDraw();
       return;
     }
+    if (rotateDrag) {
+      const p = stagePointer();
+      if (!p) return;
+      const a = Math.atan2(p.y - rotateDrag.pivot.y, p.x - rotateDrag.pivot.x);
+      let deg = rotateDrag.startRotation + (a - rotateDrag.startPointerAngle) * 180 / Math.PI;
+      // Maj : contrainte par pas de 15°, comme les repères d'angle d'Animate
+      if (e.evt.shiftKey) deg = Math.round(deg / 15) * 15;
+      rotateDrag.node.rotation(deg);
+      refreshRotateFeedback(p, deg);
+      contentLayer.batchDraw();
+      overlayLayer.batchDraw();
+      return;
+    }
     if (!drawState) return;
     const p = stagePointer();
     if (!p) return;
@@ -1040,6 +1130,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       return;
     }
     if (marquee) { finishMarquee(); return; }
+    if (rotateDrag) { finishRotate(); return; }
     if (!drawState) return;
     if (drawState.tool === 'pen') {
       drawState.dragging = false;
@@ -1076,7 +1167,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // Filet de sécurité si le bouton est relâché hors de la scène (l'événement
   // Konva ne se déclenche alors pas) — même principe que le redimensionnement
   // du panneau latéral dans main.js.
-  window.addEventListener('mouseup', () => { if (marquee) finishMarquee(); if (panStart) { panStart = null; container.classList.remove('grabbing'); } });
+  window.addEventListener('mouseup', () => { if (marquee) finishMarquee(); if (rotateDrag) finishRotate(); if (panStart) { panStart = null; container.classList.remove('grabbing'); } });
 
   const MARQUEE_CLICK_THRESHOLD = 3; // px, en dessous duquel on considère que c'était un simple clic (pas un glissé)
 
@@ -1130,6 +1221,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (e.key === 'Escape' && drawState && drawState.tool === 'pen') cancelDraw();
     if (e.key === 'Escape' && drawState && drawState.tool === 'boneChain') cancelDraw();
     if (e.key === 'Escape' && drawState && drawState.tool === 'brush') cancelDraw();
+    if (e.key === 'Escape' && rotateDrag) cancelRotate();
     if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedElementIds.length) deleteSelected();
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelected(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelected(); }

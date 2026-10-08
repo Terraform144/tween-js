@@ -12,6 +12,7 @@ function svg(inner) {
 export const ICONS = {
   select: svg('<path d="M6 3.5 6 18.5 9.7 15.3 12.3 20.7 14.7 19.5 12.1 14.2 17.5 13.8 Z" fill="currentColor" fill-opacity="0.14"/>'),
   subselect: svg('<path d="M5 17C7 9,13 15,18 6" stroke-dasharray="0.1 4"/><circle cx="5" cy="17" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="1.6"/><circle cx="12.4" cy="10.4" r="1.2"/>'),
+  rotate: svg('<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>'),
   rect: svg('<rect x="4.5" y="6.5" width="15" height="11" rx="1"/>'),
   ellipse: svg('<ellipse cx="12" cy="12" rx="8.5" ry="6"/>'),
   line: svg('<line x1="5.5" y1="18.5" x2="18.5" y2="5.5"/><circle cx="5.5" cy="18.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="18.5" cy="5.5" r="1.3" fill="currentColor" stroke="none"/>'),
