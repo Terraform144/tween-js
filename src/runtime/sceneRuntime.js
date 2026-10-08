@@ -3,6 +3,7 @@
 // formes/instances, boucle onEnterFrame, entrées clavier) depuis du code
 // utilisateur exécuté avec `run()`.
 import { createShape, createInstance, insertKeyframe, getContextLayers, getContextFrameCount, setContextFrameCount, getNamedElements, getKeyframeAt, getFrameLabels, invertFrameLabels } from '../core/model.js';
+import { pivotHitShift } from '../core/pivot.js';
 import { notify } from '../state.js';
 
 // Bibliothèques tierces injectées dans les scripts comme variables directes.
@@ -154,13 +155,16 @@ function elementBBox(el, doc, seen) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const layer of symbol.layers || []) {
       for (const kf of layer.keyframes || []) {
-        for (const child of kf.elements) {
+          for (const child of kf.elements) {
           const b = elementBBox(child, doc, seen);
           if (!b) continue;
-          minX = Math.min(minX, b.minX + (child.x || 0));
-          minY = Math.min(minY, b.minY + (child.y || 0));
-          maxX = Math.max(maxX, b.maxX + (child.x || 0));
-          maxY = Math.max(maxY, b.maxY + (child.y || 0));
+          // Pivot explicite de l'enfant : son contenu est décalé de son
+          // pivot dans l'espace du symbole parent (origine = pivot).
+          const sh = pivotHitShift(child);
+          minX = Math.min(minX, b.minX + (child.x || 0) - sh.x);
+          minY = Math.min(minY, b.minY + (child.y || 0) - sh.y);
+          maxX = Math.max(maxX, b.maxX + (child.x || 0) - sh.x);
+          maxY = Math.max(maxY, b.maxY + (child.y || 0) - sh.y);
         }
       }
     }
@@ -191,15 +195,20 @@ function hitTestElement(el, px, py, doc) {
   const cos = Math.cos(rot), sin = Math.sin(rot);
   const lx = dx * cos - dy * sin;
   const ly = dx * sin + dy * cos;
+  // Pivot explicite : l'origine de l'élément est son pivot, le cadre du
+  // contenu est exprimé dans le repère du pivot PAR DÉFAUT — on ramène le
+  // point cliqué dans ce repère (décalage nul sans pivot).
+  const sh = pivotHitShift(el);
+  const cx = lx + sh.x, cy = ly + sh.y;
   const sx = el.scaleX == null ? 1 : el.scaleX;
   const sy = el.scaleY == null ? 1 : el.scaleY;
   if (el.shapeType === 'ellipse') {
     const rx = Math.abs((el.width || 0) * sx / 2), ry = Math.abs((el.height || 0) * sy / 2);
-    return rx > 0 && ry > 0 && (lx * lx) / (rx * rx) + (ly * ly) / (ry * ry) <= 1;
+    return rx > 0 && ry > 0 && (cx * cx) / (rx * rx) + (cy * cy) / (ry * ry) <= 1;
   }
   const b = elementBBox(el, doc, null);
   if (!b) return false;
-  return lx >= b.minX * sx && lx <= b.maxX * sx && ly >= b.minY * sy && ly <= b.maxY * sy;
+  return cx >= b.minX * sx && cx <= b.maxX * sx && cy >= b.minY * sy && cy <= b.maxY * sy;
 }
 
 export function createSceneRuntime({ state, onResize = () => {}, stageContainer = null, toScenePoint = null }) {

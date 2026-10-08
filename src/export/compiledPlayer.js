@@ -246,6 +246,27 @@ function collectNamed(layers, frameIndex) {
 }
 
 // --- Hit-testing (port de sceneRuntime.js) -------------------------------
+// Pivot de transformation (port de src/core/pivot.js) : décalage entre le
+// pivot explicite et le pivot par défaut, pour ramener un point cliqué
+// dans le repère du cadre de contenu. Nul sans pivot explicite.
+function hasPivot(el) {
+  return el.kind !== 'bone' && el.pivotX != null && el.pivotY != null;
+}
+function pivotHitShift(el) {
+  if (!hasPivot(el)) return { x: 0, y: 0 };
+  if (el.kind === 'instance') return { x: el.pivotX, y: el.pivotY };
+  if (el.shapeType === 'line' || el.shapeType === 'path') {
+    var pts = el.points || [];
+    var minX = 0, minY = 0;
+    for (var pi0 = 0; pi0 < pts.length; pi0++) {
+      if (pi0 === 0 || pts[pi0].x < minX) minX = pts[pi0].x;
+      if (pi0 === 0 || pts[pi0].y < minY) minY = pts[pi0].y;
+    }
+    return { x: minX + el.pivotX, y: minY + el.pivotY };
+  }
+  var w0 = el.width || 0, h0 = el.height || 0;
+  return { x: el.pivotX - w0 / 2, y: el.pivotY - h0 / 2 };
+}
 function elementBBox(el, seen) {
   if (el.kind === 'instance') {
     var symbol = DATA.symbols[el.symbolId];
@@ -262,10 +283,13 @@ function elementBBox(el, seen) {
           var child = els[ei];
           var b = elementBBox(child, seen);
           if (!b) continue;
-          minX = Math.min(minX, b.minX + (child.x || 0));
-          minY = Math.min(minY, b.minY + (child.y || 0));
-          maxX = Math.max(maxX, b.maxX + (child.x || 0));
-          maxY = Math.max(maxY, b.maxY + (child.y || 0));
+          // Pivot explicite de l'enfant : son contenu est décalé de son
+          // pivot dans l'espace du symbole parent (origine = pivot).
+          var csh = pivotHitShift(child);
+          minX = Math.min(minX, b.minX + (child.x || 0) - csh.x);
+          minY = Math.min(minY, b.minY + (child.y || 0) - csh.y);
+          maxX = Math.max(maxX, b.maxX + (child.x || 0) - csh.x);
+          maxY = Math.max(maxY, b.maxY + (child.y || 0) - csh.y);
         }
       }
     }
@@ -291,6 +315,11 @@ function hitTestElement(el, px, py) {
   var cos = Math.cos(rot), sin = Math.sin(rot);
   var lx = dx * cos - dy * sin;
   var ly = dx * sin + dy * cos;
+  // Pivot explicite : origine de l'élément = pivot ; le cadre du contenu
+  // est exprimé dans le repère du pivot par défaut, on y ramène le point.
+  var sh = pivotHitShift(el);
+  lx += sh.x;
+  ly += sh.y;
   var sx = el.scaleX == null ? 1 : el.scaleX;
   var sy = el.scaleY == null ? 1 : el.scaleY;
   if (el.shapeType === 'ellipse') {

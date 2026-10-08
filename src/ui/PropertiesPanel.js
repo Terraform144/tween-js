@@ -1,4 +1,5 @@
 import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones, getSkeletonsFromKeyframe, getAsset } from '../core/model.js';
+import { setElementPivotField, resetElementPivot } from '../core/pivot.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 
@@ -44,6 +45,29 @@ export function mountPropertiesPanel(container, state) {
     row.append(l, input);
     body.appendChild(row);
     return input;
+  }
+
+  // Champ pivot : vide (placeholder "auto") tant qu'aucun pivot explicite
+  // n'est posé — l'élément garde alors son centre de rotation par défaut.
+  function pivotNumberRow(label, value, hasP, onChange, title) {
+    const row = document.createElement('div');
+    row.className = 'prop-row';
+    const l = document.createElement('label');
+    l.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = 'any';
+    input.placeholder = 'auto';
+    if (title) input.title = title;
+    if (hasP) input.value = Math.round(value * 100) / 100;
+    input.addEventListener('change', () => {
+      const v = parseFloat(input.value);
+      if (Number.isNaN(v)) return; // champ vidé : aucun changement
+      onChange(v);
+    });
+    linkLabelToField(l, input);
+    row.append(l, input);
+    body.appendChild(row);
   }
 
   function colorRow(label, value, onChange) {
@@ -217,6 +241,24 @@ export function mountPropertiesPanel(container, state) {
       numberRow('Largeur (boîte)', el.width, (v) => mutateSelectedElement((e) => (e.width = Math.max(20, v))));
     }
     numberRow('Rotation', el.rotation, (v) => mutateSelectedElement((e) => (e.rotation = v)));
+    if (el.kind !== 'bone') {
+      // Pivot de transformation (registration point à la Animate CC) : la
+      // rotation se fait autour de ce point. Vide = centre/origine auto.
+      const pivTitle = 'Point de rotation de l\'objet. Vide = centre automatique (origine du symbole pour une instance). (0,0) = coin haut-gauche de l\'objet ; pour une instance : coordonnées dans le symbole. Déplaçable aussi directement sur la scène avec l\'outil sélection.';
+      const pivHas = el.pivotX != null && el.pivotY != null;
+      pivotNumberRow('Pivot X', el.pivotX, pivHas, (v) => mutateSelectedElement((e) => setElementPivotField(e, v, null)), pivTitle);
+      pivotNumberRow('Pivot Y', el.pivotY, pivHas, (v) => mutateSelectedElement((e) => setElementPivotField(e, null, v)), pivTitle);
+      if (pivHas) {
+        const row = document.createElement('div');
+        row.className = 'prop-row';
+        const btn = document.createElement('button');
+        btn.textContent = 'Recentrer le pivot';
+        btn.title = 'Retire le pivot explicite (retour au centre/origine automatique), sans bouger l\'objet.';
+        btn.addEventListener('click', () => mutateSelectedElement((e) => resetElementPivot(e)));
+        row.appendChild(btn);
+        body.appendChild(row);
+      }
+    }
     numberRow('Échelle X', el.scaleX, (v) => mutateSelectedElement((e) => (e.scaleX = v)), { step: 0.1 });
     numberRow('Échelle Y', el.scaleY, (v) => mutateSelectedElement((e) => (e.scaleY = v)), { step: 0.1 });
     numberRow('Opacité', el.opacity, (v) => mutateSelectedElement((e) => (e.opacity = Math.max(0, Math.min(1, v)))), { step: 0.1 });
