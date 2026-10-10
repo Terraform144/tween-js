@@ -312,7 +312,13 @@ Les contributions sont les bienvenues !
 
 ## 📄 Licence
 
-MIT - Voir le fichier [LICENSE](../LICENSE) pour plus de détails.
+**Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** — Voir le fichier [LICENSE](../LICENSE) pour plus de détails.
+
+- **Autorisé** : copie, usage, modification et redistribution **non commerciaux**, avec attribution
+- **Interdit sans autorisation écrite** : toute exploitation commerciale
+- **Pour une exploitation commerciale** : merci de réécrire le code et les fonctionnalités à votre sauce ^_^
+- Note : le site est en **Vanilla JS** et fonctionne **sans serveur** — le dossier peut être copié tel quel et fonctionnera à l'identique, même hors ligne
+- Les bibliothèques CreateJS embarquées restent sous leur licence MIT d'origine
 
 ---
 
