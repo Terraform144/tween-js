@@ -292,7 +292,6 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     { icon: 'heart', label: 'Faire un don', className: 'donate-btn', action: () => { window.open('https://www.paypal.com/donate/?hosted_button_id=HCDEXV9E52EAW', '_blank'); } },
     { icon: 'info', label: 'Mentions légales & RGPD', action: () => { window.location.href = window.__TJS_VANILLA__ ? 'docs/mentions-legales.html' : '/src/mentions-legales.html'; } },
     { icon: 'book', label: 'Documentation', action: () => { window.open(window.__TJS_VANILLA__ ? 'docs/Animate-JS-Documentation.pdf' : '/docs/Animate-JS-Documentation.pdf', '_blank'); } },
-    { icon: 'chevronDown', label: 'APK Debug', action: () => { window.location.href = 'http://gamecreator.debrouillard.be/app/Tween_JS/app-debug.apk'; } },
     { icon: 'book', label: 'Code Source', action: () => { window.open('https://github.com/Terraform144/tween-js/tree/TweenJS_simpleV.0.1', '_blank'); } },
   ];
   for (const item of aboutMenuItems) {
