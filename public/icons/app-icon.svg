@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432">
+  <!-- Icône de lancement « TweenJS — le rebond » (thème Solarized de l'app).
+       Source des mipmap-*/ic_launcher*.png ; régénérer via
+       _wrk_mistral_mem/gen_android_icons.mjs -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d5468"/>
+      <stop offset="1" stop-color="#073642"/>
+    </linearGradient>
+    <radialGradient id="ballGrad" cx="0.38" cy="0.3" r="0.9">
+      <stop offset="0" stop-color="#e8602a"/>
+      <stop offset="0.55" stop-color="#cb4b16"/>
+      <stop offset="1" stop-color="#a83a10"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="432" height="432" rx="46" ry="46" fill="url(#bgGrad)"/>
+  <g transform="translate(216,216) scale(0.85) translate(-216,-216)">
+    <!-- ombre au sol -->
+    <ellipse cx="296" cy="316" rx="42" ry="9" fill="#001a20" opacity="0.35"/>
+    <!-- trajectoire d'easing en pointillés -->
+    <path d="M 118,150 Q 216,58 298,262"
+          fill="none" stroke="#eee8d5" stroke-opacity="0.85"
+          stroke-width="6" stroke-linecap="round" stroke-dasharray="0.1 17"/>
+    <!-- point-keyframe (comme dans la timeline de l'app) -->
+    <circle cx="118" cy="150" r="12" fill="#eee8d5"/>
+    <!-- traînée onion-skin -->
+    <circle cx="191" cy="126" r="15" fill="#cb4b16" opacity="0.16"/>
+    <circle cx="233" cy="153" r="17" fill="#cb4b16" opacity="0.30"/>
+    <circle cx="269" cy="205" r="20" fill="#cb4b16" opacity="0.50"/>
+    <!-- balle en rebond (squash) -->
+    <ellipse cx="292" cy="272" rx="40" ry="34" fill="url(#ballGrad)"/>
+    <ellipse cx="278" cy="256" rx="11" ry="7" fill="#fdf6e3" opacity="0.55"/>
+  </g>
+</svg>
