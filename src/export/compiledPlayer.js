@@ -519,5 +519,11 @@ function loop(time) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = DATA.backgroundColor || '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Caméra de scène : cadre caméra mappé sur tout le canvas. Les fonctions
+  // viennent du runtime tweenjs-runtime.js chargé AVANT ce player en
+  // <script> classique (liaisons globales). null = identité.
+  ctx.save();
+  applyCameraToContext(ctx, resolveCameraAtFrame(DATA.camera, root.currentFrame, DATA.width, DATA.height), DATA.width, DATA.height);
   root.draw(ctx);
+  ctx.restore();
 }

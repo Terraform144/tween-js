@@ -36,6 +36,16 @@ Ouvrir l'URL affichée (http://localhost:5173).
 - **Scène** : outils Sélection, Sous-sélection, Rectangle, Ellipse, Ligne,
   Plume, Texte. Déplacement / redimensionnement / rotation via poignées.
   Suppr pour effacer la sélection.
+- **Caméra (touche C)** : caméra virtuelle de scène façon Animate CC pour des
+  cadrages cinématographiques. Cadre en liseré pointillé sur la scène :
+  glisser l'intérieur = déplacer le cadre (pan), poignées d'angle ou molette
+  = zoom (la molette zoome autour du pointeur et fonctionne même quand les
+  poignées sont hors feuille), poignée au-dessus = rotation. Chaque geste
+  pose une image clé caméra à l'image courante (Suppr = la supprimer) ; le
+  mouvement est interpolé automatiquement entre les images clés et appliqué
+  à TOUTE la scène pendant la lecture et dans les exports (le cadre caméra
+  est toujours mappé sur la surface entière du canvas de sortie). Sans image
+  clé caméra, le rendu est strictement identique au comportement historique.
 - **Import SVG** : bouton "Importer SVG" dans la barre de menu pour importer des
   fichiers vectoriels (.svg) et les convertir en formes éditables (rectangles,
   ellipses, lignes, courbes, texte, polygones).

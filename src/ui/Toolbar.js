@@ -5,6 +5,7 @@ const TOOLS = [
   { id: 'select', icon: 'select', title: 'Sélection (V)' },
   { id: 'subselect', icon: 'subselect', title: 'Sous-sélection — éditer les points d\'une courbe (A)' },
   { id: 'rotate', icon: 'rotate', title: 'Rotation — tourner l\'élément autour de son pivot (Q)' },
+  { id: 'camera', icon: 'camera', title: 'Caméra — cadrage cinématographique de la scène : glisser le cadre = pan, poignées d\'angle ou molette = zoom, poignée haute = rotation ; Suppr = supprimer l\'image clé caméra (C)' },
   { id: 'rect', icon: 'rect', title: 'Rectangle (R)' },
   { id: 'ellipse', icon: 'ellipse', title: 'Ellipse (O)' },
   { id: 'line', icon: 'line', title: 'Ligne (L)' },
@@ -13,7 +14,7 @@ const TOOLS = [
   { id: 'text', icon: 'text', title: 'Texte (T)' },
 ];
 
-const SHORTCUTS = { v: 'select', a: 'subselect', q: 'rotate', r: 'rect', o: 'ellipse', l: 'line', b: 'brush', p: 'pen', t: 'text' };
+const SHORTCUTS = { v: 'select', a: 'subselect', q: 'rotate', c: 'camera', r: 'rect', o: 'ellipse', l: 'line', b: 'brush', p: 'pen', t: 'text' };
 
 export function mountToolbar(container, state, { onDelete } = {}) {
   container.innerHTML = '';

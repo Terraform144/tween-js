@@ -201,6 +201,63 @@ function pivotDrawShift(ctx, el) {
   return { x: (el.width || 0) / 2 - el.pivotX, y: h / 2 - el.pivotY };
 }
 
+// Caméra de scène (outil caméra de l'éditeur, façon Animate CC) — copie
+// autonome de src/core/camera.js : ce fichier est inliné tel quel (?raw)
+// dans les exports, aucun import possible (même discipline que le pivot).
+// doc.camera = { keyframes: [{ index, x, y, zoom, rotation }] } | null ;
+// interpolation linéaire permanente entre clés consécutives, tenue après la
+// dernière, identité avant la première ou sans caméra. Sémantique : le cadre
+// caméra est mappé sur TOUT le canvas de sortie — screen = centre +
+// R(-rotation).S(zoom).(p - cam).
+function clampCameraState(s, docWidth, docHeight) {
+  return {
+    x: typeof s.x === 'number' ? s.x : docWidth / 2,
+    y: typeof s.y === 'number' ? s.y : docHeight / 2,
+    zoom: typeof s.zoom === 'number' ? Math.min(10, Math.max(0.1, s.zoom)) : 1,
+    rotation: typeof s.rotation === 'number' ? s.rotation : 0,
+  };
+}
+
+// État caméra interpolé à l'image donnée ; null = identité (rendu historique).
+export function resolveCameraAtFrame(camData, frameIndex, docWidth, docHeight) {
+  var kfs = (camData && camData.keyframes) || [];
+  if (!kfs.length) return null;
+  var active = null;
+  for (var i = 0; i < kfs.length; i++) {
+    if (kfs[i].index <= frameIndex) active = kfs[i];
+    else break;
+  }
+  if (!active) return null;
+  var next = null;
+  for (var j = 0; j < kfs.length; j++) {
+    if (kfs[j].index > active.index) { next = kfs[j]; break; }
+  }
+  var a = clampCameraState(active, docWidth, docHeight);
+  if (!next) return a;
+  var b = clampCameraState(next, docWidth, docHeight);
+  var span = next.index - active.index;
+  var t = Math.min(1, Math.max(0, (frameIndex - active.index) / span));
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+    zoom: a.zoom + (b.zoom - a.zoom) * t,
+    rotation: a.rotation + (b.rotation - a.rotation) * t,
+  };
+}
+
+// Applique la caméra à un contexte canvas : à appeler dans un save()/restore()
+// autour du dessin de la scène racine. null = no-op (identité).
+// screen = centre + R(-rotation) . S(zoom) . (p - cam) — le cadre caméra
+// (doc/zoom x doc/zoom) est étiré sur TOUT le canvas de sortie.
+export function applyCameraToContext(ctx, cam, width, height) {
+  if (!cam) return;
+  ctx.translate(width / 2, height / 2);
+  ctx.rotate(-(cam.rotation || 0) * Math.PI / 180);
+  var s = cam.zoom || 1;
+  ctx.scale(s, s);
+  ctx.translate(-cam.x, -cam.y);
+}
+
 function drawShape(ctx, el, data) {
   ctx.save();
   ctx.translate(el.x, el.y);

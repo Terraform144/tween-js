@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
+import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
@@ -78,7 +79,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const pivotGroup = new Konva.Group();
   // Retenu visuel de l'outil rotation : rayon pivot->pointeur + angle
   const rotateGroup = new Konva.Group({ listening: false });
-  overlayLayer.add(transformer, handleGroup, pivotGroup, rotateGroup);
+  // Cadre caméra de scène (outil caméra, façon Animate CC)
+  const cameraGroup = new Konva.Group();
+  overlayLayer.add(transformer, handleGroup, pivotGroup, rotateGroup, cameraGroup);
 
   // Cache d'images décodées, indexé par dataUrl (immuable par contenu). Tant qu'une image n'est pas
   // décodée (chargement asynchrone depuis le dataUrl), le nœud affiche un
@@ -413,6 +416,188 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
   }
 
+  // ------------------------------------------------------------ caméra
+  // Pendant la lecture, le monde entier (page + contenu) est vu à travers
+  // la caméra : la transform document->cadre est appliquée à bgLayer ET
+  // contentLayer comme position/rotation/échelle de calque (l'espace du
+  // canvas de sortie reste doc.width x doc.height, seule la portion de
+  // scène vue change). Hors lecture : identité — l'édition reste
+  // exactement le comportement historique, le cadre caméra est affiché en
+  // surimpression (refreshCameraFrame). Réservé à la scène racine : la
+  // caméra est une notion de document, pas de symbole.
+  function applyCameraTransform() {
+    const doc = state.doc;
+    const cam = (state.playing && !state.editPath.length && hasCamera(doc))
+      ? resolveCameraAtFrame(doc, state.currentFrame)
+      : null;
+    const lt = cameraLayerTransform(cam, doc.width, doc.height);
+    for (const layer of [bgLayer, contentLayer]) {
+      if (lt) {
+        layer.position({ x: lt.x, y: lt.y });
+        layer.rotation(lt.rotation);
+        layer.scale({ x: lt.scaleX, y: lt.scaleY });
+      } else {
+        layer.position({ x: 0, y: 0 });
+        layer.rotation(0);
+        layer.scale({ x: 1, y: 1 });
+      }
+    }
+  }
+
+  // Cadre caméra (outil Caméra) : liseré pointillé autour de ce que la
+  // caméra voit à l'image courante (état interpolé entre images clés).
+  // Interactions (outil actif uniquement) : glisser l'intérieur = pan,
+  // poignées d'angle = zoom, poignée au-dessus = rotation. Chaque geste pose
+  // une image clé caméra à l'image courante (Suppr = la supprime). Même
+  // discipline que le réticule pivot : aucun notify()/render() pendant un
+  // drag, le modèle n'est touché qu'au dragend.
+  let cameraDrag = null; // { kind: 'pan'|'zoom'|'rotate', startCam, startDist|startAngle, rotAcc }
+
+  function cameraTouchGuard(e) {
+    // Leçon sessions 8/14 : sans preventDefault sur touchstart, le
+    // navigateur rejoue la séquence souris émulée et le drag partait deux
+    // fois ; cancelBubble : ni marquee ni sélection sous le cadre.
+    if (e.evt.type === 'touchstart' && e.evt.cancelable) e.evt.preventDefault();
+    e.cancelBubble = true;
+  }
+
+  // Angle (degrés) et distance du pointeur autour du centre du cadre, en
+  // repère MONDE (espace document, overlayLayer non transformé) — jamais en
+  // repère local du groupe : le groupe tourne pendant le drag de rotation et
+  // un angle local créerait une boucle de rétroaction (le retenu
+  // réappliquerait son propre déplacement). Même principe que le Transformer
+  // Konva pour sa poignée de rotation.
+  function cameraPointerPolar(g) {
+    const p = stagePointer();
+    if (!p) return null;
+    return {
+      angle: Math.atan2(p.y - g.y(), p.x - g.x()) * 180 / Math.PI,
+      dist: Math.hypot(p.x - g.x(), p.y - g.y()),
+    };
+  }
+
+  function refreshCameraFrame() {
+    cameraGroup.destroyChildren();
+    cameraDrag = null;
+    if (state.playing || state.editPath.length) return;
+    const doc = state.doc;
+    const cam = resolveCameraAtFrame(doc, state.currentFrame) || defaultCamera(doc);
+    const active = state.currentTool === 'camera';
+    // Hors outil caméra, le cadre reste visible (sans interaction) tant
+    // qu'une caméra existe — retour d'information comme le cadre caméra
+    // d'Animate.
+    if (!active && !hasCamera(doc)) return;
+
+    const w = doc.width / cam.zoom, h = doc.height / cam.zoom;
+    const g = new Konva.Group({
+      x: cam.x, y: cam.y, rotation: cam.rotation,
+      draggable: active, listening: active,
+    });
+    const rect = new Konva.Rect({
+      x: -w / 2, y: -h / 2, width: w, height: h,
+      stroke: '#cb4b16', strokeWidth: 1, dash: [5, 4],
+      fill: 'rgba(0,0,0,0)', // capte le glisser dans tout le cadre (pan)
+      listening: active,
+    });
+    g.add(rect);
+
+    // Poignée de rotation : hampe au-dessus du bord haut + poire. La hampe
+    // (ligne fine) n'écoute pas, seule la poire est draggable.
+    let rotLine = null, rotHandle = null, corners = [];
+    if (active) {
+      rotLine = new Konva.Line({ points: [0, -h / 2, 0, -h / 2 - 22], stroke: '#cb4b16', strokeWidth: 1.2, listening: false });
+      rotHandle = new Konva.Group({ x: 0, y: -h / 2 - 28, draggable: true });
+      const rotHit = new Konva.Circle({ radius: 14, fill: 'rgba(0,0,0,0)' });
+      const rotDot = new Konva.Circle({ radius: 6, fill: '#ffffff', stroke: '#cb4b16', strokeWidth: 1.5, listening: false });
+      rotHandle.add(rotHit, rotDot);
+      rotHandle.on('mousedown touchstart', cameraTouchGuard);
+      rotHandle.on('dragstart', () => {
+        const p = cameraPointerPolar(g);
+        if (!p) return;
+        cameraDrag = { kind: 'rotate', startCam: { ...cam }, lastAngle: p.angle, rotAcc: cam.rotation };
+      });
+      rotHandle.on('dragmove', () => {
+        if (!cameraDrag || cameraDrag.kind !== 'rotate') return;
+        const p = cameraPointerPolar(g);
+        if (!p) return;
+        // Accumulé par plus court chemin à chaque move : les tours
+        // complets du geste continuent de tourner au-delà de ±180°.
+        let d = p.angle - cameraDrag.lastAngle;
+        cameraDrag.lastAngle = p.angle;
+        d = ((d + 540) % 360) - 180;
+        cameraDrag.rotAcc += d;
+        g.rotation(cameraDrag.rotAcc);
+        overlayLayer.batchDraw();
+      });
+      rotHandle.on('dragend', () => {
+        if (!cameraDrag || cameraDrag.kind !== 'rotate') return;
+        const rot = ((cameraDrag.rotAcc % 360) + 540) % 360 - 180;
+        cameraDrag = null;
+        upsertCameraKeyframe(state.doc, state.currentFrame, { rotation: rot });
+        notify(state);
+      });
+      g.add(rotLine, rotHandle);
+
+      // Poignées d'angle : le zoom suit la distance pointeur->centre
+      // (facteur du zoom initial) — insensible à la rotation du cadre.
+      const cornerPos = (cw, ch) => [
+        { x: -cw / 2, y: -ch / 2 }, { x: cw / 2, y: -ch / 2 },
+        { x: cw / 2, y: ch / 2 }, { x: -cw / 2, y: ch / 2 },
+      ];
+      const layoutFrame = (cw, ch) => {
+        rect.position({ x: -cw / 2, y: -ch / 2 });
+        rect.size({ width: cw, height: ch });
+        rotLine.points([0, -ch / 2, 0, -ch / 2 - 22]);
+        rotHandle.position({ x: 0, y: -ch / 2 - 28 });
+        const pts = cornerPos(cw, ch);
+        corners.forEach((a, i) => a.position(pts[i]));
+      };
+      for (const pos of cornerPos(w, h)) {
+        const a = new Konva.Group({ x: pos.x, y: pos.y, draggable: true });
+        a.add(new Konva.Circle({ radius: 14, fill: 'rgba(0,0,0,0)' }));
+        a.add(new Konva.Circle({ radius: 6, fill: '#ffffff', stroke: '#cb4b16', strokeWidth: 1.5, listening: false }));
+        a.on('mousedown touchstart', cameraTouchGuard);
+        a.on('dragstart', () => {
+          const p = cameraPointerPolar(g);
+          if (!p) return;
+          cameraDrag = { kind: 'zoom', startCam: { ...cam }, startDist: p.dist, zoom: cam.zoom };
+        });
+        a.on('dragmove', () => {
+          if (!cameraDrag || cameraDrag.kind !== 'zoom') return;
+          const p = cameraPointerPolar(g);
+          if (!p) return;
+          if (!p.dist || !cameraDrag.startDist) return;
+          const zoom = Math.min(CAMERA_ZOOM_MAX, Math.max(CAMERA_ZOOM_MIN, cameraDrag.startCam.zoom * p.dist / cameraDrag.startDist));
+          cameraDrag.zoom = zoom;
+          const cw = doc.width / zoom, ch = doc.height / zoom;
+          layoutFrame(cw, ch);
+          overlayLayer.batchDraw();
+        });
+        a.on('dragend', () => {
+          if (!cameraDrag || cameraDrag.kind !== 'zoom') return;
+          const zoom = cameraDrag.zoom;
+          cameraDrag = null;
+          upsertCameraKeyframe(state.doc, state.currentFrame, { zoom });
+          notify(state);
+        });
+        g.add(a);
+        corners.push(a);
+      }
+    }
+
+    g.on('mousedown touchstart', cameraTouchGuard);
+    g.on('dragend', (e) => {
+      // Pan : la position du groupe EST le centre caméra (l'overlay ne
+      // porte ni rotation de page ni zoom d'affichage — espace document).
+      // Garde e.target === g : le dragend d'une POIGNÉE bubble jusqu'au
+      // groupe (Konva), il ne doit pas poser de clé pan en plus.
+      if (e.target !== g || state.currentTool !== 'camera') return;
+      upsertCameraKeyframe(state.doc, state.currentFrame, { x: g.x(), y: g.y() });
+      notify(state);
+    });
+    cameraGroup.add(g);
+  }
+
   let currentTick = 0;
   function render(tick = 0) {
     // Changer d'outil en pleine plume ou chaîne de bones abandonnait un tracé fantôme
@@ -425,10 +610,12 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     bgRect.width(doc.width);
     bgRect.height(doc.height);
     bgRect.fill(doc.backgroundColor);
+    applyCameraTransform();
     contentLayer.destroyChildren();
     renderInto(contentLayer, currentLayers(), state.currentFrame, tick, 0);
     refreshSelectionVisuals();
     refreshPointHandles();
+    refreshCameraFrame();
     contentLayer.draw();
     overlayLayer.batchDraw();
   }
@@ -1223,6 +1410,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (e.key === 'Escape' && drawState && drawState.tool === 'brush') cancelDraw();
     if (e.key === 'Escape' && rotateDrag) cancelRotate();
     if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedElementIds.length) deleteSelected();
+    // Outil caméra sans sélection : Suppr supprime l'image clé caméra de
+    // l'image courante (dernière clé supprimée = caméra entièrement retirée).
+    if ((e.key === 'Delete' || e.key === 'Backspace') && state.currentTool === 'camera' && !state.selectedElementIds.length
+      && removeCameraKeyframeAt(state.doc, state.currentFrame)) notify(state);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelected(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelected(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteClipboard(); }
@@ -1693,8 +1884,33 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   let onZoomChange = null;
   function setOnZoomChange(fn) { onZoomChange = fn; }
 
-  // Zoom à la molette : Ctrl+molette agrandit/rétrécit autour du pointeur
+  // Zoom à la molette : Ctrl+molette agrandit/rétrécit autour du pointeur.
+  // Outil caméra actif : la molette SANS modificateur zoome la CAMÉRA
+  // autour du pointeur (l'image clé caméra de l'image courante est posée/
+  // modifiée) — indispensable car les poignées d'angle du cadre deviennent
+  // inatteignables dès que le cadre sort de la feuille (pan appuyé ou
+  // dézoom) ; la molette, elle, fonctionne toujours.
   container.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey && state.currentTool === 'camera' && !state.playing && !state.editPath.length) {
+      e.preventDefault();
+      const p = stagePointer();
+      if (!p) return;
+      const cam = resolveCameraAtFrame(state.doc, state.currentFrame) || defaultCamera(state.doc);
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      const zoom = Math.min(CAMERA_ZOOM_MAX, Math.max(CAMERA_ZOOM_MIN, cam.zoom * factor));
+      if (zoom === cam.zoom) return;
+      // Le point du document sous le pointeur reste fixe dans le cadre :
+      // (p - cam') = (p - cam)·zoom/zoom' — la rotation s'annule de la
+      // formule (même facteur des deux côtés de R(-θ)).
+      const k = cam.zoom / zoom;
+      upsertCameraKeyframe(state.doc, state.currentFrame, {
+        zoom,
+        x: p.x - (p.x - cam.x) * k,
+        y: p.y - (p.y - cam.y) * k,
+      });
+      render();
+      return;
+    }
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
@@ -1708,13 +1924,17 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   // Convertit des coordonnées client (événement DOM : glisser-déposer, clic
   // externe) en coordonnées document, en inversant la transformation absolue
-  // du stage (même principe que getRelativePointerPosition()).
+  // du stage (même principe que getRelativePointerPosition()). La transform
+  // du contentLayer (et non du stage seul) est inversée : pendant la lecture
+  // sous caméra, le monde est transformé au niveau du calque — les clics des
+  // scripts (Scene.onClick, événements pointer) tombent ainsi sur le bon
+  // élément à travers la caméra.
   function pointFromClient(clientX, clientY) {
     // Rect du panLayer (et non du container) : c'est lui que le pan translate,
     // l'origine doit donc suivre la scène déplacée.
     const rect = panLayer.getBoundingClientRect();
     const abs = { x: clientX - rect.left, y: clientY - rect.top };
-    return konvaStage.getAbsoluteTransform().copy().invert().point(abs);
+    return contentLayer.getAbsoluteTransform().copy().invert().point(abs);
   }
 
   return { konvaStage, render, resize, addInstanceAt, deleteSelected, copySelected, cutSelected, pasteClipboard, pointFromClient, zoomIn, zoomOut, zoomReset, getZoomPercent, setOnZoomChange, resetPan };
