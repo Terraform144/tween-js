@@ -324,11 +324,13 @@ export function resolveCameraAtFrame(camData, frameIndex, docWidth, docHeight) {
   var b = clampCameraState(next, docWidth, docHeight);
   var span = next.index - active.index;
   var t = Math.min(1, Math.max(0, (frameIndex - active.index) / span));
+  // Easing porté par la clé active (copie autonome de core/camera.js).
+  var et = applyEasing(t, active.easing);
   return {
-    x: a.x + (b.x - a.x) * t,
-    y: a.y + (b.y - a.y) * t,
-    zoom: a.zoom + (b.zoom - a.zoom) * t,
-    rotation: a.rotation + (b.rotation - a.rotation) * t,
+    x: a.x + (b.x - a.x) * et,
+    y: a.y + (b.y - a.y) * et,
+    zoom: a.zoom + (b.zoom - a.zoom) * et,
+    rotation: a.rotation + (b.rotation - a.rotation) * et,
   };
 }
 

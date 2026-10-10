@@ -858,6 +858,33 @@ body.fs-css .fs-css-active {
 .tl-frame-cell.dragging-key { cursor: grabbing; z-index: 4; opacity: 0.85; }
 .tl-frame-cell.drop-target { background: var(--accent-dim); outline: 1px dashed var(--accent); outline-offset: -1px; }
 .tl-frame-cell.drop-invalid { background: rgba(220, 50, 47, 0.18); outline: 1px dashed var(--danger); outline-offset: -1px; }
+
+/* ---------- Piste caméra dédiée (plus foncée que les pistes de calques) ----------
+   Bleu-pétrole du thème (#073642) : la piste se détache nettement des crème
+   des calques, les clés orange (#cb4b16) y sautent aux yeux. */
+.tl-layer-row.tl-camera-row {
+  background: #073642;
+  border-bottom-color: #052b32;
+  cursor: pointer;
+}
+.tl-layer-row.tl-camera-row .layer-name { color: var(--bg-0); font-weight: 600; }
+.tl-layer-row.tl-camera-row .cam-icon { color: var(--accent); }
+.tl-track-row.tl-camera-track { background: #073642; border-bottom-color: #052b32; }
+.tl-frame-cell.tl-camera-cell { background: #0a4152; border-right-color: #0c4757; }
+.tl-frame-cell.tl-camera-cell.camera-key { background: #0d4c60; }
+.tl-frame-cell.tl-camera-cell.camera-key::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px rgba(253, 246, 227, 0.45);
+}
+
 .frame-script-badge {
   position: absolute;
   top: 0;

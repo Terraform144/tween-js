@@ -5,6 +5,10 @@ import {
 } from '../core/model.js';
 import { notify } from '../state.js';
 import { getPref, setPref, hasPref } from '../util/prefs.js';
+import {
+  hasCamera, getCameraKeyframeAt, upsertCameraKeyframe, moveCameraKeyframe,
+  nextCameraEasing, CAMERA_EASING_LABELS,
+} from '../core/camera.js';
 import { ICONS } from './icons.js';
 import { isTouchLike, isPhoneSize } from '../util/responsive.js';
 import { enableDragScroll } from '../util/dragScroll.js';
@@ -150,6 +154,137 @@ export function mountTimeline(container, state) {
     state.selectedLayerId = layer.id;
     state.currentFrame = (targetIndex !== startIndex && moveKeyframe(layer, kf, targetIndex)) ? targetIndex : startIndex;
     notify(state);
+  }
+
+  // ------------------------------------------ piste caméra (dédiée, plus foncée)
+  // La caméra est une notion de DOCUMENT (pas de calque) : sa piste vit au-
+  // dessus des calques de la scène racine uniquement. Les clés caméra y sont
+  // visibles, glissables le long de la piste (mêmes contraintes de voisines
+  // que les calques), un double-clic sur une image vide y pose une clé
+  // (depuis l'état résolu courant — la caméra ne saute jamais), un clic
+  // droit sur une clé fait tourner l'easing du tween qui la quitte.
+  function cameraTrackVisible() {
+    return !state.editPath.length && hasCamera(state.doc);
+  }
+
+  let camKeyDrag = null; // { kf, startIndex, startX, targetIndex, cell, track, minIndex, maxIndex }
+
+  function startCamKeyDrag(e, kf, index, cell) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const kfs = state.doc.camera.keyframes;
+    const idx = kfs.indexOf(kf);
+    const prev = kfs[idx - 1];
+    const next = kfs[idx + 1];
+    camKeyDrag = {
+      kf, startIndex: index, startX: e.clientX, targetIndex: index,
+      cell, track: cell.parentElement,
+      minIndex: prev ? prev.index + 1 : 0,
+      maxIndex: next ? next.index - 1 : frameCount() - 1,
+    };
+    window.addEventListener('pointermove', onCamKeyDragMove);
+    window.addEventListener('pointerup', onCamKeyDragEnd, { once: true });
+  }
+
+  function onCamKeyDragMove(e) {
+    if (!camKeyDrag) return;
+    const dxFrames = Math.round((e.clientX - camKeyDrag.startX) / CELL_W);
+    const target = Math.max(0, Math.min(frameCount() - 1, camKeyDrag.startIndex + dxFrames));
+    if (target === camKeyDrag.targetIndex) return;
+    camKeyDrag.targetIndex = target;
+    const { track, startIndex, cell, minIndex, maxIndex } = camKeyDrag;
+    cell.style.transform = `translateX(${(target - startIndex) * CELL_W}px)`;
+    cell.classList.add('dragging-key');
+    Array.from(track.children).forEach((c) => c.classList.remove('drop-target', 'drop-invalid'));
+    if (target !== startIndex) {
+      const targetCell = track.children[target];
+      if (targetCell) targetCell.classList.add(target >= minIndex && target <= maxIndex ? 'drop-target' : 'drop-invalid');
+    }
+  }
+
+  function onCamKeyDragEnd() {
+    window.removeEventListener('pointermove', onCamKeyDragMove);
+    if (!camKeyDrag) return;
+    const { kf, startIndex, targetIndex, cell, track } = camKeyDrag;
+    camKeyDrag = null;
+    cell.style.transform = '';
+    cell.classList.remove('dragging-key');
+    Array.from(track.children).forEach((c) => c.classList.remove('drop-target', 'drop-invalid'));
+    state.currentFrame = (targetIndex !== startIndex && moveCameraKeyframe(state.doc, kf, targetIndex)) ? targetIndex : startIndex;
+    notify(state);
+  }
+
+  // Double-clic décelé MANUELLEMENT : le premier clic reconstruit la piste
+  // (notify -> innerHTML), l'événement dblclick natif ne peut donc jamais
+  // partir sur la même cellule — la mémoire du dernier clic vit en closure.
+  let lastCamCellClick = { index: -1, time: 0 };
+
+  function buildCameraTrack() {
+    const camRow = document.createElement('div');
+    camRow.className = 'tl-layer-row tl-camera-row';
+    camRow.title = "Piste caméra — clic : activer l'outil Caméra (C) ; les clés se posent avec l'outil, glissables ici";
+    const icon = document.createElement('span');
+    icon.className = 'mini-btn cam-icon';
+    icon.innerHTML = ICONS.camera;
+    const name = document.createElement('span');
+    name.className = 'layer-name';
+    name.textContent = 'Caméra';
+    camRow.append(icon, name);
+    camRow.addEventListener('click', () => { state.currentTool = 'camera'; notify(state); });
+    layersCol.appendChild(camRow);
+
+    const n = frameCount();
+    const track = document.createElement('div');
+    track.className = 'tl-track-row tl-camera-track';
+    track.style.width = n * CELL_W + 'px';
+    for (let i = 0; i < n; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'tl-frame-cell tl-camera-cell';
+      cell.style.width = CELL_W + 'px';
+      const kf = getCameraKeyframeAt(state.doc, i);
+      if (i === state.currentFrame) cell.classList.add('selected');
+      if (kf) {
+        cell.classList.add('camera-key', 'draggable-key');
+        const easing = kf.easing || 'linear';
+        cell.title = 'Clé caméra — image ' + (i + 1) + '\nEasing vers la clé suivante : ' + (CAMERA_EASING_LABELS[easing] || easing)
+          + '\nClic droit : easing suivant — Glisser : déplacer — Suppr (outil caméra) : supprimer';
+        cell.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          nextCameraEasing(kf);
+          notify(state);
+        });
+        cell.addEventListener('pointerdown', (e) => startCamKeyDrag(e, kf, i, cell));
+      } else {
+        cell.title = 'Image ' + (i + 1) + ' — double-clic : poser une clé caméra ici';
+        cell.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          const now = Date.now();
+          if (lastCamCellClick.index === i && now - lastCamCellClick.time < 400) {
+            lastCamCellClick = { index: -1, time: 0 };
+            upsertCameraKeyframe(state.doc, i);
+            state.currentFrame = i;
+            notify(state);
+            return;
+          }
+          lastCamCellClick = { index: i, time: now };
+          scrubbing = true;
+          scrubTarget = i;
+          state.currentFrame = i;
+          notify(state);
+        });
+        cell.addEventListener('pointermove', () => {
+          if (scrubbing && scrubTarget !== i) {
+            scrubTarget = i;
+            state.currentFrame = i;
+            notify(state);
+          }
+        });
+      }
+      track.appendChild(cell);
+    }
+    tracksBody.appendChild(track);
   }
 
   // ------------------------------------------------- réordonnancement des calques
@@ -351,6 +486,9 @@ export function mountTimeline(container, state) {
     const layers = layersInContext().slice().reverse(); // top-of-panel = last in model array
     const n = frameCount();
 
+    // Piste caméra : au-dessus de tous les calques, scène racine seulement.
+    if (cameraTrackVisible()) buildCameraTrack();
+
     for (const layer of layers) {
       const row = document.createElement('div');
       row.className = 'tl-layer-row' + (layer.id === state.selectedLayerId ? ' selected' : '');
@@ -391,7 +529,7 @@ export function mountTimeline(container, state) {
       tracksBody.appendChild(track);
     }
     tracksBody.style.width = n * CELL_W + 'px';
-    tracksBody.style.height = layers.length * rowHeight() + 'px';
+    tracksBody.style.height = (layers.length + (cameraTrackVisible() ? 1 : 0)) * rowHeight() + 'px';
   }
 
   function buildFrameCell(layer, index) {
@@ -470,7 +608,7 @@ export function mountTimeline(container, state) {
     buildRuler();
     buildLayersAndTracks();
     playhead.style.left = state.currentFrame * CELL_W + 'px';
-    playhead.style.height = layersInContext().length * rowHeight() + 20 + 'px';
+    playhead.style.height = (layersInContext().length + (cameraTrackVisible() ? 1 : 0)) * rowHeight() + 20 + 'px';
     btnPlay.innerHTML = ICONS[state.playing ? 'pause' : 'play'];
     frameInfo.textContent = `Image ${state.currentFrame + 1} / ${n} — ${state.doc.frameRate} i/s`;
 

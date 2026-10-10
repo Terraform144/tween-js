@@ -15,18 +15,38 @@
 //             autour de la feuille)
 //   - rotation : degrés, sens horaire (le contenu tourne à l'inverse dans le
 //             cadre, coins rognés au bord du canvas)
-// Les images clés caméra s'interpolent TOUJOURS linéairement entre deux clés
-// consécutives (un zoom cinématographique est un mouvement par nature) ;
-// après la dernière clé la caméra tient son état, avant la première elle est
-// à l'identité (rendu historique).
+// Les images clés caméra s'interpolent entre deux clés consécutives ; chaque
+// clé porte un easing optionnel (kf.easing : 'linear' par défaut, 'easeIn',
+// 'easeOut', 'easeInOut' — même grille que les tweens d'éléments) appliqué à
+// la progression vers la clé SUIVANTE ; après la dernière clé la caméra tient
+// son état, avant la première elle est à l'identité (rendu historique).
 //
 // Ce fichier est le point de vérité pour l'ÉDITEUR. Les exports embarquent
 // une copie autonome (resolveCameraAtFrame/applyCameraToContext) dans
 // tweenRuntime.js, inliné via ?raw — aucun import possible (même discipline
 // que le pivot, voir src/core/pivot.js).
 
+import { applyEasing } from '../playback/interpolate.js';
+
 export const CAMERA_ZOOM_MIN = 0.1;
 export const CAMERA_ZOOM_MAX = 10;
+
+// Easings disponibles pour le tween caméra (cycle par clic droit sur la clé
+// de la piste caméra de la Timeline). Ordre du cycle inclus.
+export const CAMERA_EASINGS = ['linear', 'easeIn', 'easeOut', 'easeInOut'];
+export const CAMERA_EASING_LABELS = {
+  linear: 'linéaire',
+  easeIn: 'ease-in (départ doux)',
+  easeOut: 'ease-out (arrivée douce)',
+  easeInOut: 'ease-in-out (doux des deux côtés)',
+};
+
+// Fait passer la clé à l'easing suivant du cycle (mutation sur place).
+export function nextCameraEasing(kf) {
+  const i = CAMERA_EASINGS.indexOf(kf.easing || 'linear');
+  kf.easing = CAMERA_EASINGS[(i + 1) % CAMERA_EASINGS.length];
+  return kf.easing;
+}
 
 // Un doc.camera existe-t-il avec au moins une image clé ?
 export function hasCamera(doc) {
@@ -77,11 +97,14 @@ export function resolveCameraAtFrame(doc, frameIndex) {
   const b = clampCameraState(next, doc);
   const span = next.index - active.index;
   const t = Math.min(1, Math.max(0, (frameIndex - active.index) / span));
+  // Easing porté par la clé ACTIVE : il gouverne la progression vers la clé
+  // suivante (même sémantique que kf.tween.easing des calques).
+  const et = applyEasing(t, active.easing);
   return {
-    x: a.x + (b.x - a.x) * t,
-    y: a.y + (b.y - a.y) * t,
-    zoom: a.zoom + (b.zoom - a.zoom) * t,
-    rotation: a.rotation + (b.rotation - a.rotation) * t,
+    x: a.x + (b.x - a.x) * et,
+    y: a.y + (b.y - a.y) * et,
+    zoom: a.zoom + (b.zoom - a.zoom) * et,
+    rotation: a.rotation + (b.rotation - a.rotation) * et,
   };
 }
 
@@ -112,6 +135,26 @@ export function removeCameraKeyframeAt(doc, frameIndex) {
   if (idx === -1) return false;
   kfs.splice(idx, 1);
   if (!kfs.length) doc.camera = null;
+  return true;
+}
+
+// Déplace une image clé caméra le long de la piste (glisser-déposer dans la
+// Timeline). Mêmes contraintes que moveKeyframe des calques : jamais par-
+// dessus une clé voisine (l'easing de chaque clé reste attaché à la même
+// progression), jamais sur un index déjà occupé.
+export function moveCameraKeyframe(doc, kf, targetIndex) {
+  if (!hasCamera(doc)) return false;
+  if (targetIndex === kf.index) return true;
+  if (targetIndex < 0) return false;
+  if (getCameraKeyframeAt(doc, targetIndex)) return false;
+  const kfs = doc.camera.keyframes;
+  const idx = kfs.indexOf(kf);
+  const prev = kfs[idx - 1];
+  const next = kfs[idx + 1];
+  if (prev && targetIndex <= prev.index) return false;
+  if (next && targetIndex >= next.index) return false;
+  kf.index = targetIndex;
+  sortCameraKeyframes(doc.camera);
   return true;
 }
 
