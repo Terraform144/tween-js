@@ -71,9 +71,96 @@ function interpolateElement(a, b, t) {
   if (Array.isArray(a.points) && Array.isArray(b.points) && a.points.length === b.points.length && a.points.length > 0) {
     out.points = a.points.map((p, i) => lerpPoint(p, b.points[i], t));
   }
+  // Maillage de déformation bitmap (cf. core/warp.js côté éditeur) :
+  // interpolation des intersections si la structure cols/rows concorde.
+  if (Array.isArray(a.warpPoints) && Array.isArray(b.warpPoints)
+    && a.warp && b.warp && a.warp.cols === b.warp.cols && a.warp.rows === b.warp.rows
+    && a.warpPoints.length === b.warpPoints.length && a.warpPoints.length > 0) {
+    out.warpPoints = a.warpPoints.map((p, i) => ({
+      x: lerp(p.x, b.warpPoints[i].x, t),
+      y: lerp(p.y, b.warpPoints[i].y, t),
+    }));
+  }
   return out;
 }
 
+// --- Maillage de déformation bitmap (copie autonome de core/warp.js) ---
+// Le runtime exporté ne doit importer aucun module de l'éditeur : les
+// fonctions de maillage sont dupliquées ici, à maintenir en parallèle.
+
+function warpPointCount(cols, rows) {
+  return (cols + 1) * (rows + 1);
+}
+
+function defaultWarpGrid(w, h, cols, rows) {
+  const pts = [];
+  for (let j = 0; j <= rows; j++) {
+    for (let i = 0; i <= cols; i++) pts.push({ x: (w * i) / cols, y: (h * j) / rows });
+  }
+  return pts;
+}
+
+function hasValidWarp(el) {
+  return !!(el.warp && Array.isArray(el.warpPoints)
+    && el.warpPoints.length === warpPointCount(el.warp.cols, el.warp.rows)
+    && el.warpPoints.every((p) => p && typeof p.x === 'number' && typeof p.y === 'number'));
+}
+
+function affineFromTriangle(s, d) {
+  const [s1, s2, s3] = s;
+  const [d1, d2, d3] = d;
+  const det = s1.x * (s2.y - s3.y) - s2.x * (s1.y - s3.y) + s3.x * (s1.y - s2.y);
+  if (Math.abs(det) < 1e-9) return null;
+  const a = (d1.x * (s2.y - s3.y) + d2.x * (s3.y - s1.y) + d3.x * (s1.y - s2.y)) / det;
+  const c = (d1.x * (s3.x - s2.x) + d2.x * (s1.x - s3.x) + d3.x * (s2.x - s1.x)) / det;
+  const b = (d1.y * (s2.y - s3.y) + d2.y * (s3.y - s1.y) + d3.y * (s1.y - s2.y)) / det;
+  const dd = (d1.y * (s3.x - s2.x) + d2.y * (s1.x - s3.x) + d3.y * (s2.x - s1.x)) / det;
+  return [a, b, c, dd, d1.x - a * s1.x - c * s1.y, d1.y - b * s1.x - dd * s1.y];
+}
+
+const WARP_SEAM_PAD = 0.6;
+
+function drawWarpTriangle(ctx, img, w, h, s, d) {
+  const m = affineFromTriangle(s, d);
+  if (!m) return;
+  const [a, b, c, dd, e, f] = m;
+  const cx = (d[0].x + d[1].x + d[2].x) / 3;
+  const cy = (d[0].y + d[1].y + d[2].y) / 3;
+  ctx.save();
+  ctx.beginPath();
+  d.forEach((p, k) => {
+    const vx = p.x - cx, vy = p.y - cy;
+    const len = Math.hypot(vx, vy) || 1;
+    const px = p.x + (vx / len) * WARP_SEAM_PAD;
+    const py = p.y + (vy / len) * WARP_SEAM_PAD;
+    if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.closePath();
+  ctx.clip();
+  ctx.transform(a, b, c, dd, e, f);
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  ctx.drawImage(img, 0, 0, iw, ih, 0, 0, w, h);
+  ctx.restore();
+}
+
+function drawWarpImage(ctx, img, el) {
+  const cols = el.warp.cols, rows = el.warp.rows;
+  const src = defaultWarpGrid(el.width, el.height, cols, rows);
+  const dst = el.warpPoints;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const p00 = j * (cols + 1) + i;
+      const p10 = p00 + 1;
+      const p01 = p00 + (cols + 1);
+      const p11 = p01 + 1;
+      drawWarpTriangle(ctx, img, el.width, el.height,
+        [src[p00], src[p10], src[p01]], [dst[p00], dst[p10], dst[p01]]);
+      drawWarpTriangle(ctx, img, el.width, el.height,
+        [src[p10], src[p11], src[p01]], [dst[p10], dst[p11], dst[p01]]);
+    }
+  }
+}
 function getActiveKeyframe(layer, frameIndex) {
   let active = layer.keyframes[0];
   for (const kf of layer.keyframes) {
@@ -305,7 +392,16 @@ function drawShape(ctx, el, data) {
     const asset = data.assets ? data.assets[el.assetId] : null;
     const img = asset ? getImage(asset.dataUrl) : null;
     if (img && img.complete && img.naturalWidth > 0) {
-      ctx.drawImage(img, -el.width / 2, -el.height / 2, el.width, el.height);
+      if (hasValidWarp(el)) {
+        // Le rendu par maillage travaille en (0,0)-(w,h) : on recentre pour
+        // rester cohérent avec le dessin historique (-w/2, -h/2).
+        ctx.save();
+        ctx.translate(-el.width / 2, -el.height / 2);
+        drawWarpImage(ctx, img, el);
+        ctx.restore();
+      } else {
+        ctx.drawImage(img, -el.width / 2, -el.height / 2, el.width, el.height);
+      }
     }
   }
   ctx.restore();

@@ -79,5 +79,16 @@ export function interpolateElement(a, b, t) {
   if (Array.isArray(a.points) && Array.isArray(b.points) && a.points.length === b.points.length && a.points.length > 0) {
     out.points = a.points.map((p, i) => lerpPoint(p, b.points[i], t));
   }
+  // Maillage de déformation bitmap (cf. core/warp.js) : même discipline que
+  // les points de courbe — on interpole les intersections seulement si la
+  // structure du maillage (cols/rows) est identique des deux côtés.
+  if (Array.isArray(a.warpPoints) && Array.isArray(b.warpPoints)
+    && a.warp && b.warp && a.warp.cols === b.warp.cols && a.warp.rows === b.warp.rows
+    && a.warpPoints.length === b.warpPoints.length && a.warpPoints.length > 0) {
+    out.warpPoints = a.warpPoints.map((p, i) => ({
+      x: lerp(p.x, b.warpPoints[i].x, t),
+      y: lerp(p.y, b.warpPoints[i].y, t),
+    }));
+  }
   return out;
 }

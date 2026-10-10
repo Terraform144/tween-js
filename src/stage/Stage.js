@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
 import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
+import { WARP_DEFAULT_COLS, WARP_DEFAULT_ROWS, defaultWarpGrid, ensureWarp, hasValidWarp, drawWarpImage, warpOutlinePath, warpBounds } from '../core/warp.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
@@ -81,7 +82,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const rotateGroup = new Konva.Group({ listening: false });
   // Cadre caméra de scène (outil caméra, façon Animate CC)
   const cameraGroup = new Konva.Group();
-  overlayLayer.add(transformer, handleGroup, pivotGroup, rotateGroup, cameraGroup);
+  // Grille de déformation posée sur un bitmap sélectionné (outil maillage)
+  const meshGroup = new Konva.Group();
+  overlayLayer.add(transformer, handleGroup, pivotGroup, rotateGroup, cameraGroup, meshGroup);
 
   // Cache d'images décodées, indexé par dataUrl (immuable par contenu). Tant qu'une image n'est pas
   // décodée (chargement asynchrone depuis le dataUrl), le nœud affiche un
@@ -245,7 +248,33 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       };
     } else if (el.kind === 'bitmap') {
       const img = getImage(el.assetId);
-      if (img) {
+      if (img && hasValidWarp(el)) {
+        // Maillage de déformation (cf. core/warp.js) : l'image est
+        // redessinée par triangles, posant chaque cellule de la grille sur
+        // sa forme déformée. elData = pose du modèle ; warpPointsLive =
+        // prévisu pendant le drag d'une intersection (outil Maillage),
+        // posée dans le modèle au dragend — jamais pendant le drag.
+        const elData = { width: el.width, height: el.height, warp: el.warp, warpPoints: el.warpPoints };
+        node = new Konva.Shape({
+          sceneFunc: (ctx, shape) => {
+            const d = shape.getAttr('elData');
+            const live = shape.getAttr('warpPointsLive');
+            drawWarpImage(ctx._context, img, live ? { ...d, warpPoints: live } : d);
+          },
+          hitFunc: (ctx, shape) => {
+            const d = shape.getAttr('elData');
+            const live = shape.getAttr('warpPointsLive');
+            warpOutlinePath(ctx, d.warp.cols, d.warp.rows, live || d.warpPoints);
+            ctx.fillStrokeShape(shape);
+          },
+        });
+        node.setAttr('elData', elData);
+        // Boîte du Transformer : englobante de la pose courante (une image
+        // déformée sort du rectangle d'origine).
+        node.getSelfRect = function () {
+          return warpBounds(node.getAttr('warpPointsLive') || node.getAttr('elData').warpPoints);
+        };
+      } else if (img) {
         node = new Konva.Image({ image: img, width: el.width, height: el.height, offsetX: el.width / 2, offsetY: el.height / 2 });
       } else {
         // Placeholder tant que l'image décode (getImage déclenche un re-rendu au onload).
@@ -598,6 +627,134 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     cameraGroup.add(g);
   }
 
+  // -------------------------------------------------------- outil maillage
+  // Grille de déformation posée sur un bitmap sélectionné (outil Maillage,
+  // W) : les intersections sont glissables ; chaque relâcher pose une image
+  // clé contenant la pose des points, et le tween entre deux poses déforme
+  // l'image (interpolateElement gère warpPoints comme les points de
+  // courbe). Suppr = revenir à la pose d'identité à l'image courante.
+  // Même discipline que l'outil caméra : aucun notify()/render() pendant
+  // le drag — la prévisu passe par l'attr warpPointsLive du nœud, le
+  // modèle n'est touché qu'au dragend.
+  let meshDrag = null; // { id, layerId, cols, rows, pts, index }
+
+  function meshTouchGuard(e) {
+    // Sans preventDefault sur touchstart, le navigateur rejoue la
+    // séquence souris émulée et le drag partait deux fois (leçons 8/14) ;
+    // cancelBubble : ni marquee ni sélection sous une poignée.
+    if (e.evt.type === 'touchstart' && e.evt.cancelable) e.evt.preventDefault();
+    e.cancelBubble = true;
+  }
+
+  function selectedBitmapNode() {
+    if (state.selectedElementIds.length !== 1) return null;
+    const node = contentLayer.findOne('#' + state.selectedElementIds[0]);
+    if (!node || node.getAttr('elKind') !== 'bitmap' || isLocked(node.getAttr('elLayerId'))) return null;
+    return node;
+  }
+
+  // Reconstruit les poignées de la grille sur le bitmap sélectionné. Si
+  // l'image n'est pas encore maillée, montre la lattice d'identité : le
+  // premier dragend activera le maillage (ensureWarp au commit).
+  function refreshMeshHandles() {
+    meshGroup.destroyChildren();
+    meshDrag = null;
+    if (state.playing || state.currentTool !== 'mesh') return;
+    const node = selectedBitmapNode();
+    if (!node) return;
+
+    let cols, rows, pts;
+    const d = node.getAttr('elData');
+    if (d) {
+      cols = d.warp.cols;
+      rows = d.warp.rows;
+      pts = d.warpPoints.map((p) => ({ ...p }));
+    } else {
+      cols = WARP_DEFAULT_COLS;
+      rows = WARP_DEFAULT_ROWS;
+      pts = defaultWarpGrid(node.width(), node.height(), cols, rows);
+    }
+    const t = node.getAbsoluteTransform(konvaStage);
+    // Lignes de la grille (horizontales + verticales, en pointillés) :
+    // ajoutées AVANT les poignées pour rester dessous ; non interactives.
+    const seg = (a, b) => {
+      const wa = t.point(a), wb = t.point(b);
+      meshGroup.add(new Konva.Line({
+        points: [wa.x, wa.y, wb.x, wb.y],
+        stroke: '#cb4b16', strokeWidth: 1, dash: [4, 3], listening: false,
+      }));
+    };
+    for (let j = 0; j <= rows; j++) {
+      for (let i = 0; i < cols; i++) seg(pts[j * (cols + 1) + i], pts[j * (cols + 1) + i + 1]);
+    }
+    for (let i = 0; i <= cols; i++) {
+      for (let j = 0; j < rows; j++) seg(pts[j * (cols + 1) + i], pts[(j + 1) * (cols + 1) + i]);
+    }
+    for (let idx = 0; idx < pts.length; idx++) {
+      const world = t.point(pts[idx]);
+      const h = new Konva.Group({ x: world.x, y: world.y, draggable: true });
+      h.add(new Konva.Circle({ radius: 13, fill: 'rgba(0,0,0,0)' }));
+      h.add(new Konva.Circle({ radius: 4.5, fill: '#fdf6e3', stroke: '#cb4b16', strokeWidth: 1.5, listening: false }));
+      h.on('mousedown touchstart', meshTouchGuard);
+      h.on('dragstart', () => {
+        meshDrag = {
+          id: node.id(),
+          layerId: node.getAttr('elLayerId'),
+          cols, rows,
+          pts: pts.map((p) => ({ ...p })),
+          index: idx,
+        };
+      });
+      h.on('dragmove', () => {
+        if (!meshDrag) return;
+        const local = node.getAbsoluteTransform(konvaStage).copy().invert().point(h.position());
+        meshDrag.pts[meshDrag.index] = { x: local.x, y: local.y };
+        // Prévisu : le nœud se redessine avec la pose en cours, le
+        // modèle reste intact jusqu'au dragend.
+        node.setAttr('warpPointsLive', meshDrag.pts);
+        contentLayer.batchDraw();
+        overlayLayer.batchDraw();
+      });
+      h.on('dragend', () => {
+        if (!meshDrag) return;
+        commitMeshPose(node);
+      });
+      meshGroup.add(h);
+    }
+  }
+
+  function commitMeshPose(node) {
+    const drag = meshDrag;
+    meshDrag = null;
+    node.setAttr('warpPointsLive', null);
+    if (!drag) return;
+    const layer = currentLayers().find((l) => l.id === drag.layerId);
+    if (!layer || layer.locked) { refreshMeshHandles(); return; }
+    const kf = insertKeyframe(layer, state.currentFrame);
+    const el = kf.elements.find((e) => e.id === drag.id);
+    if (!el || el.kind !== 'bitmap') { refreshMeshHandles(); return; }
+    ensureWarp(el);
+    el.warpPoints = drag.pts.map((p) => ({ x: p.x, y: p.y }));
+    notify(state);
+  }
+
+  // Suppr (outil maillage + bitmap sélectionné) : pose d'identité à
+  // l'image courante. Renvoie true si traité (le handler clavier ne doit
+  // alors PAS supprimer l'élément).
+  function resetMeshPose() {
+    const node = selectedBitmapNode();
+    if (!node) return false;
+    const layer = currentLayers().find((l) => l.id === node.getAttr('elLayerId'));
+    if (!layer || layer.locked) return false;
+    const kf = insertKeyframe(layer, state.currentFrame);
+    const el = kf.elements.find((e) => e.id === node.id());
+    if (!el || el.kind !== 'bitmap') return false;
+    ensureWarp(el);
+    el.warpPoints = defaultWarpGrid(el.width, el.height, el.warp.cols, el.warp.rows);
+    notify(state);
+    return true;
+  }
+
   let currentTick = 0;
   function render(tick = 0) {
     // Changer d'outil en pleine plume ou chaîne de bones abandonnait un tracé fantôme
@@ -616,6 +773,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     refreshSelectionVisuals();
     refreshPointHandles();
     refreshCameraFrame();
+    refreshMeshHandles();
     contentLayer.draw();
     overlayLayer.batchDraw();
   }
@@ -1409,6 +1567,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (e.key === 'Escape' && drawState && drawState.tool === 'boneChain') cancelDraw();
     if (e.key === 'Escape' && drawState && drawState.tool === 'brush') cancelDraw();
     if (e.key === 'Escape' && rotateDrag) cancelRotate();
+    // Outil maillage + bitmap sélectionné : Suppr = revenir à la pose
+    // d'identité (ne supprime PAS l'élément — pour supprimer, changer
+    // d'outil d'abord, comme la caméra interprète Suppr dans son contexte).
+    if ((e.key === 'Delete' || e.key === 'Backspace') && state.currentTool === 'mesh' && resetMeshPose()) return;
     if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedElementIds.length) deleteSelected();
     // Outil caméra sans sélection : Suppr supprime l'image clé caméra de
     // l'image courante (dernière clé supprimée = caméra entièrement retirée).
