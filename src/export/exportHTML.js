@@ -30,6 +30,7 @@ export function buildFullDocData(doc) {
     frameLabels: invertFrameLabels(doc.frameLabels),
     assets: doc.assets || {},
     symbols,
+    camera: doc.camera || null, // images clés caméra de scène (outil caméra)
   };
 }
 
@@ -578,7 +579,13 @@ function buildBootstrapScript(dataJson, scriptsJson) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = DATA.backgroundColor || '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Caméra de scène : le cadre caméra est mappé sur tout le canvas
+    // (resolveCameraAtFrame/applyCameraToContext viennent du runtime
+    // concaténé ci-dessus — même module). null = identité.
+    ctx.save();
+    applyCameraToContext(ctx, resolveCameraAtFrame(DATA.camera, root.currentFrame, DATA.width, DATA.height), DATA.width, DATA.height);
     root.draw(ctx);
+    ctx.restore();
   }
   requestAnimationFrame(loop);
 })();
