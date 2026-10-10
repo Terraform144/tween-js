@@ -173,6 +173,8 @@ src/
 
 ## Licence
 
-Ce projet est publié sous licence [MIT](LICENSE). Le code est libre
-(usage, modification, redistribution, y compris commercial), sans obligation
-de republier le code source des versions modifiées.
+Ce projet est publié sous licence [CC BY-NC 4.0](LICENSE) : copie,
+usage, modification et redistribution autorisés à des fins
+**non commerciales** uniquement, avec attribution de l'auteur. Les
+bibliothèques CreateJS embarquées restent sous leur licence MIT
+d'origine.
