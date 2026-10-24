@@ -1,5 +1,5 @@
 /* Brush geometry: converts a raw stroke into a variable-width outline polygon.
-   Implements 7 patterns: round, flat, calligraphy, taper, |, /, \
+   Implements 4 patterns: round, flat, calligraphy, taper
    Based on __IIB.v.3/brush.js */
 
 export function dist(a, b) {
@@ -41,11 +41,6 @@ function halfWidthAt(t, dirAngle, size, pattern) {
     // ramp in/out over 40% of the stroke (20% at start, 20% at end)
     const e = Math.min(1, 2.5 * Math.min(t, 1 - t));
     return half * Math.min(1, e);
-  }
-  
-  // Pour les patterns de ligne (|, /, \), retourner une épaisseur fine constante
-  if (pattern === '|' || pattern === '/' || pattern === '\\') {
-    return Math.max(size * 0.05, 1);
   }
   
   return half; // round, flat
@@ -102,52 +97,6 @@ function dabShape(p, size, pattern) {
     return { points: ellipsePts(p[0], p[1], half / 2, half / 2, 0, 10) };
   }
   
-  // Patterns de ligne : |, /, \
-  if (pattern === '|' || pattern === '/' || pattern === '\\') {
-    const len = size * 0.8; // Longueur du segment
-    const w = Math.max(size * 0.1, 1); // Épaisseur fine
-    
-    if (pattern === '|') {
-      // Ligne verticale
-      return {
-        points: [
-          [p[0] - w/2, p[1] - len/2],
-          [p[0] + w/2, p[1] - len/2],
-          [p[0] + w/2, p[1] + len/2],
-          [p[0] - w/2, p[1] + len/2]
-        ]
-      };
-    }
-    
-    if (pattern === '/') {
-      // Ligne diagonale / (45 degrees)
-      const dx = len * Math.cos(Math.PI/4);
-      const dy = len * Math.sin(Math.PI/4);
-      return {
-        points: [
-          [p[0] - dx - w/2 * Math.cos(Math.PI/4), p[1] - dy - w/2 * Math.sin(Math.PI/4)],
-          [p[0] - dx + w/2 * Math.cos(Math.PI/4), p[1] - dy + w/2 * Math.sin(Math.PI/4)],
-          [p[0] + dx + w/2 * Math.cos(Math.PI/4), p[1] + dy + w/2 * Math.sin(Math.PI/4)],
-          [p[0] + dx - w/2 * Math.cos(Math.PI/4), p[1] + dy - w/2 * Math.sin(Math.PI/4)]
-        ]
-      };
-    }
-    
-    if (pattern === '\\') {
-      // Ligne diagonale \ (-45 degrees)
-      const dx = len * Math.cos(Math.PI/4);
-      const dy = len * Math.sin(Math.PI/4);
-      return {
-        points: [
-          [p[0] - dx - w/2 * Math.cos(-Math.PI/4), p[1] + dy - w/2 * Math.sin(-Math.PI/4)],
-          [p[0] - dx + w/2 * Math.cos(-Math.PI/4), p[1] + dy + w/2 * Math.sin(-Math.PI/4)],
-          [p[0] + dx + w/2 * Math.cos(-Math.PI/4), p[1] - dy + w/2 * Math.sin(-Math.PI/4)],
-          [p[0] + dx - w/2 * Math.cos(-Math.PI/4), p[1] - dy - w/2 * Math.sin(-Math.PI/4)]
-        ]
-      };
-    }
-  }
-  
   // round (défaut)
   return { points: ellipsePts(p[0], p[1], half, half, 0, 12) };
 }
@@ -184,45 +133,14 @@ export function brushToPoly(rawPts, size, pattern = 'round') {
   const n = pts.length;
   const left = [], right = [], hw = new Array(n);
   
-  // Pour les patterns de ligne (|, /, \), calculer avec une orientation fixe
-  if (pattern === '|' || pattern === '/' || pattern === '\\') {
-    // Calculer la direction globale du trait
-    const startPt = pts[0], endPt = pts[n - 1];
-    const strokeLength = dist(startPt, endPt);
-    const strokeDir = norm([endPt[0] - startPt[0], endPt[1] - startPt[1]]);
-    const strokeAngle = Math.atan2(strokeDir[1], strokeDir[0]);
-    
-    // Déterminer l'angle fixe selon le pattern
-    let fixedAngle;
-    if (pattern === '|') fixedAngle = Math.PI / 2; // Vertical
-    else if (pattern === '/') fixedAngle = Math.PI / 4; // Diagonale /
-    else if (pattern === '\\') fixedAngle = -Math.PI / 4; // Diagonale \
-    
-    // Vecteurs pour les bords (perpendiculaires à l'angle fixe)
-    const width = size * 0.1; // Épaisseur fine
-    const normalFixed = [-Math.sin(fixedAngle), Math.cos(fixedAngle)];
-    
-    // Calculer les points gauche et droite pour chaque point du trait
-    for (let i = 0; i < n; i++) {
-      hw[i] = size * 0.05; // Demi-épaisseur
-      // Projeter le point sur la ligne principale (start to end)
-      const t = i / (n - 1);
-      const projX = startPt[0] + t * (endPt[0] - startPt[0]);
-      const projY = startPt[1] + t * (endPt[1] - startPt[1]);
-      
-      left.push([projX + normalFixed[0] * width/2, projY + normalFixed[1] * width/2]);
-      right.push([projX - normalFixed[0] * width/2, projY - normalFixed[1] * width/2]);
-    }
-  } else {
-    // Calculer les points gauche et droite pour chaque point du trait (méthode normale)
-    for (let i = 0; i < n; i++) {
-      const prev = pts[Math.max(0, i - 1)], next = pts[Math.min(n - 1, i + 1)];
-      const d = norm([next[0] - prev[0], next[1] - prev[1]]);
-      hw[i] = halfWidthAt(i / (n - 1), Math.atan2(d[1], d[0]), size, pattern);
-      const nv = [-d[1], d[0]]; // vecteur normal à gauche
-      left.push([pts[i][0] + nv[0] * hw[i], pts[i][1] + nv[1] * hw[i]]);
-      right.push([pts[i][0] - nv[0] * hw[i], pts[i][1] - nv[1] * hw[i]]);
-    }
+  // Calculer les points gauche et droite pour chaque point du trait
+  for (let i = 0; i < n; i++) {
+    const prev = pts[Math.max(0, i - 1)], next = pts[Math.min(n - 1, i + 1)];
+    const d = norm([next[0] - prev[0], next[1] - prev[1]]);
+    hw[i] = halfWidthAt(i / (n - 1), Math.atan2(d[1], d[0]), size, pattern);
+    const nv = [-d[1], d[0]]; // vecteur normal à gauche
+    left.push([pts[i][0] + nv[0] * hw[i], pts[i][1] + nv[1] * hw[i]]);
+    right.push([pts[i][0] - nv[0] * hw[i], pts[i][1] - nv[1] * hw[i]]);
   }
 
   const outline = left.slice();
@@ -234,9 +152,6 @@ export function brushToPoly(rawPts, size, pattern = 'round') {
     for (let i = n - 1; i >= 0; i--) outline.push(right[i]);
     const dStart = norm([pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]]);
     outline.push(...capPts(pts[0], [-dStart[0], -dStart[1]], hw[0], 8));
-  } else if (pattern === '|' || pattern === '/' || pattern === '\\') {
-    // Pour les patterns de ligne, ajouter les points droits dans l'ordre inverse
-    for (let i = n - 1; i >= 0; i--) outline.push(right[i]);
   } else {
     // Pour les autres patterns, simplement ajouter les points droits dans l'ordre inverse
     for (let i = n - 1; i >= 0; i--) outline.push(right[i]);

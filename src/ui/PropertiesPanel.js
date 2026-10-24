@@ -227,10 +227,7 @@ export function mountPropertiesPanel(container, state) {
       ['round', 'Rond'],
       ['flat', 'Plat'],
       ['calligraphy', 'Calligraphie'],
-      ['taper', 'Effilé'],
-      ['|', '|'],
-      ['/', '/'],
-      ['\\', '\\']
+      ['taper', 'Effilé']
     ], (v) => { state.brushPattern = v; notify(state); });
   }
 
