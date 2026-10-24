@@ -8,6 +8,7 @@ import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
 import { fullscreenElement } from '../util/fullscreen.js';
 import { ICONS } from '../ui/icons.js';
+import { brushToPoly } from '../util/brushGeom.js';
 
 const HANDLE_DRAG_THRESHOLD = 3; // px, avant qu'un clic-glissé plume ne devienne un point lisse
 const CLOSE_PATH_THRESHOLD = 8; // px, distance au premier point pour fermer le tracé au clic
@@ -299,7 +300,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
           // tableau du modèle (image tenue, sans tween) — l'édition de
           // points doit pouvoir muter elData librement pendant un drag
           // sans jamais toucher le modèle avant commitPoints().
-          const elData = { points: el.points.map(clonePathPoint), closed: !!el.closed };
+          const elData = { points: el.points.map(clonePathPoint), closed: !!el.closed, brushPoly: el.brushPoly };
           node = new Konva.Shape({
             fill: el.closed ? el.fill : undefined,
             stroke: el.stroke,
@@ -309,7 +310,20 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
             sceneFunc: (ctx, shape) => {
               const d = shape.getAttr('elData');
               ctx.beginPath();
-              tracePath(ctx, d.points, d.closed);
+              if (d.brushPoly) {
+                // Dessiner le polygone de brush directement
+                if (d.points.length > 0) {
+                  ctx.moveTo(d.points[0].x, d.points[0].y);
+                  for (let i = 1; i < d.points.length; i++) {
+                    ctx.lineTo(d.points[i].x, d.points[i].y);
+                  }
+                  if (d.closed) {
+                    ctx.closePath();
+                  }
+                }
+              } else {
+                tracePath(ctx, d.points, d.closed);
+              }
               ctx.fillStrokeShape(shape);
             },
           });
@@ -756,12 +770,28 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   let currentTick = 0;
+  let lastBrushSize = null;
+  let lastBrushPattern = null;
+  
   function render(tick = 0) {
     // Changer d'outil en pleine plume ou chaîne de bones abandonnait un tracé fantôme
     if (drawState && drawState.tool === 'pen' && state.currentTool !== 'pen') cancelDraw();
     if (drawState && drawState.tool === 'boneChain' && state.currentTool !== 'boneChain') finishBoneChain();
     if (drawState && drawState.tool === 'brush' && state.currentTool !== 'brush') finishBrush();
     if (rotateDrag && state.currentTool !== 'rotate') finishRotate();
+    
+    // Mettre à jour l'aperçu du pinceau si la taille ou le pattern a changé
+    if (drawState && drawState.tool === 'brush') {
+      if (state.brushSize !== lastBrushSize || state.brushPattern !== lastBrushPattern) {
+        lastBrushSize = state.brushSize;
+        lastBrushPattern = state.brushPattern;
+        updateBrushPreview();
+      }
+    } else {
+      lastBrushSize = null;
+      lastBrushPattern = null;
+    }
+    
     currentTick = tick;
     const doc = state.doc;
     bgRect.width(doc.width);
@@ -1725,65 +1755,88 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (!drawState || drawState.tool !== 'brush') {
       drawState = {
         tool: 'brush',
-        points: [p],
-        previewNode: null
+        points: [{ x: p.x, y: p.y }],
+        previewNode: null,
+        previewOutline: null
       };
-      const previewNode = new Konva.Line({
-        points: [p.x, p.y, p.x, p.y],
-        stroke: state.strokeColor,
-        strokeWidth: state.brushSize || 5,
-        lineCap: 'round',
-        lineJoin: 'round',
-        tension: 0.8,
-        listening: false
-      });
-      drawState.previewNode = previewNode;
-      overlayLayer.add(previewNode);
+      // Utiliser brushToPoly pour créer un aperçu
+      updateBrushPreview();
     } else {
       const points = drawState.points;
       const last = points[points.length - 1];
       const dist = distance(p, last);
       if (dist < BRUSH_MIN_DISTANCE) return;
-      points.push(p);
-      const flatPoints = points.flatMap(pt => [pt.x, pt.y]);
-      drawState.previewNode.points(flatPoints);
-      overlayLayer.batchDraw();
+      points.push({ x: p.x, y: p.y });
+      updateBrushPreview();
     }
+  }
+
+  // Met à jour l'aperçu du pinceau
+  function updateBrushPreview() {
+    if (!drawState || drawState.tool !== 'brush') return;
+    
+    const pts = drawState.points.map(p => [p.x, p.y]);
+    const brushSize = state.brushSize || 5;
+    const pattern = state.brushPattern || 'round';
+    
+    // Supprimer l'ancien aperçu
+    if (drawState.previewOutline) {
+      drawState.previewOutline.destroy();
+    }
+    
+    // Générer le polygone de contour
+    const result = brushToPoly(pts, brushSize, pattern);
+    
+    // Créer un shape Konva avec le polygone
+    const previewNode = new Konva.Line({
+      points: result.points.flat(),
+      stroke: state.strokeColor,
+      strokeWidth: 1,
+      fill: state.strokeColor,
+      closed: true,
+      listening: false
+    });
+    
+    drawState.previewOutline = previewNode;
+    overlayLayer.add(previewNode);
+    overlayLayer.batchDraw();
+    
+    // Stocker les données pour finishBrush
+    drawState.polyResult = result;
   }
 
   // Finaliser le trait de pinceau
   function finishBrush() {
-    if (!drawState || drawState.tool !== 'brush' || drawState.points.length < 2) {
+    if (!drawState || drawState.tool !== 'brush' || !drawState.polyResult) {
       cancelDraw();
       return;
     }
-    let points = drawState.points;
     
-    // Étape 1 : Simplifier avec Ramer-Douglas-Peucker
-    points = simplifyPointsRD(points, 2.0);
+    const brushSize = state.brushSize || 5;
+    const pattern = state.brushPattern || 'round';
     
-    // Étape 2 : Convertir en courbe Bézier lisse
-    points = createSmoothPath(points, 0.6);
+    // Générer le polygone final avec les points finaux
+    const pts = drawState.points.map(p => [p.x, p.y]);
+    const finalResult = brushToPoly(pts, brushSize, pattern);
     
-    const xs = points.map(p => p.x);
-    const ys = points.map(p => p.y);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
-    const ox = minX;
-    const oy = minY;
-    const relPoints = points.map(p => createPathPoint(p.x - ox, p.y - oy));
+    // Créer un shape path fermé avec le polygone
+    // On utilise createShape mais on va stocker le polygone dans un format spécial
+    // pour pouvoir le dessiner correctement dans buildNode
+    
+    // Stocker le polygone brut dans l'élément
     const el = createShape('path', {
-      x: ox, y: oy,
-      points: relPoints,
-      closed: false,
-      width: maxX - minX,
-      height: maxY - minY,
-      fill: 'transparent',
-      stroke: state.strokeColor,
-      strokeWidth: state.brushSize || 5
+      x: finalResult.cx,
+      y: finalResult.cy,
+      points: finalResult.points.map(p => createPathPoint(p[0] - finalResult.cx, p[1] - finalResult.cy)),
+      closed: true,
+      width: finalResult.w,
+      height: finalResult.h,
+      fill: state.strokeColor,
+      stroke: 'transparent',
+      strokeWidth: 0,
+      brushPoly: true // Flag pour indiquer que c'est un polygone de brush
     });
+    
     cancelDraw();
     addElement(el);
     // Garder le pinceau actif pour enchaîner les traits sans recliquer
@@ -1893,6 +1946,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
     else if (drawState && drawState.tool === 'brush') {
       if (drawState.previewNode) drawState.previewNode.destroy();
+      if (drawState.previewOutline) drawState.previewOutline.destroy();
     }
     overlayLayer.draw();
     drawState = null;

@@ -211,9 +211,38 @@ export function mountPropertiesPanel(container, state) {
     group.appendChild(info);
   }
 
+  function renderBrushToolSection() {
+    const group = document.createElement('div');
+    group.className = 'prop-group';
+    body.appendChild(group);
+    
+    const title = document.createElement('div');
+    title.className = 'prop-group-title';
+    title.textContent = 'Pinceau';
+    group.appendChild(title);
+
+    numberRow('Taille', state.brushSize, (v) => { state.brushSize = Math.max(1, Math.min(80, v)); notify(state); }, { step: 1, min: 1, max: 80 });
+    
+    enumRow('Motif', state.brushPattern, [
+      ['round', 'Rond'],
+      ['flat', 'Plat'],
+      ['calligraphy', 'Calligraphie'],
+      ['taper', 'Effilé'],
+      ['|', '|'],
+      ['/', '/'],
+      ['\\', '\\']
+    ], (v) => { state.brushPattern = v; notify(state); });
+  }
+
   function render() {
     body.innerHTML = '';
     renderTweenSection();
+
+    // Section pour les propriétés de l'outil (pas lié à un élément sélectionné)
+    if (state.currentTool === 'brush') {
+      renderBrushToolSection();
+      return;
+    }
 
     if (state.selectedElementIds.length !== 1) {
       renderDocSection();

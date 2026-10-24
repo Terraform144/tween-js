@@ -16,6 +16,7 @@ export function createEditorState(doc) {
     strokeColor: '#073642',
     strokeWidth: 2,
     brushSize: 5,
+    brushPattern: 'round', // Patterns: 'round', 'flat', 'calligraphy', 'taper', '|', '/', '\\'
     zoom: 1,
     listeners: new Set(),
   };
