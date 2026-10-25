@@ -51,7 +51,7 @@ export function mountLibraryPanel(container, state, { addInstanceAt }) {
     if (!state.selectedElementIds.length) return;
     const layers = getContextLayers(state.doc, state.editPath);
     const layer = layers.find((l) => l.id === state.selectedLayerId);
-    if (!layer) return;
+    if (!layer || layer.locked) return;
 
     // On lit le contenu sélectionné depuis l'image clé qui le possède
     // RÉELLEMENT (jamais une nouvelle) : la tête de lecture peut être sur

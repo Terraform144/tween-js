@@ -970,6 +970,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       // dessous empeche le preventDefault de scene de s'appliquer et le
       // navigateur rejoue la sequence souris emulee apres le touchstart.
       if (e.evt.type === 'touchstart' && e.evt.cancelable) e.evt.preventDefault();
+      // Ne pas sélectionner si le calque est verrouillé
+      if (isLocked(el.layerId)) return;
       if (state.currentTool === 'select') {
         e.cancelBubble = true;
         selectElement(el.id, el.layerId, e.evt.shiftKey);
@@ -1016,6 +1018,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // donc de rafraîchir les poignées du Transformer + prévenir les autres
   // panneaux (propriétés, timeline) sans jamais toucher aux nœuds de forme.
   function selectElement(id, layerId, additive) {
+    // Ne pas sélectionner si le calque est verrouillé
+    if (isLocked(layerId)) return;
     if (additive) {
       const set = new Set(state.selectedElementIds);
       set.has(id) ? set.delete(id) : set.add(id);
@@ -1991,7 +1995,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function deleteSelected() {
     const layer = activeLayer();
-    if (!layer) return;
+    if (!layer || layer.locked) return;
     const kf = insertKeyframe(layer, state.currentFrame);
     kf.elements = kf.elements.filter((e) => !state.selectedElementIds.includes(e.id));
     state.selectedElementIds = [];

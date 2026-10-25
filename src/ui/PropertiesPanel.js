@@ -371,6 +371,7 @@ export function mountPropertiesPanel(container, state) {
     const delBtn = document.createElement('button');
     delBtn.textContent = 'Supprimer l\'objet';
     delBtn.addEventListener('click', () => {
+      if (layer.locked) return;
       const kf = insertKeyframe(layer, state.currentFrame);
       kf.elements = kf.elements.filter((e) => e.id !== el.id);
       state.selectedElementIds = [];
