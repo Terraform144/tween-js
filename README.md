@@ -55,6 +55,12 @@ Ouvrir l'URL affichée (http://localhost:5173).
 - **Sous-sélection (touche A)** : sélectionner une courbe existante affiche
   ses points d'ancrage et leurs poignées, déplaçables individuellement pour
   retoucher la forme après coup.
+- **Simplification de forme** : pour les formes de type ligne ou tracé (Plume),
+  le panneau Propriétés propose un bouton "Simplifier la forme" et un champ
+  "Tolérance" avec bouton "Simplifier avec" pour réduire le nombre de points
+  tout en conservant la silhouette. Utilise l'algorithme Ramer-Douglas-Peucker
+  (RDP) : les points dont la distance à la nouvelle ligne est inférieure à la
+  tolérance sont supprimés. Idéal pour optimiser les tracés complexes importés.
 - **Morphing** : si une image clé tweenée contient une courbe avec
   exactement le même nombre de points que sur l'image clé suivante, ses
   points sont interpolés un à un (la forme se déforme) ; sinon elle bouge

@@ -117,6 +117,12 @@ npm run dev        <span style="color:#8a93a3">« ouvre http://localhost:5173 »
 </ul>
 <h2>2.5 Panneau Propriétés</h2>
 <p>Contextuel à la sélection : <b>Nom d'instance</b>, X/Y, dimensions, rotation, échelle, opacité, remplissage/contour, texte (taille, interligne, alignement). Pour les MovieClips : squelette de skinning. Le <b>Nom d'instance</b> est la clé des scripts : c'est lui qui devient une variable.</p>
+<p><b>Simplification de forme</b> : pour les formes de type <i>ligne</i> ou <i>tracé</i> (Plume), le panneau propose deux boutons :</p>
+<ul>
+  <li><b>Simplifier la forme</b> : applique une simplification avec tolérance par défaut (1.0) pour réduire le nombre de points tout en conservant la silhouette.</li>
+  <li><b>Tolérance + Simplifier avec</b> : choisis une tolérance personnalisée (plus élevée = moins de points conservés) avant simplification.</li>
+</ul>
+<p>L'algorithme utilisé est <i>Ramer-Douglas-Peucker</i> (RDP) : les points dont la distance à la nouvelle ligne est inférieure à la tolérance sont supprimés. Les extrémités sont toujours conservées. Idéal pour optimiser les tracés complexes exportés depuis Inkscape ou illustrator.</p>
 <h2>2.6 Panneau Scripts</h2>
 <p>Éditeur CodeMirror avec plusieurs scripts nommés par onglets, boutons <b>Exécuter</b> (<span class="kbd">Ctrl+Entrée</span>) et Arrêter, et une console de sortie. Le bouton « image » cible le script d'une image précise de la timeline.</p>
 
