@@ -2,6 +2,7 @@ import { createDocument, serializeDocument, deserializeDocument, getContextFrame
 import { notify } from '../state.js';
 import { downloadStandaloneHTML } from '../export/exportHTML.js';
 import { downloadCompiledHTML } from '../export/exportCompiled.js';
+import { downloadPNGSequence } from '../export/exportPNG.js';
 import { downloadTextFile } from '../util/download.js';
 import { ICONS } from './icons.js';
 import { parseSvg } from '../util/importSvg.js';
@@ -134,6 +135,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     { icon: 'save', label: 'Enregistrer JSON', action: () => downloadTextFile(serializeDocument(state.doc), safeName(state.doc.name) + '.json', 'application/json') },
     { icon: 'exportHtml', label: 'Exporter HTML', action: () => downloadStandaloneHTML(state.doc) },
     { icon: 'exportHtml', label: 'Compiler un HTML', action: () => downloadCompiledHTML(state.doc) },
+    { icon: 'export', label: 'Exporter PNG (ZIP)', action: () => downloadPNGSequence(state.doc) },
   ];
   for (const item of fileMenuItems) {
     const b = document.createElement('button');

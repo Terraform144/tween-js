@@ -227,6 +227,21 @@ function getImage(dataUrl) {
   return img;
 }
 
+// Précharge tous les bitmaps d'un document dans le cache ci-dessus et résout
+// quand chaque image est décodée — garantit que draw() rend les bitmaps dès
+// le premier appel (utilisé par l'export PNG frame à frame, qui ne dispose
+// pas d'une boucle de rattrapage). Toujours résolu (les erreurs de décodage
+// ne bloquent pas l'export).
+export function preloadImages(data) {
+  const assets = Object.values((data && data.assets) || {});
+  return Promise.all(assets.map((asset) => new Promise((resolve) => {
+    const img = getImage(asset.dataUrl);
+    if (img.complete) return resolve();
+    img.addEventListener('load', () => resolve());
+    img.addEventListener('error', () => resolve());
+  })));
+}
+
 // Découpe le texte en lignes : d'abord sur les retours à la ligne explicites
 // (\n saisis dans la boîte de texte), puis par mot dès qu'une ligne dépasse
 // maxWidth (retour à la ligne automatique façon paragraphe). Un mot seul

@@ -1,5 +1,9 @@
 export function downloadTextFile(text, filename, mime) {
-  const blob = new Blob([text], { type: mime });
+  downloadBlobFile(new Blob([text], { type: mime }), filename);
+}
+
+// Télécharge un Blob binaire déjà construit (ZIP, PNG...).
+export function downloadBlobFile(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
