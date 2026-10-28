@@ -84,7 +84,7 @@ npm run dev        <span style="color:#8a93a3">« ouvre http://localhost:5173 »
 <h2>2.1 Barre de menus</h2>
 <table>
   <tr><th>Menu</th><th>Entrées</th></tr>
-  <tr><td><b>Fichier</b></td><td>Nouveau · Ouvrir… (JSON) · Archives · Importer SVG · Importer image… · Enregistrer JSON · <b>Exporter HTML</b> · <b>Compiler un HTML</b></td></tr>
+  <tr><td><b>Fichier</b></td><td>Nouveau · Ouvrir… (JSON) · Archives · Importer SVG · Importer image… · Enregistrer JSON · <b>Exporter HTML</b> · <b>Compiler un HTML</b> · <b>Exporter PNG (ZIP)</b></td></tr>
   <tr><td><b>À propos</b></td><td>Mentions légales &amp; RGPD · Documentation · APK Debug · Code Source</td></tr>
 </table>
 <div class="box warn"><b>Ouvrir…, Nouveau et Archives ouvrent une nouvelle fenêtre-projet</b> sans rien perdre : chaque projet garde sa timeline, sa bibliothèque, ses scripts et son propre historique annuler/rétablir. La lecture d'un projet se met en pause quand sa fenêtre n'est plus active.</div>
@@ -297,7 +297,9 @@ B3.on("click", function () { Scene.gotoAndStop("Options"); });</code></pre>
   <tr><td><b>Exporter HTML</b></td><td>Un fichier HTML <b>autonome</b> qui rejoue l'animation, avec les scripts (exécutés dynamiquement) ; CreateJS inliné si un script l'utilise</td><td>Partager une animation jouable, l'intégrer quelque part</td></tr>
   <tr><td><b>Compiler un HTML</b></td><td id="">Un fichier HTML où les scripts sont de <b>vraies fonctions</b> dans de vraies balises — zéro eval, preuve embarquée par une CSP qui l'interdit ; données en bloc JSON pur</td><td>Livrer du code lisible et verrouillé ; environnements stricts</td></tr>
   <tr><td><b>Objet de jeu</b> (bouton sur un symbole)</td><td><code>tween-runtime.js</code> + une classe JS par symbole</td><td>Chapitre 8 — intégrer dans votre propre jeu</td></tr>
+  <tr><td><b>Exporter PNG (ZIP)</b></td><td>Un ZIP avec <b>une image PNG par frame</b> (<code>frame_0001.png</code>, <code>frame_0002.png</code>...), à la taille du document</td><td>Monter la séquence dans un logiciel de montage, un moteur de jeu, ou retoucher image par image</td></tr>
 </table>
+<div class="box"><b>L'export PNG capture l'animation « pure ».</b> Chaque image est rendue exactement comme pendant la lecture : tweens, morphing, caméra de scène interpolée, et les MovieClips imbriqués avancent d'une frame à chaque image de la séquence. Les scripts, en revanche, ne sont pas exécutés — un script qui déplace des objets à l'exécution n'apparaîtra pas dans les images. Le fond de la scène (<code>backgroundColor</code>) est inclus dans chaque PNG.</div>
 <div class="box"><b>Parité.</b> Les deux exports HTML se comportent comme l'éditeur : mêmes événements (clics en lecture), mêmes labels, même <code>Scene.onClick</code>. L'export classique exécute vos scripts dynamiquement (comme l'éditeur) ; le compilé les a transformés en fonctions réelles — ouvrez-le dans un éditeur de texte, votre code y est lisible.</div>
 
 <h1 class="chap">8. Utiliser un MovieClip dans votre propre jeu</h1>

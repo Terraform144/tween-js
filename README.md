@@ -97,6 +97,15 @@ Ouvrir l'URL affichée (http://localhost:5173).
   autonome (aucune dépendance, aucun build) qui rejoue toute l'animation
   avec un runtime Canvas 2D minimal embarqué. "Enregistrer JSON" / "Ouvrir…"
   permettent de sauvegarder et recharger le projet.
+- **Export PNG (ZIP)** : "Exporter PNG (ZIP)" dans le menu Fichier rend TOUTES
+  les images de l'animation en PNG (une par frame, à la taille du document)
+  et télécharge l'ensemble dans un unique ZIP (`frame_0001.png`,
+  `frame_0002.png`...). Le rendu est celui de la lecture : tweens, morphing,
+  caméra de scène interpolée et MovieClips imbriqués (qui avancent d'une
+  image par frame) inclus ; les scripts ne sont pas exécutés (animation
+  "pure"). Idéal pour monter la séquence dans un logiciel de montage vidéo
+  ou un moteur de jeu. L'archive ZIP est écrite à la main (format "stored",
+  CRC32), sans aucune dépendance externe.
 - **Scripts + CreateJS complet** : le panneau Scripts exécute du JavaScript
   avec l'API `Scene`/`Game` (play/stop/gotoAndPlay, onEnterFrame, onKeyDown,
   onClick...) et les instances nommées en variables directes. La bibliothèque
