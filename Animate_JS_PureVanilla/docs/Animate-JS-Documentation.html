@@ -40,7 +40,7 @@
 <div class="cover">
   <h1>Animate JS</h1>
   <div class="sub">Éditeur d'animation vectorielle image par image<br />Documentation complète — scripts, CreateJS, exports et intégration jeu</div>
-  <div class="meta">Version 4 — Octobre 2026 · Licence CC BY-NC 4.0 · TweenJS_texture.V.0.1</div>
+  <div class="meta">Version 3 — Octobre 2026 · Licence MIT · TweenJS_simpleV.0.2</div>
 </div>
 
 <div class="toc">
@@ -70,7 +70,6 @@ npm run dev        <span style="color:#8a93a3">« ouvre http://localhost:5173 »
   <tr><td>Principale</td><td><code>src/</code>, servie par Vite</td><td>Développement, build <code>dist/</code></td></tr>
   <tr><td>PureVanilla</td><td><code>Animate_JS_PureVanilla/</code> (HTML + bundle statiques)</td><td>Déploiement statique, aucune dépendance CDN (Konva et CreateJS sont des copies locales dans <code>libs/</code>)</td></tr>
 </table>
-<p><b>100 % Vanilla JS, 100 % sans serveur.</b> Le site n'a besoin d'aucun backend : tout (HTML, CSS, JavaScript, bibliothèques, APK) est servi sous forme de fichiers statiques. Vous pouvez <b>copier le dossier du site tel quel</b> — sur une clé USB, un autre ordinateur, un hébergement simple — et il fonctionnera <b>à l'identique</b>, même hors ligne.</p>
 <h2>1.2 Créer sa première animation en 60 secondes</h2>
 <ol>
   <li>Sélectionne l'outil <b>Rectangle</b> (<span class="kbd">R</span>) et dessine un carré sur la scène.</li>
@@ -377,8 +376,7 @@ export class MonPersoClip extends MovieClip {
 <h2>10.1 Raccourcis clavier</h2>
 <table>
   <tr><th>Touche</th><th>Action</th></tr>
-  <tr><td><span class="kbd">V</span> <span class="kbd">A</span> <span class="kbd">Q</span> <span class="kbd">C</span> <span class="kbd">W</span> <span class="kbd">R</span> <span class="kbd">O</span> <span class="kbd">L</span> <span class="kbd">P</span> <span class="kbd">B</span> <span class="kbd">T</span></td><td>Outils (sélection, sous-sélection, rotation, caméra, maillage de déformation, rectangle, ellipse, ligne, plume, pinceau, texte)</td></tr>
-  <tr><td><span class="kbd">M</span></td><td>Outil main (déplacer la vue)</td></tr>
+  <tr><td><span class="kbd">V</span> <span class="kbd">A</span> <span class="kbd">R</span> <span class="kbd">O</span> <span class="kbd">L</span> <span class="kbd">P</span> <span class="kbd">B</span> <span class="kbd">T</span></td><td>Outils (sélection, sous-sélection, rectangle, ellipse, ligne, plume, pinceau, texte)</td></tr>
   <tr><td><span class="kbd">F6</span> / <span class="kbd">F7</span></td><td>Image clé / image clé vide</td></tr>
   <tr><td><span class="kbd">F8</span></td><td>Convertir en symbole</td></tr>
   <tr><td><span class="kbd">Espace</span></td><td>Lecture / pause</td></tr>
@@ -397,14 +395,6 @@ export class MonPersoClip extends MovieClip {
   <li><b>Cours CreateJS v1 et v2</b> (dossier <code>docs/</code>) : l'intégration expliquée de l'intérieur, avec étude de cas complète.</li>
   <li><b>Documentation scripts</b> (<code>Scripts-Programmation.pdf</code>) : référence détaillée de l'API Scene.</li>
   <li><b>CreateJS</b> : documentation officielle des quatre bibliothèques (MIT).</li>
-</ul>
-<h2>10.4 Licence et usage commercial</h2>
-<p>Ce projet est publié sous licence <b>Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)</b> — voir le fichier <code>LICENSE</code> à la racine du dépôt.</p>
-<ul>
-  <li><b>Autorisé</b> : copier, utiliser, modifier et redistribuer l'application <b>à des fins non commerciales</b>, avec attribution de l'auteur.</li>
-  <li><b>Interdit sans autorisation écrite</b> : toute exploitation commerciale — vente, licence payante, intégration dans un produit ou service monétisé.</li>
-  <li><b>Pour une exploitation commerciale</b> : merci de réécrire le code et les fonctionnalités à votre sauce. ^_^</li>
-  <li>Les bibliothèques CreateJS embarquées (EaselJS, TweenJS, SoundJS, PreloadJS) restent sous leur licence MIT d'origine.</li>
 </ul>
 
 </body>

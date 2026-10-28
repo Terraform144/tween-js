@@ -1,5 +1,6 @@
 import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones, getSkeletonsFromKeyframe, getAsset } from '../core/model.js';
 import { setElementPivotField, resetElementPivot } from '../core/pivot.js';
+import { simplifyShape } from '../util/simplify.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 
@@ -304,6 +305,56 @@ export function mountPropertiesPanel(container, state) {
           ['center', 'Centre'],
           ['right', 'Droite'],
         ], (v) => mutateSelectedElement((e) => (e.align = v)));
+      }
+      
+      // Bouton de simplification pour les formes avec des points (ligne, tracé)
+      if ((el.shapeType === 'line' || el.shapeType === 'path') && el.points && el.points.length >= 2) {
+        const simplifyRow = document.createElement('div');
+        simplifyRow.className = 'prop-row';
+        const btn = document.createElement('button');
+        btn.textContent = 'Simplifier la forme';
+        btn.title = 'Réduit le nombre de points tout en conservant la forme globale. Idéal pour optimiser les tracés complexes.';
+        btn.addEventListener('click', () => {
+          const simplified = simplifyShape(el, 1.0, el.closed, 0);
+          if (simplified.points.length < el.points.length) {
+            mutateSelectedElement((e) => {
+              e.points = simplified.points;
+            });
+          } else {
+            alert('Aucune simplification possible avec la tolérance actuelle. Essayez avec une tolérance plus élevée.');
+          }
+        });
+        simplifyRow.appendChild(btn);
+        body.appendChild(simplifyRow);
+        
+        // Champ de tolérance pour la simplification
+        const tolRow = document.createElement('div');
+        tolRow.className = 'prop-row';
+        const tolLabel = document.createElement('label');
+        tolLabel.textContent = 'Tolérance';
+        const tolInput = document.createElement('input');
+        tolInput.type = 'number';
+        tolInput.step = '0.1';
+        tolInput.min = '0.1';
+        tolInput.value = '1.0';
+        tolInput.title = 'Tolérance de simplification (plus élevée = moins de points conservés)';
+        const tolBtn = document.createElement('button');
+        tolBtn.textContent = 'Simplifier avec';
+        tolBtn.title = 'Applique la simplification avec la tolérance spécifiée';
+        tolBtn.addEventListener('click', () => {
+          const tolerance = parseFloat(tolInput.value) || 1.0;
+          const simplified = simplifyShape(el, tolerance, el.closed, 0);
+          if (simplified.points.length < el.points.length) {
+            mutateSelectedElement((e) => {
+              e.points = simplified.points;
+            });
+          } else {
+            alert(`Aucune simplification possible avec une tolérance de ${tolerance}. Essayez une valeur plus élevée.`);
+          }
+        });
+        linkLabelToField(tolLabel, tolInput);
+        tolRow.append(tolLabel, tolInput, tolBtn);
+        body.appendChild(tolRow);
       }
       
       // Sélecteur de squelette pour le skinning
