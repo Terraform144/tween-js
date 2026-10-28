@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Animate JS — Simplification de forme</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #1d2430; font-size: 11pt; line-height: 1.55; }
+  .cover { text-align: center; padding-top: 60mm; page-break-after: always; }
+  .cover h1 { font-size: 30pt; margin: 0 0 6mm; color: #cb4b16; }
+  .cover .sub { font-size: 14pt; color: #5a6575; margin-bottom: 18mm; }
+  .cover .meta { font-size: 11pt; color: #8a93a3; }
+  h1.chap { font-size: 18pt; color: #cb4b16; border-bottom: 2.5px solid #cb4b16; padding-bottom: 2mm; margin: 0 0 6mm; page-break-before: always; page-break-after: avoid; }
+  h1.chap:first-of-type { page-break-before: avoid; }
+  h2 { font-size: 13pt; color: #14405c; margin: 8mm 0 3mm; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; color: #14405c; margin: 6mm 0 2mm; page-break-after: avoid; }
+  p { margin: 2.5mm 0; }
+  ul, ol { margin: 2.5mm 0 4mm; padding-left: 7mm; }
+  li { margin: 1.2mm 0; }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: 9.5pt; background: #f0eee4; border: 1px solid #ddd8c8; border-radius: 3px; padding: 0 2px; color: #35520c; }
+  pre { background: #f7f5ec; border: 1px solid #ddd8c8; border-left: 3.5px solid #cb4b16; border-radius: 4px; padding: 3mm 4mm; overflow-x: hidden; page-break-inside: avoid; }
+  pre code { background: none; border: none; padding: 0; font-size: 9pt; color: #1d2430; line-height: 1.45; }
+  table { border-collapse: collapse; width: 100%; margin: 3mm 0 5mm; font-size: 9.5pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #c9d2dd; padding: 2mm 3mm; text-align: left; vertical-align: top; }
+  th { background: #e8eef4; color: #14405c; }
+  .box { border: 1px solid #c9d2dd; border-left: 3.5px solid #14405c; background: #f2f6fa; border-radius: 4px; padding: 2.5mm 4mm; margin: 4mm 0; page-break-inside: avoid; }
+  .box.warn { border-left-color: #cb4b16; background: #fdf4ec; }
+  .box b { color: #14405c; }
+  .kbd { font-family: Consolas, monospace; background: #e8eef4; border: 1px solid #c9d2dd; border-bottom-width: 2px; border-radius: 3px; padding: 0 2.5px; font-size: 9pt; }
+  .mono { font-family: Consolas, monospace; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Simplification de forme</h1>
+  <div class="sub">Réduire le nombre de points d'un tracé sans perdre sa silhouette<br />Algorithme de Ramer-Douglas-Peucker appliqué aux courbes de l'éditeur</div>
+  <div class="meta">Animate JS (TweenJS) · Octobre 2026 · Licence CC BY-NC 4.0</div>
+</div>
+
+<h1 class="chap">1. Le problème à résoudre</h1>
+<p>Un tracé dessiné à la <b>Plume</b> ou importé depuis un SVG contient souvent des points d'ancrage redondants : des sommets presque alignés qui n'apportent rien à la silhouette visuelle mais alourdissent le document. Le but de la simplification est double :</p>
+<ul>
+  <li><b>réduire le nombre de points</b> (fichier plus léger, édition plus simple) ;</li>
+  <li><b>garder la forme reconnaissable</b> — la silhouette simplifiée doit rester dans un rayon <code>ε</code> (la tolérance) de la forme d'origine.</li>
+</ul>
+<p>Dans l'éditeur, la fonctionnalité se présente dans le <b>Panneau Propriétés</b> d'une forme de type <i>ligne</i> ou <i>tracé</i> sélectionnée : un bouton <b>« Simplifier la forme »</b> (tolérance 1.0 par défaut) et un champ <b>Tolérance</b> avec le bouton <b>« Simplifier avec »</b> pour choisir son <code>ε</code>.</p>
+
+<h1 class="chap">2. Pourquoi Ramer-Douglas-Peucker</h1>
+<p>Plusieurs familles d'algorithmes existent pour décimer une polyligne. Le choix s'est porté sur <b>Ramer-Douglas-Peucker</b> (RDP, 1973) pour trois raisons :</p>
+<ol>
+  <li><b>Garantie mathématique</b> : tout point supprimé se retrouve à une distance ≤ ε du contour simplifié. L'erreur visuelle est donc <i>bornée par construction</i>, ce qui n'est pas le cas des méthodes de décimation par pas (garder 1 point sur N) ou des seuils d'angle.</li>
+  <li><b>Extrémités conservées</b> : le premier et le dernier point d'un tracé ouvert ne sont jamais supprimés — indispensable pour que les tracés raccordés à d'autres restent raccordés.</li>
+  <li><b>Simplicité</b> : une vingtaine de lignes récursives, aucun état, aucune dépendance, testable sous Node.</li>
+</ul>
+<div class="box"><b>Performance.</b> RDP est en O(n log n) en moyenne et O(n²) au pire cas (points répartis uniformément). Pour des tracés d'éditeur (quelques centaines de points au plus), c'est instantané.</div>
+<p>L'implémentation est un portage adapté de <code>simplify.js</code> du projet <code>__IIB.v.3</code> (lissé + RDP, testé unitairement), réécrite pour manipuler directement les <code>PathPoint</code> de ce projet — voir chapitre 5.</p>
+
+<h1 class="chap">3. Le cœur de l'algorithme</h1>
+
+<h2>3.1 La distance point-segment (et pas point-droite)</h2>
+<p>La brique de base est la distance entre un point P et le <b>segment</b> AB — pas la droite infinie AB. Un point situé « après » B doit être mesuré par rapport à B, pas projeté au-delà :</p>
+<pre><code>function distToSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const l2 = dx * dx + dy * dy;
+  let t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0;
+  t = Math.max(0, Math.min(1, t));          // projection clampée sur [0,1]
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}</code></pre>
+<p>Le paramètre <code>t</code> projette P sur la droite AB ; le clamp garantit que la mesure tombe sur le segment. Cas dégénéré <code>l2 = 0</code> (A et B confondus) : la distance est simplement celle de P à A.</p>
+
+<h2>3.2 La récursion RDP (tracé ouvert)</h2>
+<p>Le principe : entre les extrémités A et B du tracé, on tend une « corde ». On cherche le point le plus éloigné de cette corde :</p>
+<ul>
+  <li>si <b>dmax &gt; ε</b> : ce point est un <b>sommet significatif</b> — on le garde, et on relance la récursion sur les deux sous-tronçons [A..point] et [point..B] ;</li>
+  <li>si <b>dmax ≤ ε</b> : <b>tous les points intermédiaires sont remplacés par le segment droit AB</b>.</li>
+</ul>
+<pre><code>function rdpOpen(pts, eps) {
+  if (pts.length &lt; 3) return [...pts];
+  const A = pts[0], B = pts[pts.length - 1];
+  let dmax = -1, index = -1;
+  for (let i = 1; i &lt; pts.length - 1; i++) {
+    const d = distToSeg(pts[i].x, pts[i].y, A.x, A.y, B.x, B.y);
+    if (d &gt; dmax) { dmax = d; index = i; }
+  }
+  if (dmax &gt; eps) {
+    const left  = rdpOpen(pts.slice(0, index + 1), eps);
+    const right = rdpOpen(pts.slice(index), eps);
+    return left.slice(0, -1).concat(right);   // le point pivot est partagé
+  }
+  return [A, B];
+}</code></pre>
+<div class="box"><b>Concrètement</b> : une succession de points alignés s'effondre en 2 extrémités ; un « pic » qui dépasse ε de la corde survit et devient un sommet. Plus ε est grand, plus il faut de l'ampleur pour survivre — d'où le réglage par le champ Tolérance.</div>
+
+<h2>3.3 Le cas fermé : découper l'anneau</h2>
+<p>Un contour <b>fermé</b> (rempli) n'a pas d'extrémités naturelles : la récursion ouverte n'a pas de corde évidente sur laquelle s'appuyer. La solution :</p>
+<ol>
+  <li>prendre le point 0 et le point <b>k</b> le plus éloigné de lui (une approximation du « diamètre » de la forme, en O(n)) ;</li>
+  <li>cette paire découpe l'anneau en <b>deux chaînes ouvertes</b> : [0..k] et [k..0] ;</li>
+  <li>appliquer <code>rdpOpen</code> sur chacune, puis recoller les résultats en retirant les doublons aux jointures.</li>
+</ol>
+<pre><code>function rdpClosed(ring, eps) {
+  const n = ring.length;
+  if (n &lt; 5) return [...ring];
+  // point le plus éloigné du point 0
+  let k = 1, dmax = -1;
+  for (let i = 1; i &lt; n; i++) { /* ... */ }
+  const ra = rdpOpen(ring.slice(0, k + 1), eps);
+  const rb = rdpOpen(ring.slice(k).concat([ring[0]]), eps);
+  const out = ra.slice(0, -1).concat(rb.slice(0, -1));
+  return out.length &gt;= 3 ? out : [...ring];   // garde-fou : ≥ 3 sommets
+}</code></pre>
+<p>Le garde-fou final garantit qu'un polygone fermé ne descend jamais sous 3 points — sous peine de ne plus rien délimiter.</p>
+
+<h2>3.4 Le lissage préalable (optionnel)</h2>
+<p>Avant la décimation, l'API accepte <code>smoothPasses</code> passes de <b>moyenne mobile pondérée</b> (poids 1-2-1 sur les voisins, normalisés par 4) :</p>
+<pre><code>q[i] = (p[i-1] + 2*p[i] + p[i+1]) / 4</code></pre>
+<ul>
+  <li><b>Chaîne ouverte</b> : les extrémités restent figées, seuls les points intérieurs bougent ;</li>
+  <li><b>Anneau</b> : la moyenne est cyclique (wrap-around), le point 0 a pour voisins les points n-1 et 1.</li>
+</ul>
+<div class="box warn"><b>Choix de l'éditeur.</b> Le panneau Propriétés appelle la simplification avec <code>smoothPasses = 0</code> : aucun point n'est déplacé, seuls des points redondants disparaissent. Le lissage est disponible dans l'API (<code>simplifyPathPoints(pts, ε, fermé, passes)</code>) pour un usage futur — par exemple lisser un tracé au pinceau avant de le simplifier.</div>
+
+<h1 class="chap">4. Adaptation aux courbes de l'éditeur</h1>
+<p>C'est la partie où l'algorithme générique rencontre le modèle de données du projet. Un point d'ancrage de tracé n'est pas un simple <code>[x, y]</code> :</p>
+<pre><code>{ x, y, cIn, cOut, smooth }</code></pre>
+<ul>
+  <li><code>x, y</code> — position de l'ancre, <b>relative à l'origine de la forme</b> (<code>shape.x/y</code>) ;</li>
+  <li><code>cIn, cOut</code> — vecteurs des poignées de Bézier, <b>relatifs à l'ancre</b> (ou <code>null</code> : point anguleux) ;</li>
+  <li><code>smooth</code> — l'outil sous-sélection déplace alors <code>cIn</code> et <code>cOut</code> en miroir.</li>
+</ul>
+
+<h2>4.1 La décision clé : les poignées sont supprimées</h2>
+<p>Le point le plus important de l'implémentation : les points conservés par RDP <b>perdent leurs poignées</b> (<code>cIn = cOut = null, smooth = false</code>), et le tracé simplifié devient une <b>polyligne d'ancres</b>. Pourquoi ce choix :</p>
+<ol>
+  <li>RDP classifie les points en « sommet significatif / point redondant ». Les anciennes poignées décrivaient la <b>courbure du tracé d'origine</b> : réattacher telles quelles des poignées pensées pour d'autres voisins produirait des arcs incohérents (des boucles, des dépassements) sur la nouvelle polyligne.</li>
+  <li>Calculer de <b>nouvelles</b> poignées fidèles serait un problème de <i>fitting de courbe</i> (cf. pistes d'amélioration) — un algorithme différent, itératif, hors du périmètre de cette fonctionnalité.</li>
+  <li>La garantie de RDP porte sur les <b>ancres</b> : tout point supprimé est à ≤ ε de la polyligne joignant les ancres conservées. La promesse « la silhouette ne bouge pas de plus de ε » reste ainsi exacte et vérifiable.</li>
+</ol>
+<div class="box warn"><b>Conséquence visuelle</b> : sur un tracé très courbé, une tolérance élevée remplace des arcs par des segments légèrement anguleux. C'est le compromis explicite de la fonction : ε contrôle le rapport « nombre de points vs rondeur ». Une tolérance fine (0.3–0.5) ne touche que le bruit redondant et préserve la sensation de courbe.</div>
+
+<h2>4.2 Ce qui ne bouge pas</h2>
+<ul>
+  <li>Les points étant <b>relatifs à l'origine de la forme</b>, la simplification ne modifie ni <code>shape.x/y</code>, ni la position apparente de l'objet sur la scène ;</li>
+  <li><code>shape.closed</code> pilote la variante d'algorithme (anneau ou chaîne ouverte) ;</li>
+  <li>toutes les autres propriétés (remplissage, contour, opacité, calque...) sont inchangées — seule la liste <code>points</code> est remplacée.</li>
+</ul>
+
+<h1 class="chap">5. L'API (src/util/simplify.js)</h1>
+<pre><code>// Noyau pur : renvoie de nouveaux PathPoint, ne mute jamais l'entrée
+simplifyPathPoints(pts, tolerance, closed, smoothPasses = 0)
+
+// Enveloppe pour éléments : refuse tout ce qui n'est pas line/path
+// ou qui a moins de 2 points (la forme est renvoyée telle quelle)
+simplifyShape(shape, tolerance = 1.0, closed = null, smoothPasses = 0)</code></pre>
+<table>
+  <tr><th>Paramètre</th><th>Rôle</th><th>Garanties</th></tr>
+  <tr><td><code>tolerance</code></td><td>ε : écart maximal autorisé entre la forme d'origine et la forme simplifiée</td><td>plancher 0.1 en interne (<code>Math.max(0.1, ε)</code>)</td></tr>
+  <tr><td><code>closed</code></td><td>anneau fermé (rdpClosed) ou chaîne ouverte (rdpOpen)</td><td>≥ 3 points si fermé, ≥ 2 si ouvert</td></tr>
+  <tr><td><code>smoothPasses</code></td><td>passes de lissage préalable (0 = aucune)</td><td>extrémités figées si ouvert</td></tr>
+</table>
+
+<h2>5.1 Intégration dans le panneau Propriétés</h2>
+<ul>
+  <li>Les contrôles n'apparaissent <b>que</b> pour une forme <code>line</code> ou <code>path</code> avec au moins 2 points ;</li>
+  <li>la mutation passe par <code>mutateSelectedElement()</code> → elle est <b>annulable (Ctrl+Z)</b> et posée sur l'image clé courante comme toute édition ;</li>
+  <li>si la tolérance ne retire aucun point, un message l'explique au lieu de semblant ne rien faire ;</li>
+  <li>en cas de résultat sous le minimum (tracé trop court), la fonction renvoie le tracé d'origine sans ses poignées — jamais un tracé invalide.</li>
+</ul>
+
+<h1 class="chap">6. Bien choisir sa tolérance</h1>
+<table>
+  <tr><th>Tolérance</th><th>Effet</th><th>Usage typique</th></tr>
+  <tr><td>0.3 – 0.5</td><td>Ne retire que les points quasi redondants</td><td>Nettoyage fin, préparation au morphing</td></tr>
+  <tr><td>1 – 2</td><td>Équilibre points / fidélité (défaut : 1.0)</td><td>Simplification standard d'un tracé Plume</td></tr>
+  <tr><td>3 – 5</td><td>Forte décimation, arcs → segments visibles</td><td>Silhouettes volontairement anguleuses, allègement massif</td></tr>
+  <tr><td>&gt; 5</td><td>Seules les grandes aspérités survivent</td><td>Réduire une courbe à son « squelette »</td></tr>
+</table>
+<div class="box"><b>Le bonus morphing.</b> Le morphing de l'éditeur apparie les points <b>par index</b> (1er avec 1er, 2e avec 2e...) et ne se déclenche que si deux images clés contiennent le <b>même nombre de points</b>. Simplifier deux courbes avec la même tolérance tend à aligner leurs densités de points — et surtout, une courbe simplifiée est plus facile à retoucher à l'outil sous-sélection pour tomber exactement sur le bon compte avant de créer l'image clé suivante.</div>
+
+<h1 class="chap">7. Pistes d'amélioration</h1>
+<ul>
+  <li><b>Fitting de Bézier (Schneider, 1990)</b> : au lieu de conserver les ancres telles quelles, ajuster des segments de Bézier cubiques sur les points supprimés — la forme simplifiée resterait courbe. C'est l'évolution naturelle si les polylignes anguleuses deviennent gênantes ;</li>
+  <li><b>Tolérance relative</b> : exprimer ε en pourcentage de la boîte englobante du tracé, pour qu'un même réglage « se sente pareil » sur une petite et une grande forme ;</li>
+  <li><b>Shape hints</b> : laisser l'utilisateur épingler des points qui ne doivent jamais être supprimés (appariement de morphing guidé, comme dans Animate CC) ;</li>
+  <li><b>Prévisualisation</b> : un curseur montrant en direct le résultat et le nombre de points conservés avant de valider.</li>
+</ul>
+
+</body>
+</html>
