@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Animate JS — Coder avec TweenJS (éditeur de code externe)</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #1d2430; font-size: 11pt; line-height: 1.55; }
+  .cover { text-align: center; padding-top: 60mm; page-break-after: always; }
+  .cover h1 { font-size: 30pt; margin: 0 0 6mm; color: #cb4b16; }
+  .cover .sub { font-size: 14pt; color: #5a6575; margin-bottom: 18mm; }
+  .cover .meta { font-size: 11pt; color: #8a93a3; }
+  h1.chap { font-size: 18pt; color: #cb4b16; border-bottom: 2.5px solid #cb4b16; padding-bottom: 2mm; margin: 0 0 6mm; page-break-before: always; page-break-after: avoid; }
+  h1.chap:first-of-type { page-break-before: avoid; }
+  h2 { font-size: 13pt; color: #14405c; margin: 8mm 0 3mm; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; color: #14405c; margin: 6mm 0 2mm; page-break-after: avoid; }
+  p { margin: 2.5mm 0; }
+  ul, ol { margin: 2.5mm 0 4mm; padding-left: 7mm; }
+  li { margin: 1.2mm 0; }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: 9.5pt; background: #f0eee4; border: 1px solid #ddd8c8; border-radius: 3px; padding: 0 2px; color: #35520c; }
+  pre { background: #f7f5ec; border: 1px solid #ddd8c8; border-left: 3.5px solid #cb4b16; border-radius: 4px; padding: 3mm 4mm; overflow-x: hidden; page-break-inside: avoid; }
+  pre code { background: none; border: none; padding: 0; font-size: 9pt; color: #1d2430; line-height: 1.45; }
+  table { border-collapse: collapse; width: 100%; margin: 3mm 0 5mm; font-size: 9.5pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #c9d2dd; padding: 2mm 3mm; text-align: left; vertical-align: top; }
+  th { background: #e8eef4; color: #14405c; }
+  .box { border: 1px solid #c9d2dd; border-left: 3.5px solid #14405c; background: #f2f6fa; border-radius: 4px; padding: 2.5mm 4mm; margin: 4mm 0; page-break-inside: avoid; }
+  .box.warn { border-left-color: #cb4b16; background: #fdf4ec; }
+  .box b { color: #14405c; }
+  .kbd { font-family: Consolas, monospace; background: #e8eef4; border: 1px solid #c9d2dd; border-bottom-width: 2px; border-radius: 3px; padding: 0 2.5px; font-size: 9pt; }
+  .mono { font-family: Consolas, monospace; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Coder avec TweenJS</h1>
+  <div class="sub">Travailler sur un projet TweenJS depuis un éditeur de code externe<br />Scripts de MovieClip, fichiers .js externes et intégration VS Code</div>
+  <div class="meta">Animate JS (TweenJS) · Octobre 2026 · Licence CC BY-NC 4.0</div>
+</div>
+
+<h1 class="chap">1. Le principe général</h1>
+<p>Dans Adobe Animate CC, les gros projets ActionScript 3 reposent sur une séparation nette : l'éditeur visuel s'occupe du dessin et de la timeline, et le code vit dans des fichiers <code>.as</code> séparés, édités dans un vrai éditeur de code. TweenJS reprend cette séparation :</p>
+<ul>
+  <li><b>Le panneau Scripts</b> de l'application reste le point d'entrée : c'est lui qui <b>détient</b> le code de chaque script et qui l'exécute pendant la lecture.</li>
+  <li>Chaque script (celui de la <b>scène principale</b> comme celui de chaque <b>MovieClip</b>) peut être <b>externalisé</b> dans un fichier <code>.js</code> que vous éditez où vous voulez — typiquement dans <b>Visual Studio Code</b>.</li>
+  <li>Les boutons <span class="kbd">Importer</span>, <span class="kbd">Exporter</span>, <span class="kbd">VS Code</span> et <span class="kbd">Lier</span> du panneau Scripts font la navette entre votre éditeur et l'application.</li>
+</ul>
+<div class="box">
+  <b>Ce qu'un navigateur peut et ne peut pas faire.</b> Une application web ne peut ni lancer un programme de votre poste, ni surveiller un dossier du disque en arrière-plan. TweenJS contourne honnêtement ces limites avec trois mécanismes universels (import de fichier, téléchargement, protocole <code>vscode://</code> de VS Code) et un mécanisme avancé — la relecture automatique — réservé aux navigateurs Chromium (Chrome, Edge, Vivaldi) via la File System Access API.
+</div>
+
+<h1 class="chap">2. Le script de MovieClip : votre « classe AS3 »</h1>
+<h2>2.1 Où le trouver</h2>
+<p>Chaque symbole de type <b>MovieClip</b> possède son propre script — l'équivalent d'une classe AS3 attachée au clip. Pour l'éditer :</p>
+<ol>
+  <li>Dans la <b>Bibliothèque</b>, double-cliquez le MovieClip pour entrer dans son contexte d'édition (ou ouvrez une instance sur scène et double-cliquez-la).</li>
+  <li>Dans le panneau <b>Scripts</b>, un bouton <span class="mono">MovieClip : &lt;nom&gt;</span> apparaît (entre les onglets de scripts et les scripts d'image).</li>
+  <li>Cliquez dessus : l'éditeur de code bascule sur le script du symbole, prérempli avec un squelette de constructeur.</li>
+</ol>
+
+<h2>2.2 Quand s'exécute-t-il ?</h2>
+<p>Le script de MovieClip est un <b>constructeur d'instance</b> :</p>
+<ul>
+  <li>Il s'exécute <b>UNE seule fois par instance</b>, au démarrage de la lecture — deux instances du même symbole exécutent chacune le script, avec un état indépendant.</li>
+  <li>Il s'exécute <b>avant</b> les scripts d'image de la première image (comme un constructeur avant tout autre code).</li>
+  <li>Il ne s'exécute <b>que pendant la lecture ou le test</b> : en pause ou en édition, rien ne tourne — mêmes règles que les scripts d'image.</li>
+</ul>
+
+<h2>2.3 Un Scene scopé au clip</h2>
+<p>Dans le script d'un MovieClip, la variable <code>Scene</code> (et son alias <code>Game</code>) ne désigne plus la scène racine mais <b>ce clip</b> :</p>
+<table>
+  <tr><th>API (dans un script de MovieClip)</th><th>Effet</th></tr>
+  <tr><td><code>Scene.stop()</code> / <code>Scene.play()</code></td><td>Arrête / relance <b>ce clip seulement</b> — les autres clips et la scène racine continuent.</td></tr>
+  <tr><td><code>Scene.currentFrame</code></td><td>Image courante de <b>la timeline du clip</b>.</td></tr>
+  <tr><td><code>Scene.gotoAndPlay("Entry")</code></td><td>Saut en utilisant les <b>labels d'image du symbole</b> (Timeline : champ label).</td></tr>
+  <tr><td><code>Scene.frameCount</code></td><td>Longueur du clip.</td></tr>
+  <tr><td><code>Scene.onEnterFrame(fn)</code></td><td>Boucle de jeu <b>propre à ce clip</b> : <code>fn</code> est appelée à chaque image avancée du clip. Un clip arrêté ne « tick » pas (sémantique Animate).</td></tr>
+  <tr><td><code>Scene.width/height/frameRate</code></td><td>Propriétés du document (lecture seule).</td></tr>
+  <tr><td><code>Scene.log(...)</code>, <code>Scene.random(n)</code></td><td>Divers, identiques à la scène.</td></tr>
+</table>
+
+<div class="box">
+  <b>Exemple — un clip qui attend puis joue une séquence :</b>
+<pre><code>// Constructeur du MovieClip : exécuté une fois par instance
+Scene.stop();                       // ce clip démarre figé
+Scene.onEnterFrame(function (f) {   // boucle propre au clip
+  // ... détection, temporisation, etc.
+  Scene.gotoAndPlay("explosion");   // label posé dans la timeline du symbole
+});</code></pre>
+</div>
+
+<h2>2.4 Scène principale et scripts d'image</h2>
+<p>La <b>scène principale</b> se code comme toujours avec les <b>scripts nommés du document</b> (onglets du panneau Scripts, exécutés via le bouton <span class="kbd">Exécuter</span> ou à la lecture) : leur <code>Scene</code> est la scène racine. Les <b>scripts d'image</b> (actions posées sur une image clé d'un calque) existent aussi par clip — un MovieClip enfant exécute les siens avec le même Scene scopé. Tous ces scripts sont externalisables de la même façon (section 3), seule la relecture automatique du bouton <span class="kbd">Lier</span> est réservée aux scripts nommés et aux scripts de MovieClip (v1).</p>
+
+<h1 class="chap">3. Le workflow fichiers externes</h1>
+<h2>3.1 Les quatre boutons</h2>
+<p>Dans le panneau Scripts, une ligne apparaît sous les onglets (et sous le bouton MovieClip quand vous êtes dans un symbole). Elle s'applique au script en cours d'édition :</p>
+<table>
+  <tr><th>Bouton</th><th>Action</th><th>Navigateurs</th></tr>
+  <tr><td><span class="kbd">Importer</span></td><td>Choisir un fichier <code>.js</code> sur le disque : son contenu <b>remplace</b> le code du script courant.</td><td>Tous</td></tr>
+  <tr><td><span class="kbd">Exporter</span></td><td>Télécharger le code du script courant en <code>&lt;document&gt;_&lt;script&gt;.js</code> (ex : <code>MonJeu_Hero.js</code>).</td><td>Tous</td></tr>
+  <tr><td><span class="kbd">VS Code</span></td><td>Ouvrir le fichier dans Visual Studio Code via le protocole <code>vscode://</code>. Le dossier local des scripts est demandé une seule fois puis mémorisé.</td><td>Tous</td></tr>
+  <tr><td><span class="kbd">Lier</span></td><td>Lier le script à un fichier du disque : le contenu est <b>relu automatiquement</b> à chaque retour dans l'application (focus de la fenêtre), et via le bouton <span class="kbd">Recharger</span>.</td><td>Chrome, Edge, Vivaldi (Chromium)</td></tr>
+</table>
+
+<h2>3.2 Deux façons de travailler</h2>
+<h3>Flux universel (tous navigateurs, y compris Firefox/Safari)</h3>
+<ol>
+  <li><span class="kbd">Exporter</span> le script : vous obtenez un fichier <code>.js</code> dans vos Téléchargements — rangez-le dans votre dossier de projet.</li>
+  <li><span class="kbd">VS Code</span> : l'application ouvre le fichier dans VS Code (après le premier réglage du dossier).</li>
+  <li>Vous modifiez, vous sauvegardez (<span class="kbd">Ctrl+S</span>), vous revenez dans TweenJS.</li>
+  <li><span class="kbd">Importer</span> le fichier modifié : le code du script est à jour dans l'application.</li>
+</ol>
+<h3>Flux lié (Chrome, Edge, Vivaldi) — recommandé</h3>
+<ol>
+  <li><span class="kbd">Lier</span> : choisissez le fichier <code>.js</code> une fois. Il devient la source de vérité de ce script.</li>
+  <li>Modifiez-le dans VS Code (bouton <span class="kbd">VS Code</span>), sauvegardez.</li>
+  <li>Revenez simplement dans la fenêtre TweenJS : <b>le contenu est relu tout seul</b>. Le lien survit aux rechargements de la page (handle conservé en IndexedDB) ; après un rechargement, le navigateur demande de re-confirmer l'accès — le bouton <span class="kbd">Recharger</span> sert à ça.</li>
+</ol>
+<div class="box warn">
+  <b>Bon à savoir.</b> Le lien est mémorisé par script et par document (le nom du fichier lié s'affiche dans le panneau). Lier un nouveau fichier à un autre script ne casse pas les liens précédents : chaque script a le sien.
+</div>
+
+<h2>3.3 Configuration du dossier VS Code</h2>
+<p>Au premier clic sur <span class="kbd">VS Code</span>, un dialogue demande le chemin du dossier où vous rangez vos scripts sur ce poste, par exemple :</p>
+<pre><code>Windows : C:\projets\tweenjs\scripts
+Linux   : /home/vous/projets/tweenjs/scripts</code></pre>
+<p>Ce chemin est mémorisé dans le navigateur (localStorage, clé <code>tweenjs.vscodeFolder</code>) ; il est repris pour tous les scripts. Pour le changer, videz le localStorage ou appelez <code>localStorage.removeItem('tweenjs.vscodeFolder')</code> dans la console du navigateur, puis cliquez à nouveau sur <span class="kbd">VS Code</span>.</p>
+
+<h1 class="chap">4. Recette complète pas à pas</h1>
+<p>Objectif : un MovieClip <b>Balle</b> dont le comportement est codé dans <code>balle.js</code> sous VS Code, rebondissant en boucle pilotée par script.</p>
+<ol>
+  <li><b>Créez le symbole</b> : Bibliothèque → nouveau symbole MovieClip « Balle », dessinez la balle, posez éventuellement un label d'image <code>"saut"</code> sur l'image où elle saute.</li>
+  <li><b>Entrez dans le symbole</b> (double-clic) → panneau Scripts → bouton <span class="mono">MovieClip : Balle</span> : le squelette de constructeur est prêt.</li>
+  <li>Complétez le code :
+<pre><code>// balle.js — constructeur du MovieClip Balle
+Scene.stop();
+Scene.onEnterFrame(function (f) {
+  // avance d'un pas à chaque image de la scène parente
+  Scene.gotoAndPlay(Scene.currentFrame + 1);
+});</code></pre>
+  </li>
+  <li><b>Externalisez</b> : bouton <span class="kbd">Exporter</span> → récupérez <code>SansTitre_Balle.js</code> et renommez-le <code>balle.js</code> dans votre dossier de scripts.</li>
+  <li><b>Liez</b> (Chrome/Edge/Vivaldi) : bouton <span class="kbd">Lier</span> → sélectionnez <code>balle.js</code>. Le panneau affiche <span class="mono">lié : balle.js</span>.</li>
+  <li><b>Sur la scène principale</b>, posez deux instances de Balle (Nom d'instance <code>balle1</code>, <code>balle2</code> dans les propriétés).</li>
+  <li><b>Testez</b> : lecture (<span class="kbd">Espace</span> ou bouton) — chaque instance exécute son constructeur ; les instances nommées restent pilotables depuis le script de la scène (<code>balle1.x += 1;</code>).</li>
+  <li><b>Itérez dans VS Code</b> : modifiez <code>balle.js</code>, <span class="kbd">Ctrl+S</span>, revenez dans TweenJS — le code est déjà à jour (flux lié), relancez la lecture.</li>
+</ol>
+
+<h1 class="chap">5. Exports : le code suit toujours le projet</h1>
+<p>Le contenu d'un script externe est <b>incrusté</b> dans le document TweenJS au moment de l'import ou de la relecture du lien. Conséquence : tous les exports fonctionnent sans les fichiers <code>.js</code> :</p>
+<table>
+  <tr><th>Export</th><th>Comportement</th></tr>
+  <tr><td>HTML autonome (menu Fichier)</td><td>Les scripts de MovieClip sont embarqués dans les données du document exporté et exécutés pareillement : une fois par instance, Scene scopé au clip, avant les scripts d'image.</td></tr>
+  <tr><td>Objet de jeu (classe JS + runtime)</td><td>Le script du symbole exporté est embarqué dans <code>DATA</code> : le constructeur de la classe l'exécute à la création.</td></tr>
+  <tr><td>JSON (sauvegarde)</td><td>Le code des scripts fait partie du document : sauvegarde/chargement emportent tout.</td></tr>
+</table>
+<div class="box warn">
+  <b>Limite v1 — mode compilé.</b> L'export « Compiler un HTML » (sans <code>eval</code>/<code>new Function</code>) n'exécute pas encore les scripts de MovieClip : le bloc dynamique est retiré à la compilation. Pour un projet qui utilise des scripts de clip, préférez l'export HTML classique.
+</div>
+
+<h1 class="chap">6. Limites v1 et pistes v2</h1>
+<ul>
+  <li><b>Scripts d'image</b> : import/export externes fonctionnent, mais pas le lien vivant (v1) — le bouton <span class="kbd">Lier</span> n'apparaît pas pour eux.</li>
+  <li><b>Firefox / Safari</b> : pas de relecture automatique ; il faut ré-importer le fichier après chaque sauvegarde (flux universel).</li>
+  <li><b>Permissions après rechargement</b> : le lien survit, mais le navigateur exige un clic (<span class="kbd">Recharger</span>) pour redonner l'accès en lecture à un fichier lié.</li>
+  <li><b>Navigateur ≠ disque</b> : le bouton <span class="kbd">VS Code</span> ouvre l'éditeur, il ne peut pas pousser le code de l'application vers le fichier — c'est le bouton <span class="kbd">Exporter</span> qui écrit le fichier.</li>
+</ul>
+<p>Pistes d'évolution : lien vivant étendu aux scripts d'image ; export « projet complet vers un dossier » (File System Access API) ; autocomplétion de l'API clip dans l'éditeur intégré ; supervision par un petit serveur de développement local pour la relecture hors Chromium.</p>
+
+<div class="box">
+  <b>Récapitulatif express.</b> Scène = scripts nommés du document · MovieClip = bouton « MovieClip : ... » (une exécution par instance, Scene scopé au clip) · coder dehors = Exporter → VS Code → sauvegarder → Importer (tous navigateurs) ou Lier (Chromium, relecture auto au focus) · les exports restent autonomes, le code est toujours incrusté.
+</div>
+
+</body>
+</html>
