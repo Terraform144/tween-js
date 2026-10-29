@@ -7,6 +7,10 @@ import { createScript, getNamedElements, getContextLayers, getKeyframeAt } from 
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 import { ICONS } from './icons.js';
+import {
+  sanitizeFileName, pickJsFile, exportJsFile, openInVsCode, getVscodeFolder,
+  supportsLinkedFiles, linkFile, readLinkedFile, requestLinkedPermission,
+} from './externalScripts.js';
 
 // Complétions de l'API Scene/Game exposée par le runtime (sceneRuntime.js).
 // On les fournit via languageDataAt("autocomplete") du langage JavaScript :
@@ -96,6 +100,56 @@ export function mountScriptsPanel(container, state, { runtime }) {
   // Scripts d'image (frame actions) : distincts des scripts nommés ci-dessus,
   // rattachés à une keyframe précise (kf.script) et listés ici pour pouvoir
   // sauter de l'un à l'autre, comme le navigateur d'actions d'Animate CC.
+  // Script de symbole (classe AS3-like) : cible d'édition à part entière,
+  // disponible quand le contexte d'édition est un MovieClip (editPath non
+  // vide). Le code vit sur le symbole (sym.script) et s'exécute UNE fois par
+  // instance au démarrage de la lecture (voir sceneRuntime.js/main.js).
+  const symbolRow = document.createElement('div');
+  symbolRow.className = 'script-frame-row';
+
+  const symbolBtn = document.createElement('button');
+  symbolBtn.title = "Éditer le script de ce MovieClip — constructeur exécuté une fois par instance au démarrage de la lecture (classe AS3-like)";
+  symbolBtn.addEventListener('click', editSymbolScript);
+  symbolRow.appendChild(symbolBtn);
+
+  // Fichiers externes (workflow « gros projets », façon classe AS3) :
+  // s'appliquent à la cible d'édition active (script nommé, script de
+  // MovieClip ou script d'image). Import/export universels ; lien vivant
+  // (relecture auto au focus) sur Chromium via File System Access API.
+  const externalRow = document.createElement('div');
+  externalRow.className = 'script-frame-row external-row';
+
+  const fileLabel = document.createElement('span');
+  fileLabel.className = 'external-file-label';
+
+  const importBtn = document.createElement('button');
+  importBtn.innerHTML = ICONS.importSvg;
+  importBtn.title = 'Importer le code depuis un fichier .js (tous navigateurs)';
+  importBtn.addEventListener('click', importActiveFromFile);
+
+  const exportBtn = document.createElement('button');
+  exportBtn.innerHTML = ICONS.export;
+  exportBtn.title = 'Exporter le code de ce script vers un fichier .js (téléchargement)';
+  exportBtn.addEventListener('click', exportActiveToFile);
+
+  const vsBtn = document.createElement('button');
+  vsBtn.innerHTML = ICONS.pencil;
+  vsBtn.title = 'Ouvrir le fichier dans VS Code (protocole vscode://, tous navigateurs)';
+  vsBtn.addEventListener('click', openActiveInVsCode);
+
+  const linkBtn = document.createElement('button');
+  linkBtn.textContent = 'Lier';
+  linkBtn.title = 'Lier ce script à un fichier .js du disque : son contenu est relu automatiquement au retour dans l\'app (Chrome/Edge/Vivaldi uniquement)';
+  linkBtn.addEventListener('click', linkActiveFile);
+
+  const reloadBtn = document.createElement('button');
+  reloadBtn.innerHTML = ICONS.undo;
+  reloadBtn.title = 'Relire maintenant le fichier .js lié à ce script';
+  reloadBtn.addEventListener('click', reloadLinkedActiveFile);
+  reloadBtn.style.display = 'none';
+
+  externalRow.append(fileLabel, importBtn, exportBtn, vsBtn, linkBtn, reloadBtn);
+
   const frameRow = document.createElement('div');
   frameRow.className = 'script-frame-row';
 
@@ -121,11 +175,150 @@ export function mountScriptsPanel(container, state, { runtime }) {
   consoleEl.className = 'script-console';
   consoleEl.textContent = '— console —';
 
-  body.append(tabs, frameRow, editorHost, consoleEl);
+  body.append(tabs, symbolRow, externalRow, frameRow, editorHost, consoleEl);
 
   let activeId = null;
   let frameTarget = null; // { layerId, frameIndex } | null — non-null = édition d'un script d'image plutôt que d'un script nommé
+  let symbolTarget = false; // true = édition du script de symbole (constructeur AS3-like) du contexte courant
   let editor = null;
+
+  // Symbole du contexte d'édition courant (null = scène principale).
+  function contextSymbol() {
+    const p = state.editPath || [];
+    return p.length ? state.doc.symbols[p[p.length - 1]] : null;
+  }
+
+  // Cible d'édition active, vue comme un script externalisable : script nommé
+  // du document, script de symbole (MovieClip) ou script d'image. `key`
+  // identifie le lien fichier (File System Access API), `fileMeta`/`setFileMeta`
+  // portent la métadonnée { fileName, mode: 'import' | 'export' | 'linked' }.
+  function activeTarget() {
+    const docId = state.doc.id || 'doc';
+    const base = sanitizeFileName((state.doc.name || 'scene'));
+    if (symbolTarget) {
+      const sym = contextSymbol();
+      if (!sym) return null;
+      return {
+        kind: 'symbol',
+        key: docId + ':sym:' + sym.id,
+        fileName: sanitizeFileName(base + '_' + sym.name) + '.js',
+        get code() { return sym.script || ''; },
+        set code(v) { sym.script = v; },
+        get fileMeta() { return sym.scriptFile || null; },
+        setFileMeta(m) { sym.scriptFile = m; },
+      };
+    }
+    if (frameTarget) {
+      const kf = findFrameKeyframe(frameTarget);
+      if (!kf) return null;
+      return {
+        kind: 'frame',
+        key: null, // pas de lien vivant sur les scripts d'image (v1)
+        fileName: sanitizeFileName(base + '_image_' + (frameTarget.frameIndex + 1)) + '.js',
+        get code() { return kf.script || ''; },
+        set code(v) { kf.script = v; },
+        get fileMeta() { return null; },
+        setFileMeta() {},
+      };
+    }
+    const sc = state.doc.scripts.find((s) => s.id === activeId);
+    if (!sc) return null;
+    return {
+      kind: 'script',
+      key: docId + ':script:' + sc.id,
+      fileName: sanitizeFileName(base + '_' + sc.name) + '.js',
+      get code() { return sc.code || ''; },
+      set code(v) { sc.code = v; },
+      get fileMeta() { return sc.file || null; },
+      setFileMeta(m) { sc.file = m; },
+    };
+  }
+
+  async function importActiveFromFile() {
+    const t = activeTarget();
+    if (!t) return;
+    const res = await pickJsFile();
+    if (!res) return;
+    t.code = res.text;
+    t.setFileMeta({ fileName: res.name, mode: 'import' });
+    notify(state);
+  }
+
+  function exportActiveToFile() {
+    const t = activeTarget();
+    if (!t) return;
+    saveActive();
+    exportJsFile(t.code, t.fileName);
+    t.setFileMeta({ fileName: t.fileName, mode: 'export' });
+  }
+
+  function openActiveInVsCode() {
+    const t = activeTarget();
+    if (!t) return;
+    openInVsCode((t.fileMeta && t.fileMeta.fileName) || t.fileName);
+  }
+
+  async function linkActiveFile() {
+    const t = activeTarget();
+    if (!t || !t.key || !supportsLinkedFiles()) return;
+    const name = await linkFile(t.key);
+    if (!name) return;
+    const res = await readLinkedFile(t.key);
+    if (res) t.code = res.text;
+    t.setFileMeta({ fileName: name, mode: 'linked' });
+    notify(state);
+  }
+
+  async function reloadLinkedActiveFile() {
+    const t = activeTarget();
+    if (!t || !t.key) return;
+    await requestLinkedPermission(t.key);
+    const res = await readLinkedFile(t.key);
+    if (res) {
+      t.code = res.text;
+      t.setFileMeta({ fileName: res.name, mode: 'linked' });
+      notify(state);
+    }
+  }
+
+  // Relecture automatique des fichiers liés au retour dans l'app (focus de
+  // la fenêtre) : on édite dans VS Code, on sauvegarde, on revient — le code
+  // est à jour. Chromium uniquement (File System Access API).
+  async function refreshLinkedScripts() {
+    if (!supportsLinkedFiles()) return;
+    const doc = state.doc;
+    const jobs = [];
+    for (const sc of doc.scripts || []) {
+      if (sc.file && sc.file.mode === 'linked') {
+        jobs.push({ key: (doc.id || 'doc') + ':script:' + sc.id, get code() { return sc.code || ''; }, set code(v) { sc.code = v; } });
+      }
+    }
+    for (const id in doc.symbols || {}) {
+      const sym = doc.symbols[id];
+      if (sym.scriptFile && sym.scriptFile.mode === 'linked') {
+        jobs.push({ key: (doc.id || 'doc') + ':sym:' + sym.id, get code() { return sym.script || ''; }, set code(v) { sym.script = v; } });
+      }
+    }
+    let changed = false;
+    for (const j of jobs) {
+      const res = await readLinkedFile(j.key);
+      if (res && res.text !== j.code) { j.code = res.text; changed = true; }
+    }
+    if (changed) notify(state);
+  }
+  window.addEventListener('focus', refreshLinkedScripts);
+
+  function editSymbolScript() {
+    const sym = contextSymbol();
+    if (!sym) return;
+    saveActive();
+    if (!sym.script || !sym.script.trim()) {
+      sym.script = '// Constructeur du MovieClip "' + sym.name + '"\n// Exécuté UNE fois par instance au démarrage de la lecture.\n// Scene est scopé à CE clip : Scene.stop() arrête ce clip, pas la scène.\nScene.stop();\nScene.onEnterFrame(() => {\n  // boucle de jeu propre à ce clip\n});\n';
+    }
+    symbolTarget = true;
+    frameTarget = null;
+    notify(state);
+  }
 
   function selectedLayer() {
     return getContextLayers(state.doc, state.editPath).find((l) => l.id === state.selectedLayerId);
@@ -149,6 +342,10 @@ export function mountScriptsPanel(container, state, { runtime }) {
   }
 
   function getActiveCode() {
+    if (symbolTarget) {
+      const sym = contextSymbol();
+      return sym ? (sym.script || '') : '';
+    }
     if (frameTarget) {
       const kf = findFrameKeyframe(frameTarget);
       return kf ? kf.script : '';
@@ -165,6 +362,7 @@ export function mountScriptsPanel(container, state, { runtime }) {
     saveActive();
     if (!kf.script) kf.script = '// Exécuté une fois quand la tête de lecture atteint cette image\nScene.stop();\n';
     frameTarget = { layerId: layer.id, frameIndex: kf.index };
+    symbolTarget = false;
     notify(state);
   }
 
@@ -179,7 +377,10 @@ export function mountScriptsPanel(container, state, { runtime }) {
   const saveActive = () => {
     if (!editor) return;
     const code = editor.state.doc.toString();
-    if (frameTarget) {
+    if (symbolTarget) {
+      const sym = contextSymbol();
+      if (sym) sym.script = code;
+    } else if (frameTarget) {
       const kf = findFrameKeyframe(frameTarget);
       if (kf) kf.script = code;
     } else if (activeId) {
@@ -195,6 +396,7 @@ export function mountScriptsPanel(container, state, { runtime }) {
     state.doc.scripts.push(sc);
     activeId = sc.id;
     frameTarget = null;
+    symbolTarget = false;
     notify(state);
   }
 
@@ -207,6 +409,7 @@ export function mountScriptsPanel(container, state, { runtime }) {
   }
 
   function runActive() {
+    if (symbolTarget) return; // s'exécute au démarrage de la lecture (une fois par instance)
     saveActive();
     const code = getActiveCode();
     consoleEl.textContent = '';
@@ -257,7 +460,7 @@ export function mountScriptsPanel(container, state, { runtime }) {
     tabs.innerHTML = '';
     for (const sc of state.doc.scripts) {
       const tab = document.createElement('div');
-      tab.className = 'script-tab' + (sc.id === activeId && !frameTarget ? ' active' : '');
+      tab.className = 'script-tab' + (sc.id === activeId && !frameTarget && !symbolTarget ? ' active' : '');
       const name = document.createElement('span');
       name.className = 'name';
       name.textContent = sc.name;
@@ -270,7 +473,7 @@ export function mountScriptsPanel(container, state, { runtime }) {
       del.title = 'Supprimer le script';
       del.innerHTML = ICONS.close;
       del.addEventListener('click', (e) => { e.stopPropagation(); removeScript(sc.id); });
-      tab.addEventListener('click', () => { saveActive(); activeId = sc.id; frameTarget = null; notify(state); });
+      tab.addEventListener('click', () => { saveActive(); activeId = sc.id; frameTarget = null; symbolTarget = false; notify(state); });
       tab.append(name, del);
       tabs.appendChild(tab);
     }
@@ -297,10 +500,11 @@ export function mountScriptsPanel(container, state, { runtime }) {
   frameSelect.addEventListener('change', () => {
     saveActive();
     const v = frameSelect.value;
-    if (!v) { frameTarget = null; }
+    if (!v) { frameTarget = null; symbolTarget = false; }
     else {
       const i = v.lastIndexOf('#');
       frameTarget = { layerId: v.slice(0, i), frameIndex: parseInt(v.slice(i + 1), 10) };
+      symbolTarget = false;
     }
     notify(state);
   });
@@ -309,16 +513,37 @@ export function mountScriptsPanel(container, state, { runtime }) {
     if (!state.doc.scripts) state.doc.scripts = [];
     if (!state.doc.scripts.length) state.doc.scripts.push(createScript('Script 1', ''));
     if (!state.doc.scripts.find((s) => s.id === activeId)) activeId = state.doc.scripts[0].id;
+    // Script de symbole : visible/actif seulement en contexte MovieClip.
+    const sym = contextSymbol();
+    if (symbolTarget && !sym) symbolTarget = false;
+    symbolRow.style.display = sym ? '' : 'none';
+    if (sym) {
+      const hasScript = !!(sym.script && sym.script.trim());
+      symbolBtn.textContent = 'MovieClip : ' + sym.name + (hasScript ? '' : ' (sans script)');
+      symbolRow.classList.toggle('active', symbolTarget);
+    }
     // Le badge "a" de la timeline (Timeline.js) pose cette demande ponctuelle
     // pour ouvrir directement le script d'une keyframe cliquée ; on l'applique
     // puis on l'efface aussitôt pour ne pas reforcer le focus à chaque notify().
     if (state.focusFrameScript) {
       frameTarget = state.focusFrameScript;
+      symbolTarget = false;
       state.focusFrameScript = null;
+    }
+    // Fichiers externes : état de la cible active (import/export/lien VS Code).
+    const t = activeTarget();
+    if (t) {
+      const meta = t.fileMeta;
+      fileLabel.textContent = meta
+        ? (meta.mode === 'linked' ? 'lié : ' : meta.mode === 'import' ? 'importé : ' : 'exporté : ') + meta.fileName
+        : '';
+      linkBtn.style.display = (supportsLinkedFiles() && t.key) ? '' : 'none';
+      reloadBtn.style.display = (meta && meta.mode === 'linked') ? '' : 'none';
     }
     ensureEditor();
     renderTabs();
     renderFrameRow();
+    runBtn.disabled = symbolTarget; // s'exécute à la lecture, pas via Exécuter
     const code = getActiveCode();
     if (editor.state.doc.toString() !== code) {
       editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: code } });

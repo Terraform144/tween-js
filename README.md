@@ -118,6 +118,26 @@ Ouvrir l'URL affichée (http://localhost:5173).
   pause avec l'éditeur. L'export HTML inline automatiquement les libs
   CreateJS quand un script les utilise et offre la même API événements
   que l'éditeur (portées run/frame, pipeline pointeur, labels).
+- **Script par MovieClip (classe AS3-like)** : chaque symbole MovieClip possède
+  son propre script, exécuté UNE fois par instance au démarrage de la
+  lecture (le constructeur), avant les scripts d'image de la première image.
+  Dans le panneau Scripts, le bouton "MovieClip : ..." apparaît quand on
+  édite un symbole. Le `Scene` y est scopé au clip : `Scene.stop()` arrête
+  CE clip (pas la scène), `Scene.gotoAndPlay()` utilise les labels du
+  symbole, et `Scene.onEnterFrame()` donne une boucle de jeu propre au clip
+  (un clip arrêté ne tick pas, sémantique Animate). Même comportement dans
+  l'export HTML autonome et l'export objet de jeu (le script est incrusté) ;
+  en mode compilé (sans eval), les scripts de symbole sont ignorés.
+- **Fichiers .js externes (workflow gros projets, façon Animate CC + AS3)** :
+  chaque script (scène ou MovieClip) peut vivre dans un fichier .js édité
+  dans un vrai éditeur de code. Dans le panneau Scripts : "Importer" copie le
+  contenu d'un fichier .js dans le script (tous navigateurs), "Exporter" le
+  télécharge, "VS Code" ouvre le fichier dans Visual Studio Code via le
+  protocole `vscode://` (tous navigateurs, le dossier local est demandé une
+  fois). Sur Chrome/Edge/Vivaldi, le bouton "Lier" va plus loin : le fichier
+  est relu automatiquement au retour dans l'app (on sauvegarde dans VS Code,
+  on revient, le code est à jour). Le contenu lié est toujours incrusté dans
+  les exports : le HTML exporté reste 100% autonome.
 
 ## Structure
 

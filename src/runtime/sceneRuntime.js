@@ -584,7 +584,8 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
   // runFrameScripts (qui opère sur le contexte d'édition courant), celui-ci
   // reçoit directement le symbole et l'état du clip pour créer un `Scene`
   // scopé : `Scene.stop()` arrête CE clip, pas la scène racine.
-  function runClipFrameScripts(symbol, frame, clipState) {
+  // buildClipScene factorise ce scope (partagé avec runClipSymbolScript).
+  function buildClipScene(symbol, clipState) {
     // Résolution label d'image propre au clip (labels du symbole).
     function clipFrameArg(v) {
       if (typeof v === 'string') {
@@ -598,7 +599,7 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
       }
       return Math.max(0, +v | 0);
     }
-    const clipScene = {
+    return {
       // --- Propriétés de la scène (lecture seule, deleguate to global) ---
       get width() { return state.doc.width; },
       get height() { return state.doc.height; },
@@ -614,10 +615,16 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
       stop() { clipState.isPlaying = false; },
       gotoAndPlay(frame) { const f = clipFrameArg(frame); if (f == null) return; clipState.currentFrame = f; clipState.isPlaying = true; clipState._lastScriptFrame = -1; },
       gotoAndStop(frame) { const f = clipFrameArg(frame); if (f == null) return; clipState.currentFrame = f; clipState.isPlaying = false; clipState._lastScriptFrame = -1; },
+      // --- Boucle de jeu scopée à CE clip (callbacks par instance) ---
+      onEnterFrame(cb) { if (typeof cb === 'function') clipState._enterFrameCbs.push(cb); },
       // --- Divers ---
       random(n) { return Math.floor(Math.random() * (n || 1)); },
       log(...args) { onConsole && onConsole('log', args); },
     };
+  }
+
+  function runClipFrameScripts(symbol, frame, clipState) {
+    const clipScene = buildClipScene(symbol, clipState);
     for (const layer of symbol.layers) {
       const kf = getKeyframeAt(layer, frame);
       if (!kf || !kf.script || !kf.script.trim()) continue;
@@ -626,6 +633,19 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
         fn(clipScene, clipScene, proxyConsole, {}, ...scriptLibValues());
       } catch (err) { console.error(err); }
     }
+  }
+
+  // Script de symbole (façon classe AS3) : exécuté UNE fois par vie
+  // d'instance, AVANT les scripts d'image de la première image — le
+  // constructeur du MovieClip. Même scope que les scripts d'image du clip
+  // (Scene.stop() arrête CE clip). Absent/vide = aucun effet.
+  function runClipSymbolScript(symbol, clipState) {
+    if (!symbol.script || !symbol.script.trim()) return;
+    try {
+      const clipScene = buildClipScene(symbol, clipState);
+      const fn = new Function('Scene', 'Game', 'console', 'named', ...SCRIPT_LIBS, '"use strict";\n' + symbol.script);
+      fn(clipScene, clipScene, proxyConsole, {}, ...scriptLibValues());
+    } catch (err) { console.error(err); }
   }
 
   function dispose() {
@@ -639,5 +659,5 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
     }
   }
 
-  return { Scene, run, runFrameScripts, runClipFrameScripts, onFrame, dispose };
+  return { Scene, run, runFrameScripts, runClipFrameScripts, runClipSymbolScript, onFrame, dispose };
 }

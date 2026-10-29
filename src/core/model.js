@@ -58,6 +58,14 @@ export function createSymbol(name, type = 'movieclip') {
     frameCount: 24,
     layers: [createLayer('Calque 1')],
     frameLabels: {}, // { [frameIndex]: 'label' }
+    // Script de symbole (façon classe AS3 / constructeur de MovieClip) :
+    // exécuté UNE fois par instance quand la lecture démarre, dans un scope
+    // `Scene` scopé au clip (Scene.stop() arrête CE clip). Absent/vide des
+    // documents existants = aucun changement de comportement.
+    script: '',
+    // Métadonnées du fichier .js externe lié à ce script (workflow éditeur
+    // de code externe) : { fileName, mode: 'import' | 'linked' } | null.
+    scriptFile: null,
   };
 }
 

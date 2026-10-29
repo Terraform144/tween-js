@@ -26,6 +26,9 @@ function collectSymbolClosure(doc, rootSymbolId) {
       frameCount: sym.frameCount,
       layers: sym.layers,
       frameLabels: invertLabels(sym.frameLabels),
+      // Script de symbole (classe AS3-like) exécuté une fois à la création
+      // de chaque instance dans le runtime exporté.
+      script: sym.script || '',
     };
     for (const layer of sym.layers) {
       for (const kf of layer.keyframes) {
@@ -49,6 +52,9 @@ export function buildSymbolExportData(doc, rootSymbolId) {
     frameCount: root.frameCount,
     layers: root.layers,
     frameLabels: root.frameLabels,
+    // Script de symbole de la racine : exécuté par le constructeur MovieClip
+    // (voir tweenRuntime.js) — le constructeur de l'objet de jeu.
+    script: root.script || '',
     assets,
     symbols: collected,
   };

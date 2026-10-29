@@ -537,6 +537,12 @@ function advanceClipsForLayer(layers, parentFrame) {
     const symbol = state.doc.symbols[el.symbolId];
     if (!symbol || symbol.type !== 'movieclip') continue;
     const clipState = getClipState(el.id);
+    // Script de symbole (classe AS3-like) : UNE fois par vie d'instance,
+    // AVANT les scripts d'image de la première image (le constructeur).
+    if (!clipState._symbolScriptRan) {
+      clipState._symbolScriptRan = true;
+      sceneRuntime.runClipSymbolScript(symbol, clipState);
+    }
     // Scripts d'image AVANT l'avancement (comportement Animate CC) :
     // on exécute le script de l'image courante, puis on avance si le clip
     // n'a pas été arrêté par Scene.stop().
@@ -549,6 +555,13 @@ function advanceClipsForLayer(layers, parentFrame) {
     }
     // Récursion : avancer les clips imbriqués dans ce clip
     advanceClipsForLayer(symbol.layers, clipState.currentFrame);
+    // Boucle de jeu du clip (onEnterFrame posé par son script de symbole).
+    // Un clip arrêté ne tick pas (sémantique Animate).
+    if (clipState.isPlaying) {
+      for (const cb of clipState._enterFrameCbs) {
+        try { cb(clipState.currentFrame); } catch (err) { console.error(err); }
+      }
+    }
   }
 }
 

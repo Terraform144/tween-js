@@ -17,6 +17,10 @@ export function buildFullDocData(doc) {
       frameCount: sym.frameCount,
       layers: sym.layers,
       frameLabels: invertFrameLabels(sym.frameLabels),
+      // Script de symbole (classe AS3-like) : exécuté une fois par vie
+      // d'instance dans le runtime exporté. Absent des docs existants =
+      // undefined = aucun changement.
+      script: sym.script || '',
     };
   }
   return {

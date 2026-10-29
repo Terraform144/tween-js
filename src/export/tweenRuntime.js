@@ -452,11 +452,28 @@ export class MovieClip {
     // (comportement identique à Adobe Animate CC).
     this._onFrameScript = props.onFrameScript || null;
     this._lastScriptFrame = -1;
+    // Callbacks onEnterFrame scopés à CE clip (posés par son script de
+    // symbole — « classe AS3 » — ou par un script d'image du clip).
+    this._enterFrameCbs = [];
     // Exécuteur externe des scripts d'image des clips ENFANTS (mode compilé
     // — exportCompiled.js) : function(symbolData, layerId, frame, clipScene).
     // S'il est absent, les scripts sont exécutés dynamiquement (comportement
     // historique des exports classiques et de l'éditeur).
     this._clipScriptExecutor = props.clipScriptExecutor || null;
+
+    // Script de symbole (classe AS3-like) : exécuté UNE fois à la création de
+    // l'instance — le constructeur du MovieClip — AVANT les scripts d'image
+    // de la première image, avec un Scene scopé à ce clip. Absent/vide des
+    // données = aucun effet (documents existants inchangés).
+    if (this.data.script && this.data.script.trim()) {
+      try {
+        const clipScene = this._buildClipScene(this);
+        /* TJS_NOEVAL_START (repli retiré par l'export compilé — exportCompiled.js) */
+        var fn = new Function('Scene', 'Game', 'console', 'named', 'createjs', '"use strict";\n' + this.data.script);
+        fn(clipScene, clipScene, console, {}, (typeof createjs !== 'undefined' ? createjs : undefined));
+        /* TJS_NOEVAL_END */
+      } catch (err) { console.error(err); }
+    }
   }
 
   get currentFrame() { return this._frame; }
@@ -524,6 +541,14 @@ export class MovieClip {
     if (this._onFrameScript && this._frame !== this._lastScriptFrame) {
       this._lastScriptFrame = this._frame;
       this._onFrameScript(this._frame);
+    }
+    // Boucle de jeu du clip (onEnterFrame posé par son script de symbole).
+    // Un clip arrêté ne tick pas (sémantique Animate : pas d'enterFrame
+    // sur un MovieClip en pause).
+    if (this.isPlaying) {
+      for (const cb of this._enterFrameCbs) {
+        try { cb(this._frame); } catch (err) { console.error(err); }
+      }
     }
   }
 
@@ -608,6 +633,8 @@ export class MovieClip {
       stop: function () { clip.stop(); },
       gotoAndPlay: function (f) { clip.gotoAndPlay(f); },
       gotoAndStop: function (f) { clip.gotoAndStop(f); },
+      // Boucle de jeu scopée à CE clip (callbacks par instance).
+      onEnterFrame: function (cb) { if (typeof cb === 'function') clip._enterFrameCbs.push(cb); },
       random: function (n) { return Math.floor(Math.random() * (n || 1)); },
       log: function () { console.log.apply(console, arguments); },
     };
