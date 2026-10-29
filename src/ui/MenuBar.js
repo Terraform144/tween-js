@@ -303,7 +303,16 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   const aboutMenuItems = [
     { icon: 'heart', label: 'Faire un don', className: 'donate-btn', action: () => { window.open('https://www.paypal.com/donate/?hosted_button_id=HCDEXV9E52EAW', '_blank'); } },
     { icon: 'info', label: 'Mentions légales & RGPD', action: () => { window.location.href = window.__TJS_VANILLA__ ? 'docs/mentions-legales.html' : '/src/mentions-legales.html'; } },
-    { icon: 'book', label: 'Documentation', action: () => { window.open(window.__TJS_VANILLA__ ? 'docs/Animate-JS-Documentation.pdf' : '/docs/Animate-JS-Documentation.pdf', '_blank'); } },
+    { icon: 'book', label: 'Documentation', action: () => {
+      // Dans l'app native (APK, WebView Capacitor), window.open est sans
+      // effet (pas de nouvelles fenêtres) et le WebView ne rend pas les
+      // PDF : on ouvre la version HTML autonome de la doc (CSS inliné)
+      // dans la même fenêtre. Partout ailleurs, le PDF s'ouvre dans un
+      // nouvel onglet comme avant.
+      const nativeApp = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+      if (nativeApp) window.location.href = 'docs/Animate-JS-Documentation.html';
+      else window.open(window.__TJS_VANILLA__ ? 'docs/Animate-JS-Documentation.pdf' : '/docs/Animate-JS-Documentation.pdf', '_blank');
+    } },
     { icon: 'chevronDown', label: 'APK Debug', action: () => { window.location.href = 'http://gamecreator.debrouillard.be/app/Tween_JS/app-debug.apk'; } },
   ];
   for (const item of aboutMenuItems) {
