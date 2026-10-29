@@ -1,6 +1,6 @@
 # NOTES SYNTHESE - Projet TweenJS
 *Mise à jour : 29/10/2026*
-*Dernière session : scripts par MovieClip (classe AS3-like) + fichiers .js externes (import/export/VS Code/lien vivant Chromium)*
+*Dernière session : docs fusionnées (v5 — chapitres 9-10) + APK regénéré sur machine Linux (JDK 21 local, chrome-headless-shell)*
 
 ---
 
@@ -292,6 +292,14 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - LECON build APK : cap copy/sync peut echouer EPERM sur un dossier assets verrouille alors que tout le reste va bien - verifier avec ls le dossier cible avant de chercher cote gradle. Et NE JAMAIS rm -rf android/capacitor-cordova-android-plugins/src : le module vit du template tar.gz du CLI + fichiers regeneres par cap update (cordoova.variables.gradle, apply from dans build.gradle).
 
 - Reste a faire : validation visuelle user du pivot (reticule, drag, rotation (fix rotPin a revalider en premier), tween, exports) ; rien de committe.
+
+
+### Session 18 - 29/10/2026 — DOCS FUSIONNÉES (v5) + APK REGENERÉ (machine LINUX)
+- DEMANDE user : synchroniser les docs de l APK puis FUSIONNER les 3 guides en un. PIEGE constate : public/docs (ce que l APK embarque via dist/cap sync) etait PERIME au 8 octobre alors que docs/ vivait — verifier la fraicheur de public/docs a CHAQUE build APK.
+- FUSION (regle additive respectee) : « Coder avec TweenJS » et « Simplification » integres dans Animate-JS-Documentation.html comme CHAPITRES 9 (script de MovieClip + editeur externe) et 10 (Ramer-Douglas-Peucker) ; titres demotes h1->h2, h2->h3 (flux VS Code en h4), renumerotes 9.x/10.x ; Dépannage renumerote 11, Annexes 12 ; renvois internes corriges (section 9.3, section 10.5) ; pointeurs ajoutes en 2.5 et 2.6 ; sommaire 12 entrees ; couverture v5 ; CSS +h4 +.mono ; mention des guides autonomes en Annexes 12.3. Les fichiers autonomes RESTENT dans docs/ et Animate_JS_PureVanilla/docs/.
+- PDF REGENERE via chrome-headless-shell (--headless --no-pdf-header-footer --print-to-pdf) : 34 pages, 628 Ko (ancien : 21 pages, 377 Ko). Copies html+pdf vers public/docs/ et Animate_JS_PureVanilla/docs/.
+- ENVIRONNEMENT (machine passee de Windows a ARCH LINUX) : plus de JDK (seul jre-openjdk 27 pacman, sans javac) -> Temurin JDK 21.0.13 en tarball dans ~/.local/jdks/jdk-21.0.13+9 (JAVA_HOME pour gradlew) ; plus de Chromium -> chrome-headless-shell (Chrome for Testing 156) dans ~/.local/chromium/ pour les PDF ; wrapper Gradle 8.14.3 OK ; SDK Android OK (/home/zulup/android-sdk, platforms 34/36).
+- APK x2 dans la session, flux canonical (ecarter public+dist APK -> npm run build -> cap sync -> gradlew assembleDebug -> recopier vers public/, Animate_JS_PureVanilla/, dist/) : 1er 4,95 Mo — a revele que l APK du 29/10 00:37 (27,7 Mo) transportait un APK NICHE de 14 Mo (piege sessions 16/17 REPRODUIT) ; 2e 5,35 Mo avec les docs fusionnees, 0 APK niche (verifie unzip), code MovieClip/VS Code verifie dedans (scriptFile, vscode://, onEnterFrame), md5 identique partout. Commits : f00b898 (APK) puis docs fusionnees.
 
 ### Session 12 - 02/10/2026
 - Nouvelle fonctionnalite : FENETRES-PROJETS multi-documents, demandee par l utilisateur (plusieurs scenes dans des fenetres minimisables, juste sous le menu).
