@@ -116,9 +116,19 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   });
 
   // Menu Fichier : regroupe les opérations d'entrée/sortie (ouvrir, importer
-  // SVG/image, enregistrer JSON, exporter HTML). Le panneau est monté dans
-  // document.body en position:fixed — #menubar a un overflow-x:auto qui
+  // SVG/image, enregistrer JSON, exporter HTML). Le panneau est monté en
+  // position:fixed dans menuPortal() — #menubar a un overflow-x:auto qui
   // clipperait tout dropdown positionné en absolu dans ses descendants.
+  // menuPortal() renvoie document.body en fenêtre normale, MAIS l'élément
+  // plein écran quand il est actif : le Fullscreen API natif ne rend que le
+  // sous-arbre de l'élément plein écran, et le repli CSS (.fs-css-active,
+  // z-index 9999) couvre le reste du body — monté sous body, un panneau
+  // serait invisible dans les deux modes et les menus sembleraient morts.
+  function menuPortal() {
+    const fs = fullscreenElement();
+    return (fs && fs !== document.body) ? fs : document.body;
+  }
+
   const fileMenu = document.createElement('div');
   fileMenu.className = 'file-menu';
   const fileMenuBtn = document.createElement('button');
@@ -151,13 +161,13 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     fileMenuPanel.style.left = rect.left + 'px';
     fileMenuPanel.style.top = rect.bottom + 4 + 'px';
     fileMenuPanel.style.minWidth = Math.max(230, rect.width) + 'px';
-    document.body.appendChild(fileMenuPanel);
+    menuPortal().appendChild(fileMenuPanel);
     fileMenuPanel.classList.add('open');
   }
 
   function closeFileMenu() {
     fileMenuPanel.classList.remove('open');
-    if (fileMenuPanel.parentNode === document.body) document.body.removeChild(fileMenuPanel);
+    if (fileMenuPanel.parentNode) fileMenuPanel.parentNode.removeChild(fileMenuPanel);
   }
 
   fileMenuBtn.addEventListener('click', (e) => {
@@ -256,14 +266,14 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     archivesMenuPanel.style.left = rect.left + 'px';
     archivesMenuPanel.style.top = rect.bottom + 4 + 'px';
     archivesMenuPanel.style.minWidth = Math.max(280, rect.width) + 'px';
-    document.body.appendChild(archivesMenuPanel);
+    menuPortal().appendChild(archivesMenuPanel);
     archivesMenuPanel.classList.add('open');
     refreshArchivesMenu();
   }
   
   function closeArchivesMenu() {
     archivesMenuPanel.classList.remove('open');
-    if (archivesMenuPanel.parentNode === document.body) document.body.removeChild(archivesMenuPanel);
+    if (archivesMenuPanel.parentNode) archivesMenuPanel.parentNode.removeChild(archivesMenuPanel);
   }
   
   archivesMenuBtn.addEventListener('click', (e) => {
@@ -311,13 +321,13 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     aboutMenuPanel.style.left = rect.left + 'px';
     aboutMenuPanel.style.top = rect.bottom + 4 + 'px';
     aboutMenuPanel.style.minWidth = Math.max(230, rect.width) + 'px';
-    document.body.appendChild(aboutMenuPanel);
+    menuPortal().appendChild(aboutMenuPanel);
     aboutMenuPanel.classList.add('open');
   }
 
   function closeAboutMenu() {
     aboutMenuPanel.classList.remove('open');
-    if (aboutMenuPanel.parentNode === document.body) document.body.removeChild(aboutMenuPanel);
+    if (aboutMenuPanel.parentNode) aboutMenuPanel.parentNode.removeChild(aboutMenuPanel);
   }
 
   aboutMenuBtn.addEventListener('click', (e) => {

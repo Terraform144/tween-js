@@ -88,8 +88,9 @@ html, body {
 #menubar button:disabled:hover { background: transparent; }
 #menubar .file-menu { position: relative; flex: none; }
 #menubar .file-menu .caret { font-size: 9px; margin-left: 2px; opacity: 0.7; }
-/* Menu Fichier : monté dans document.body (fixed) car #menubar a un
-   overflow-x:auto qui clipperait un panneau absolu descendant. */
+/* Menu Fichier : monté en position:fixed dans menuPortal() (MenuBar.js) —
+   document.body en fenêtre normale, l'élément plein écran sinon — car #menubar
+   a un overflow-x:auto qui clipperait un panneau absolu descendant. */
 .file-menu-panel {
   position: fixed;
   z-index: 1000;

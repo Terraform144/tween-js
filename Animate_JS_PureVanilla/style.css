@@ -88,8 +88,9 @@ html, body {
 #menubar button:disabled:hover { background: transparent; }
 #menubar .file-menu { position: relative; flex: none; }
 #menubar .file-menu .caret { font-size: 9px; margin-left: 2px; opacity: 0.7; }
-/* Menu Fichier : monté dans document.body (fixed) car #menubar a un
-   overflow-x:auto qui clipperait un panneau absolu descendant. */
+/* Menu Fichier : monté en position:fixed dans menuPortal() (MenuBar.js) —
+   document.body en fenêtre normale, l'élément plein écran sinon — car #menubar
+   a un overflow-x:auto qui clipperait un panneau absolu descendant. */
 .file-menu-panel {
   position: fixed;
   z-index: 1000;
@@ -673,6 +674,10 @@ body.fs-css .fs-css-active {
 .script-frame-row button { background: var(--bg-3); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px 6px; cursor: pointer; white-space: nowrap; }
 .script-frame-row.active { background: var(--accent-dim); }
 .script-frame-row.active select { border-color: var(--accent); }
+/* Ligne « fichiers externes » du panneau Scripts (workflow éditeur de code) */
+.external-row .external-file-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--text-dim, #888); }
+.external-row button { display: inline-flex; align-items: center; }
+.external-row button svg { width: 13px; height: 13px; }
 .script-editor {
   flex: 1 1 auto;
   min-height: 0;
