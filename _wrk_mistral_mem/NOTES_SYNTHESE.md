@@ -376,9 +376,9 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 
 ## CONFIGURATION DEPLOIEMENT
 
-### Production — INTERDIT sans demande explicite
-- **REGLE (demande utilisateur 30/09/2026) : NE JAMAIS POUSSER EN PRODUCTION** - ni git push vers un remote de prod, ni redeploiement du dossier `dist` sur le serveur, sauf demande explicite de l utilisateur. Push git : uniquement vers `origin` (GitHub).
-- Securite (30/09/2026) : tous les identifiants, adresses et mots de passe du serveur ont ete retires du depot et de son historique. Ne plus jamais les committer.
+### Production — INTERDIT, l'utilisateur le fait LUI-MÊME
+- **REGLE (demande utilisateur 30/09/2026, RENFORCEE 29/10/2026) : NE JAMAIS POUSSER EN PRODUCTION, MÊME SUR DEMANDE EXPLICITE.** Ni git push vers un remote de prod, ni redeploiement du dossier `dist` sur le serveur (pscp ou autre) : **le deploiement en production est realise UNIQUEMENT par l'utilisateur lui-meme**, jamais par l'assistant. Push git : uniquement vers `origin` (GitHub), et au plus une fois par branche et par session, sur demande explicite de l'utilisateur ("pousse").
+- Securite (30/09/2026) : tous les identifiants, adresses et mots de passe du serveur ont ete retires du depot et de son historique. Ne plus jamais les committer. Aucun remote de production n'est configure localement (verifie 29/10 : seul `origin` = GitHub).
 
 ### REGLE DIRECTRICE (demande utilisateur 03/10/2026, preciser par lui) : developpement ADDITIF par defaut
 - **PRIORITE HAUTE — Sauf demande EXPLICITE de refactor ou de modification de sections existantes de l'app, toute nouvelle fonctionnalite s'AJOUTE : nouveaux fichiers, nouvelles fonctions, nouvelles entrees, a cote de l'existant. On ne reecrit pas, ne deplace pas, ne restructure pas le code existant de son propre chef.**
