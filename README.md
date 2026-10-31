@@ -36,6 +36,12 @@ Ouvrir l'URL affichée (http://localhost:5173).
 - **Scène** : outils Sélection, Sous-sélection, Rectangle, Ellipse, Ligne,
   Plume, Texte. Déplacement / redimensionnement / rotation via poignées.
   Suppr pour effacer la sélection.
+- **Couleurs transparentes** : bouton ∅ à côté de chaque sélecteur de couleur
+  (barre d'outils et panneau Propriétés) pour poser `transparent` en
+  remplissage ou en contour — ex. contour noir + remplissage transparent
+  (forme en fil de fer). Le hit-test sur l'intérieur continue de marcher, les
+  tweens de couleur fondent proprement vers/depuis transparent (interpolation
+  du canal alpha), et les exports la gèrent nativement.
 - **Peau d'oignon (onion skin)** : fantômes des images voisines de la tête de
   lecture, affichés sous la scène pendant l'édition — **bleus vers le passé,
   rouges vers l'avenir**, avec une opacité dégressive (la plus proche est la

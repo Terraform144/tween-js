@@ -125,6 +125,16 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - Non-régression : repro_createjs 28/28, repro_pivot 45/45, repro_camera 40/40, repro_sessions OK, repro_symbolscript 21/21. Rebuild DEUX versions DANS L'ORDRE (build:vanilla -> cp bundle -> build main) ; node --check OK ; marqueurs (onion-num, #268bd2, #dc322f, title bouton) présents dans le bundle vanilla ET dist/assets. README : puce « Peau d'oignon ». TODO.md : item coché.
 - Reste à faire : validation visuelle user ; APK non régénéré (règle : après validation). Idées v2 : teinte hue des bitmaps dans les fantômes, skinning appliqué aux fantômes, onion skin actif pendant la lecture (fantômes suivant la tête), raccourci clavier.
 
+### Session 20 - 29/10/2026 — COULEURS TRANSPARENTES (fill/stroke 'transparent')
+- DEMANDE USER : formes avec couleurs transparentes, ex. border noir + fill transparent (fil de fer).
+- REPRÉSENTATION : string CSS 'transparent' (constante TRANSPARENT dans core/model.js). Pourquoi pas null : drawShape fait `el.fill || '#000'` (null retomberait sur noir) ; 'transparent' est valide pour canvas fillStyle/strokeStyle, Konva (fill posé -> hit-test intérieur conservé) et le JSON. Rétrocompatible : docs existants inchangés.
+- lerpColor (playback/interpolate.js) + COPIE AUTONOME (export/tweenRuntime.js, même discipline pivot/caméra) : 'transparent' = rgba(0,0,0,0) ; fondu vers/depuis transparent conserve les canaux RGB de la couleur opaque et n'interpole QUE l'alpha (sinon rouge->transparent @0.5 donnait rgba(128,0,0,0.5) = rouge sombre — attrapé par le harnais). Résultat : rgba(255,0,0,0.5). Retour en #rrggbb quand alpha >= 1.
+- UI (additif) : icône 'noColor' (carré pointillé barré) ; Toolbar.js : bouton ∅ à côté de chaque input color (color-line) — pose state.fillColor/strokeColor = TRANSPARENT, classe .active ; update() ne réassigne pas input.value quand transparent (input color ne le représente pas). PropertiesPanel.js : colorRow gagne un bouton ∅ (Remplissage/Contour/Couleur), actif si value === TRANSPARENT, clic -> onChange(TRANSPARENT). style.css : .tool-color-row .color-line + .no-color-btn (resync vanilla).
+- Rendu : aucun changement nécessaire côté buildNode/drawShape ('transparent' truthy -> peint en rgba(0,0,0,0)). Hit-test éditeur (Konva) et exports (géométrique) OK.
+- HARNESS : _wrk_mistral_mem/repro_transparent.mjs — 14 OK (lerpColor éditeur + copie autonome extraite du vrai source tweenRuntime.js, interpolateElement, TRANSPARENT). E2E _wrk_mistral_mem/repro_e2e_transparent.mjs (vite preview :4180) — 10 OK : rectA fill transparent rendu, bouton ∅ toolbar actif, rect dessiné à la souris hérite fill transparent, panneau propriétés ∅ actif sur Remplissage, tween rouge->transparent à mi-frame = rgba(255,0,0,0.5), 0 pageerror.
+- Non-régression : createjs 28/28, pivot 45/45, camera 40/40, sessions OK, symbolscript 21/21, onion 31/31. Rebuild DEUX versions DANS L'ORDRE ; node --check OK ; marqueurs (noColor, no-color-btn, rgba() template) présents dans les 2 bundles + CSS.
+- Reste à faire : validation visuelle user ; APK non régénéré (règle : après validation, et déploiement prod = user uniquement).
+
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
 - Compréhension architecture complète

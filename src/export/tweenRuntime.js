@@ -21,19 +21,33 @@ function applyEasing(t, easing) {
 
 function hexToRgb(hex) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '#000000');
-  if (!m) return { r: 0, g: 0, b: 0 };
-  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+  if (!m) return { r: 0, g: 0, b: 0, a: 1 };
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16), a: 1 };
 }
 
 function clamp255(n) { return Math.max(0, Math.min(255, Math.round(n))); }
 
+// 'transparent' (cf. TRANSPARENT dans core/model.js côté éditeur) = rgba(0,0,0,0) :
+// on interpole le canal alpha pour qu'un tween vers/depuis transparent fasse
+// fondre la couleur au lieu de virer au noir. Copie autonome de lerpColor
+// (playback/interpolate.js) — même discipline que pivot/caméra.
+function colorToRgba(c) {
+  if (c === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
+  return hexToRgb(c);
+}
+
 function lerpColor(hexA, hexB, t) {
   if (hexA === hexB) return hexA;
-  const a = hexToRgb(hexA), b = hexToRgb(hexB);
-  const r = clamp255(lerp(a.r, b.r, t)).toString(16).padStart(2, '0');
-  const g = clamp255(lerp(a.g, b.g, t)).toString(16).padStart(2, '0');
-  const bl = clamp255(lerp(a.b, b.b, t)).toString(16).padStart(2, '0');
-  return '#' + r + g + bl;
+  const a = colorToRgba(hexA), b = colorToRgba(hexB);
+  const alpha = lerp(a.a, b.a, t);
+  // Fondu vers/depuis transparent : on garde les canaux RGB de la couleur
+  // opaque (seul l'alpha descend) — même règle que playback/interpolate.js.
+  let r, g, bl;
+  if (a.a === 0) { r = b.r; g = b.g; bl = b.b; }
+  else if (b.a === 0) { r = a.r; g = a.g; bl = a.b; }
+  else { r = lerp(a.r, b.r, t); g = lerp(a.g, b.g, t); bl = lerp(a.b, b.b, t); }
+  if (alpha >= 1) return '#' + clamp255(r).toString(16).padStart(2, '0') + clamp255(g).toString(16).padStart(2, '0') + clamp255(bl).toString(16).padStart(2, '0');
+  return `rgba(${clamp255(r)},${clamp255(g)},${clamp255(bl)},${Math.round(alpha * 1000) / 1000})`;
 }
 
 // pivotX/pivotY interpolables (voir playback/interpolate.js côté éditeur).

@@ -1,5 +1,6 @@
 import { notify } from '../state.js';
 import { ICONS } from './icons.js';
+import { TRANSPARENT } from '../core/model.js';
 
 const TOOLS = [
   { id: 'select', icon: 'select', title: 'Sélection (V)' },
@@ -57,13 +58,34 @@ export function mountToolbar(container, state, { onDelete } = {}) {
   // un rendu global à chaque événement (la couleur n'est lue qu'à la création
   // d'une forme, pas en direct — rien ne justifie le rendu continu).
   fillInput.addEventListener('change', () => { state.fillColor = fillInput.value; notify(state); });
+  // Bouton « transparent » : un input[type=color] ne peut pas représenter
+  // l'absence de remplissage — on pose la couleur CSS 'transparent' (hit-test
+  // conservé, voir TRANSPARENT dans core/model.js).
+  const fillTransBtn = document.createElement('button');
+  fillTransBtn.type = 'button';
+  fillTransBtn.className = 'icon-btn no-color-btn';
+  fillTransBtn.innerHTML = ICONS.noColor;
+  fillTransBtn.title = 'Remplissage transparent';
+  fillTransBtn.addEventListener('click', () => { state.fillColor = TRANSPARENT; notify(state); });
+  const fillLine = document.createElement('div');
+  fillLine.className = 'color-line';
+  fillLine.append(fillInput, fillTransBtn);
 
   const strokeInput = document.createElement('input');
   strokeInput.type = 'color';
   strokeInput.value = state.strokeColor;
   strokeInput.addEventListener('change', () => { state.strokeColor = strokeInput.value; notify(state); });
+  const strokeTransBtn = document.createElement('button');
+  strokeTransBtn.type = 'button';
+  strokeTransBtn.className = 'icon-btn no-color-btn';
+  strokeTransBtn.innerHTML = ICONS.noColor;
+  strokeTransBtn.title = 'Contour transparent';
+  strokeTransBtn.addEventListener('click', () => { state.strokeColor = TRANSPARENT; notify(state); });
+  const strokeLine = document.createElement('div');
+  strokeLine.className = 'color-line';
+  strokeLine.append(strokeInput, strokeTransBtn);
 
-  colorRow.append(fillInput, strokeInput);
+  colorRow.append(fillLine, strokeLine);
   container.appendChild(colorRow);
 
   window.addEventListener('keydown', (e) => {
@@ -77,8 +99,10 @@ export function mountToolbar(container, state, { onDelete } = {}) {
     for (const tool of TOOLS) {
       buttons[tool.id].classList.toggle('active', state.currentTool === tool.id);
     }
-    if (fillInput.value !== state.fillColor) fillInput.value = state.fillColor;
-    if (strokeInput.value !== state.strokeColor) strokeInput.value = state.strokeColor;
+    if (state.fillColor !== TRANSPARENT && fillInput.value !== state.fillColor) fillInput.value = state.fillColor;
+    if (state.strokeColor !== TRANSPARENT && strokeInput.value !== state.strokeColor) strokeInput.value = state.strokeColor;
+    fillTransBtn.classList.toggle('active', state.fillColor === TRANSPARENT);
+    strokeTransBtn.classList.toggle('active', state.strokeColor === TRANSPARENT);
     // Désactiver le bouton delete s'il n'y a pas de sélection
     deleteBtn.disabled = state.selectedElementIds.length === 0;
   }

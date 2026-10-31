@@ -16,8 +16,16 @@ export function applyEasing(t, easing) {
 
 function hexToRgb(hex) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '#000000');
-  if (!m) return { r: 0, g: 0, b: 0 };
-  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+  if (!m) return { r: 0, g: 0, b: 0, a: 1 };
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16), a: 1 };
+}
+
+// 'transparent' (cf. TRANSPARENT dans core/model.js) = rgba(0,0,0,0) : on
+// interpole aussi le canal alpha pour qu'un tween vers/depuis transparent
+// fasse fondre la couleur au lieu de virer au noir.
+function colorToRgba(c) {
+  if (c === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
+  return hexToRgb(c);
 }
 
 function rgbToHex(r, g, b) {
@@ -27,9 +35,18 @@ function rgbToHex(r, g, b) {
 
 export function lerpColor(hexA, hexB, t) {
   if (hexA === hexB) return hexA;
-  const a = hexToRgb(hexA);
-  const b = hexToRgb(hexB);
-  return rgbToHex(lerp(a.r, b.r, t), lerp(a.g, b.g, t), lerp(a.b, b.b, t));
+  const a = colorToRgba(hexA);
+  const b = colorToRgba(hexB);
+  const alpha = lerp(a.a, b.a, t);
+  // Fondu vers/depuis transparent : on garde les canaux RGB de la couleur
+  // OPAQUE (seul l'alpha descend) — sinon le rouge fondu à 50% deviendrait
+  // rgba(128,0,0,0.5), un rouge sombre au lieu d'un rouge à moitié transparent.
+  let r, g, bl;
+  if (a.a === 0) { r = b.r; g = b.g; bl = b.b; }
+  else if (b.a === 0) { r = a.r; g = a.g; bl = a.b; }
+  else { r = lerp(a.r, b.r, t); g = lerp(a.g, b.g, t); bl = lerp(a.b, b.b, t); }
+  if (alpha >= 1) return rgbToHex(r, g, bl);
+  return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(bl)},${Math.round(alpha * 1000) / 1000})`;
 }
 
 // pivotX/pivotY (point de rotation déplaçable, cf. core/pivot.js) sont

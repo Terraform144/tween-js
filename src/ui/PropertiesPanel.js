@@ -1,4 +1,5 @@
-import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones, getSkeletonsFromKeyframe, getAsset } from '../core/model.js';
+import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones, getSkeletonsFromKeyframe, getAsset, TRANSPARENT } from '../core/model.js';
+import { ICONS } from './icons.js';
 import { setElementPivotField, resetElementPivot } from '../core/pivot.js';
 import { simplifyShape } from '../util/simplify.js';
 import { notify } from '../state.js';
@@ -83,8 +84,18 @@ export function mountPropertiesPanel(container, state) {
     // pendant que l'on choisit la couleur — un re-rendu à chaque événement
     // détruirait l'élément et refermerait le nuancier avant confirmation.
     input.addEventListener('change', () => onChange(input.value));
+    // Bouton « transparent » : pose la couleur CSS 'transparent' (l'input color
+    // ne peut pas la représenter) — utile pour un remplissage ou un contour
+    // absent (forme en fil de fer).
+    const noColorBtn = document.createElement('button');
+    noColorBtn.type = 'button';
+    noColorBtn.className = 'icon-btn no-color-btn';
+    noColorBtn.innerHTML = ICONS.noColor;
+    noColorBtn.title = 'Transparent';
+    noColorBtn.classList.toggle('active', value === TRANSPARENT);
+    noColorBtn.addEventListener('click', () => onChange(TRANSPARENT));
     linkLabelToField(l, input);
-    row.append(l, input);
+    row.append(l, input, noColorBtn);
     body.appendChild(row);
   }
 

@@ -3,6 +3,13 @@
 
 let idCounter = 1;
 
+// Couleur « transparent » (remplissage ou contour absent). String CSS valide :
+// acceptée telle quelle par canvas (fillStyle/strokeStyle), par Konva (qui la
+// traite comme un fill posé -> le hit-test sur l'intérieur continue de marcher)
+// et par le runtime d'export. null signifierait « non renseigné » -> retombe sur
+// le noir dans drawShape, d'où le choix d'une vraie couleur transparente.
+export const TRANSPARENT = 'transparent';
+
 export function nextId(prefix) {
   return `${prefix}${idCounter++}`;
 }
