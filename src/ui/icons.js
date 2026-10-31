@@ -36,6 +36,8 @@ export const ICONS = {
   noColor: svg('<rect x="5" y="5" width="14" height="14" rx="2" stroke-dasharray="2.5 3"/><path d="M4.5 19.5 19.5 4.5"/>'),
   layerMask: svg('<rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor" stroke="none"/>'),
   layerMasked: svg('<rect x="4" y="9" width="16" height="11" rx="2"/><rect x="7.5" y="4" width="9" height="7" rx="1.5" fill="currentColor" stroke="none"/>'),
+  guide: svg('<path d="M4 18C8 7 15 6 19.5 12.5"/><path d="M19.5 12.5l-3.4-.3M19.5 12.5l-.5-3.3"/>'),
+  guided: svg('<path d="M4 18C8 7 15 6 19.5 12.5" stroke-dasharray="0.1 3.4"/><rect x="9" y="3.5" width="6.5" height="6.5" rx="1" fill="currentColor" stroke="none"/>'),
   onion: svg('<rect x="8.5" y="3.5" width="12" height="9" rx="1" opacity="0.3"/><rect x="6" y="7" width="12" height="9" rx="1" opacity="0.55"/><rect x="3.5" y="10.5" width="12" height="9" rx="1"/>'),
   eyeOff: svg('<path d="M3 3l18 18"/><path d="M10.6 5.6c.45-.07.9-.1 1.4-.1 5.5 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.9 3.6M6.4 6.7A16.9 16.9 0 0 0 2.5 12S6.5 18.5 12 18.5c1.3 0 2.5-.25 3.6-.7"/><path d="M9.4 9.9a2.6 2.6 0 0 0 3.6 3.6"/>'),
   lockClosed: svg('<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),

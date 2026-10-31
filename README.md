@@ -42,6 +42,12 @@ Ouvrir l'URL affichée (http://localhost:5173).
   (forme en fil de fer). Le hit-test sur l'intérieur continue de marcher, les
   tweens de couleur fondent proprement vers/depuis transparent (interpolation
   du canal alpha), et les exports la gèrent nativement.
+- **Motion guide** : deux boutons dans chaque ligne de calque — "guide de
+  mouvement" (ce calque fournit la courbe, tracée avec la plume) et "calque
+  guidé" (son tween suit la courbe au lieu d'une ligne droite, par longueur
+  d'arc, easing compris). Le guide est visible/editable en édition, mais ni
+  lu ni exporté. Fonctionne aussi dans les exports (HTML, compilé, PNG, objet
+  de jeu).
 - **Masque de calque** : deux boutons dans chaque ligne de calque de la
   timeline — "ce calque est un masque" et "ce calque est masqué". Un calque
   masque rogne les calques masqués juste en dessous (silhouette du masque) ;

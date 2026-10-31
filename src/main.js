@@ -535,7 +535,7 @@ let wasPlaying = false;
 // Avance les timelines indépendantes des MovieClip enfants (comportement
 // Animate CC : chaque clip a son propre isPlaying/currentFrame).
 function advanceClipsForLayer(layers, parentFrame) {
-  const elements = resolveLayersAtFrame(layers, parentFrame);
+  const elements = resolveLayersAtFrame(layers, parentFrame, { includeGuides: false });
   for (const el of elements) {
     if (el.kind !== 'instance') continue;
     const symbol = state.doc.symbols[el.symbolId];

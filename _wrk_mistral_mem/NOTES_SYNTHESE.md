@@ -144,6 +144,15 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - HARNESS : repro_mask.mjs 9/9 (computeMaskOwner). E2E repro_e2e_mask.mjs 12/12 : structure, pixel centre=rouge/hors=rogné, toggle masked, édition masque (sélectionné -> visible), EXPORT HTML relu en file:// (mêmes pixels), 0 pageerror. Non-régression : createjs 28, pivot 45, camera 40, sessions, symbolscript 21, onion 31, transparent 14. Rebuild 2 versions ordre canonique, node --check OK.
 - Reste à faire : validation visuelle user ; APK non régénéré (règle). v2 : plusieurs masques imbriqués, masque animé (tween sur le calque masque), "édition à travers le masque".
 
+### Session 22 - 29/10/2026 — MOTION GUIDE (trajectoire de tween)
+- DEMANDE USER : motion guide façon Animate. Modèle : layer.guide (fournit la courbe) / layer.guided (la suit), champs optionnels. Sémantique de chaîne identique au masque : computeGuideOwner (core/guide.js).
+- core/guide.js (pur, testable) : computeGuideOwner + samplePath(points, closed) — échantillonnage par longueur d'arc (16 sous-segments/segment, Bézier cubique si cIn/cOut, même sémantique que traceSegment), pointAt(t) par recherche binaire sur les longueurs cumulées + tweenKfAt(layer, frameIndex) = dernière kf tweenée couvrant frameIndex (jusqu'à la kf suivante INCLUSE, t=1 — sinon à la frame d'arrivée exacte le tween était raté).
+- resolveLayersAtFrame(layers, frameIndex, opts) gagne opts.includeGuides (défaut true) : les calques guide exclus du rendu si false, mais leurs courbes servent quand même. Calque guidé + tween actif (tweenKfAt) -> x/y de chaque élément = pointAt(t) + delta relatif au 1er élément de la kf de départ. Stage.renderInto passe { includeGuides: !state.playing } (guide visible/editable en édition, exclu en lecture) ; main.js advanceClipsForLayer passe false.
+- tweenRuntime.js : copies autonomes computeGuideOwner/tweenKfAt/samplePath + _renderLayers restructuré : elsByLayer précalculé (guides exclus, guidés surchargés), la logique masque consomme elsByLayer. Couvre HTML/compilé/PNG/objet de jeu.
+- UI : icônes guide/guided + 2 mini-btn par ligne de calque (Timeline.js), à côté de mask/masked.
+- HARNESS : repro_guide.mjs 17/17 (owner, samplePath ligne/Bézier, resolveLayersAtFrame frame 0/2/4 + includeGuides + sans tween). E2E repro_e2e_guide.mjs 8/8 : frame 2 -> rect au sommet (250,25) exact, guide rendu en édition, PAS en lecture (paths=0), export HTML en file:// -> le rect passe par le sommet (rouge vu) et le guide jamais peint (noir 0x), 0 pageerror. Non-régression : createjs 28, pivot 45, camera 40, sessions, symbolscript 21, onion 31, transparent 14, mask 9. Rebuild 2 versions, node --check OK, marqueurs pointAt/computeGuideOwner dans les 2 bundles.
+- Reste à faire : validation visuelle user ; APK non régénéré (règle). v2 : orientation selon la tangente ("orient to path"), plusieurs objets sur un même guide, guide avec plusieurs courbes.
+
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
 - Compréhension architecture complète

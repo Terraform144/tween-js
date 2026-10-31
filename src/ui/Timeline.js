@@ -551,6 +551,20 @@ export function mountTimeline(container, state) {
       maskedBtn.title = 'Calque masqué — rogné par le calque "masque" au-dessus';
       maskedBtn.addEventListener('click', (e) => { e.stopPropagation(); layer.masked = !layer.masked; notify(state); });
 
+      // Motion guide : ce calque fournit la trajectoire (guide), et/ou ce
+      // calque la suit pendant son tween (guided). Champs optionnels.
+      const guideBtn = document.createElement('span');
+      guideBtn.className = 'mini-btn' + (layer.guide ? ' active' : '');
+      guideBtn.innerHTML = ICONS.guide;
+      guideBtn.title = 'Guide de mouvement — ce calque fournit la courbe de trajectoire';
+      guideBtn.addEventListener('click', (e) => { e.stopPropagation(); layer.guide = !layer.guide; notify(state); });
+
+      const guidedBtn = document.createElement('span');
+      guidedBtn.className = 'mini-btn' + (layer.guided ? ' active' : '');
+      guidedBtn.innerHTML = ICONS.guided;
+      guidedBtn.title = 'Calque guidé — son tween suit la courbe du calque "guide" au-dessus';
+      guidedBtn.addEventListener('click', (e) => { e.stopPropagation(); layer.guided = !layer.guided; notify(state); });
+
       const name = document.createElement('span');
       name.className = 'layer-name';
       name.textContent = layer.name;
@@ -561,7 +575,7 @@ export function mountTimeline(container, state) {
         if (next) { layer.name = next; notify(state); }
       });
 
-      row.append(eye, name, maskBtn, maskedBtn, lock);
+      row.append(eye, name, maskBtn, maskedBtn, guideBtn, guidedBtn, lock);
       row.addEventListener('click', () => { state.selectedLayerId = layer.id; notify(state); });
       row.addEventListener('pointerdown', (e) => startLayerDrag(e, layer, row));
       layersCol.appendChild(row);

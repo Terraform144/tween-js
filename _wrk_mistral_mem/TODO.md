@@ -8,7 +8,7 @@
 - [x] **Onion skinning (peau d'oignon)** — ✅ livré 29/10 : fantômes bleus (passé) / rouges (futur), opacité dégressive, contrôles dans la timeline (bouton + nb passé/futur), persisté en prefs. Harnais 31/31 + E2E 17/17.
 - [ ] **Dégradés (linéaire / radial)** — sélecteur de type de remplissage dans Propriétés + stops de couleur éditables. Suit dans le rendu Konva et l'export runtime. (Limite connue du README.)
 - [x] **Masques de calque** — ✅ livré 29/10 : layer.mask / layer.masked, toggles dans la timeline, rendu éditeur (layer Konva dédié par bloc + destination-in) + runtime export (canvas offscreen), lecture et exports OK. Harnais 9/9 + E2E 12/12.
-- [ ] **Motion guide** — trajectoire en courbe Bézier attachée à un tween de mouvement (l'objet suit la courbe au lieu d'une ligne droite).
+- [x] **Motion guide** — ✅ livré 29/10 : layer.guide / layer.guided, trajectoire par longueur d'arc (Bézier échantillonné), tween guidé en édition + lecture + exports ; guide non rendu en lecture/export. Harnais 17/17 + E2E 8/8.
 - [ ] **Export vidéo WebM** — capturer la lecture (caméra, tweens, scripts) via MediaRecorder, télécharger un `.webm`.
 
 ## 🔧 Confort / précision

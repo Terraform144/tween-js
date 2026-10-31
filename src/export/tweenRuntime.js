@@ -50,6 +50,79 @@ function lerpColor(hexA, hexB, t) {
   return `rgba(${clamp255(r)},${clamp255(g)},${clamp255(bl)},${Math.round(alpha * 1000) / 1000})`;
 }
 
+// --- motion guide (copies autonomes de core/guide.js + playback/resolve.js)
+function computeGuideOwner(layers) {
+  const owner = new Array(layers.length).fill(-1);
+  let openGuide = -1;
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const l = layers[i];
+    if (l.guide) openGuide = i;
+    else if (l.guided && openGuide >= 0) owner[i] = openGuide;
+    else openGuide = -1;
+  }
+  return owner;
+}
+
+// Copie autonome de tweenKfAt (core/guide.js).
+function tweenKfAt(layer, frameIndex) {
+  const kfs = layer.keyframes || [];
+  for (let i = kfs.length - 1; i >= 0; i--) {
+    const kf = kfs[i];
+    if (!kf.tween || kf.index > frameIndex) continue;
+    const next = getNextKeyframe(layer, kf);
+    if (!next || frameIndex <= next.index) return kf;
+  }
+  return null;
+}
+
+function samplePath(points, closed) {
+  if (!points || points.length < 2) return null;
+  const segs = [];
+  for (let i = 1; i < points.length; i++) segs.push([points[i - 1], points[i]]);
+  if (closed && points.length > 1) segs.push([points[points.length - 1], points[0]]);
+  const SUB = 16;
+  const flat = [{ x: points[0].x, y: points[0].y }];
+  const cum = [0];
+  let length = 0;
+  let prev = flat[0];
+  for (const pair of segs) {
+    const a = pair[0], b = pair[1];
+    const c1 = a.cOut ? { x: a.x + a.cOut.x, y: a.y + a.cOut.y } : { x: a.x, y: a.y };
+    const c2 = b.cIn ? { x: b.x + b.cIn.x, y: b.y + b.cIn.y } : { x: b.x, y: b.y };
+    const bezier = !!(a.cOut || b.cIn);
+    for (let s = 1; s <= SUB; s++) {
+      const t = s / SUB;
+      let p;
+      if (bezier) {
+        const mt = 1 - t;
+        p = {
+          x: mt * mt * mt * a.x + 3 * mt * mt * t * c1.x + 3 * mt * t * t * c2.x + t * t * t * b.x,
+          y: mt * mt * mt * a.y + 3 * mt * mt * t * c1.y + 3 * mt * t * t * c2.y + t * t * t * b.y,
+        };
+      } else {
+        p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+      }
+      length += Math.hypot(p.x - prev.x, p.y - prev.y);
+      cum.push(length);
+      flat.push(p);
+      prev = p;
+    }
+  }
+  if (length <= 0) return null;
+  return {
+    length: length,
+    pointAt: function (t) {
+      const target = Math.max(0, Math.min(1, t)) * length;
+      let lo = 0, hi = cum.length - 1;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < target) lo = mid + 1; else hi = mid; }
+      const i = Math.max(1, lo);
+      const l0 = cum[i - 1], l1 = cum[i];
+      const f = l1 > l0 ? (target - l0) / (l1 - l0) : 0;
+      return { x: flat[i - 1].x + (flat[i].x - flat[i - 1].x) * f, y: flat[i - 1].y + (flat[i].y - flat[i - 1].y) * f };
+    },
+  };
+}
+
 // pivotX/pivotY interpolables (voir playback/interpolate.js côté éditeur).
 const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height', 'pivotX', 'pivotY'];
 const COLOR_PROPS = ['fill', 'stroke'];
@@ -655,6 +728,46 @@ export class MovieClip {
   }
 
   _renderLayers(ctx, layers, frameIndex) {
+    // --- motion guide : les calques guide ne sont PAS rendus (trajectoire
+    // seule) ; les calques guidés avec un tween en cours voient leur position
+    // posée sur la courbe du guide (copie autonome de playback/resolve.js).
+    const guideOwner = computeGuideOwner(layers);
+    const guideCurves = new Map(); // guideIndex -> samplePath (coordonnées absolues)
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      if (!layer.guide || !layer.visible) continue;
+      const els = resolveLayerAtFrame(layer, frameIndex);
+      const pe = els.find((e) => (e.shapeType === 'path' || e.shapeType === 'line') && e.points && e.points.length >= 2);
+      if (pe) {
+        const abs = pe.points.map((p) => ({ ...p, x: p.x + pe.x, y: p.y + pe.y }));
+        guideCurves.set(i, samplePath(abs, !!pe.closed));
+      }
+    }
+    const elsByLayer = layers.map((layer, i) => {
+      if (!layer.visible || layer.guide) return null;
+      let els = resolveLayerAtFrame(layer, frameIndex);
+      const gi = guideOwner[i];
+      if (gi != null && gi >= 0 && guideCurves.has(gi)) {
+        const kf = tweenKfAt(layer, frameIndex);
+        const next = kf && getNextKeyframe(layer, kf);
+        if (kf && next && next.index !== kf.index) {
+          const span = next.index - kf.index;
+          const raw = Math.min(1, Math.max(0, (frameIndex - kf.index) / span));
+          const t = applyEasing(raw, kf.tween.easing);
+          const pt = guideCurves.get(gi).pointAt(t);
+          const base = kf.elements[0] ? { x: kf.elements[0].x, y: kf.elements[0].y } : { x: 0, y: 0 };
+          els = els.map((el) => ({ ...el, x: pt.x + (el.x - base.x), y: pt.y + (el.y - base.y) }));
+        }
+      }
+      return els;
+    });
+    const renderEls = (c, els) => {
+      for (const el of els) {
+        if (el.kind === 'instance') this._renderInstance(c, el, frameIndex);
+        else drawShape(c, el, this.data);
+      }
+    };
+
     // Masque de calque (layer.mask rogne les layer.masked au-dessus de lui en
     // lecture) : les calques masqués sont dessinés dans un canvas offscreen,
     // le masque est appliqué en 'destination-in', puis le bloc est aplati sur
@@ -672,12 +785,8 @@ export class MovieClip {
     })(layers);
     const hasMask = layers.some((l) => l.mask || l.masked);
     if (!hasMask) {
-      for (const layer of layers) {
-        if (!layer.visible) continue;
-        for (const el of resolveLayerAtFrame(layer, frameIndex)) {
-          if (el.kind === 'instance') this._renderInstance(ctx, el, frameIndex);
-          else drawShape(ctx, el, this.data);
-        }
+      for (let i = 0; i < layers.length; i++) {
+        if (elsByLayer[i]) renderEls(ctx, elsByLayer[i]);
       }
       return;
     }
@@ -687,19 +796,13 @@ export class MovieClip {
       c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h));
       return { canvas: c, ctx: c.getContext('2d') };
     };
-    const renderLayer = (c, layer) => {
-      for (const el of resolveLayerAtFrame(layer, frameIndex)) {
-        if (el.kind === 'instance') this._renderInstance(c, el, frameIndex);
-        else drawShape(c, el, this.data);
-      }
-    };
     for (let i = 0; i < layers.length; i++) {
       const layer = layers[i];
-      if (!layer.visible) continue;
+      if (!layer.visible || !elsByLayer[i]) continue;
       const m = owner[i];
       if (m >= 0) {
         if (!groups.has(m)) groups.set(m, offscreen(this.data.width || 550, this.data.height || 400));
-        renderLayer(groups.get(m).ctx, layer);
+        renderEls(groups.get(m).ctx, elsByLayer[i]);
       } else if (layer.mask) {
         if (!groups.has(i)) groups.set(i, offscreen(this.data.width || 550, this.data.height || 400));
         const g = groups.get(i);
@@ -707,18 +810,12 @@ export class MovieClip {
         g.ctx.globalCompositeOperation = 'destination-in';
         // Masque = silhouette seule : contour retiré (strokeWidth 0), sinon le
         // composite dest-in se comporte mal (même constat que côté éditeur).
-        const maskNoStroke = {
-          ...layer,
-          keyframes: layer.keyframes.map((kf) => ({
-            ...kf,
-            elements: (kf.elements || []).map((e) => ({ ...e, strokeWidth: 0 })),
-          })),
-        };
-        renderLayer(g.ctx, maskNoStroke);
+        const maskEls = elsByLayer[i].map((e) => ({ ...e, strokeWidth: 0 }));
+        renderEls(g.ctx, maskEls);
         g.ctx.restore();
         ctx.drawImage(g.canvas, 0, 0);
       } else {
-        renderLayer(ctx, layer);
+        renderEls(ctx, elsByLayer[i]);
       }
     }
   }

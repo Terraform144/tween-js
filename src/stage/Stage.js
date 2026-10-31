@@ -420,7 +420,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // instance imbriquée), les objets restent visibles mais non interactifs :
   // il faut double-cliquer pour entrer dans ce symbole et l'éditer lui-même.
   function renderInto(parent, layers, frameIndex, tick, depth = 0) {
-    const elements = resolveLayersAtFrame(layers, frameIndex);
+    // En lecture, les calques guide ne sont pas rendus (ils ne servent qu'à
+    // calculer les trajectoires) ; en édition ils restent visibles/éditables.
+    const elements = resolveLayersAtFrame(layers, frameIndex, { includeGuides: !state.playing });
     // Collecter tous les bones de cette frame pour le skinning
     const allBones = elements.filter((el) => el.kind === 'bone');
     
