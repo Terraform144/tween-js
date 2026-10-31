@@ -20,7 +20,8 @@
 - [ ] Grille + aimants (snap) + règles dans la scène
 - [ ] Shape hints pour le morphing (appariement guidé, pas seulement par index)
 - [x] **Copier/coller entre les fenêtres-projets** — ✅ livré 29/10 : presse-papiers global partagé (Ctrl+C/X/V), assets (bitmaps) et symboles importés automatiquement dans le projet cible au collage. E2E 9/9 (rect + instance/symbole + bitmap cross-projets, Ctrl+X).
-- [x] **Piste audio dans la timeline** — ✅ livré 29/10 : import audio (menu Fichier), piste Audio dans la timeline (select + bouton +, dblclic cellule, clic droit supprime), son joué à la frame atteinte en lecture éditeur + exports (HTML/compilé via buildFullDocData). Harnais 12/12 + E2E 8/8 (espion Audio.play).
+- [x] **Piste audio dans la timeline** — ✅ livré 29/10 (c9e9634) : import audio (menu Fichier), piste Audio dans la timeline (select + bouton +, dblclic cellule, clic droit supprime), son joué à la frame atteinte en lecture éditeur + exports. Harnais 12/12 + E2E 8/8 (espion Audio.play).
+- [x] **Sons dans les scripts** — ✅ testé 29/10 : createjs.Sound embarqué mais AUCUN plugin ne s'active dans ce navigateur (activePlugin null, play -> playFailed) -> on ne s'appuie pas dessus. Remplacé par **`Scene.playSound(idOuNomOuUrl)`** (sceneRuntime + Scenes exportés) via Audio natif : vérifié éditeur (Exécuter) + export HTML (au chargement), espion Audio.play. Harnais repro_soundjs.mjs 4/4.
 - [ ] Thème sombre de l'interface (Solarized dark)
 
 ## 💡 Gros projets (continuité workflow VS Code)

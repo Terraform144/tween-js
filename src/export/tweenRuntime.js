@@ -794,6 +794,18 @@ export class MovieClip {
       onEnterFrame: function (cb) { if (typeof cb === 'function') clip._enterFrameCbs.push(cb); },
       random: function (n) { return Math.floor(Math.random() * (n || 1)); },
       log: function () { console.log.apply(console, arguments); },
+      // Joue un son (asset audio du clip par id/nom, ou URL/dataUrl directe).
+      playSound: function (idOrUrl) {
+        if (!idOrUrl) return;
+        var src = String(idOrUrl);
+        if (!/^(data|https?|blob):/i.test(src)) {
+          var assets = clip.data.assets || {};
+          var asset = null;
+          for (var k in assets) { if (assets[k].id === src || (assets[k].kind === 'audio' && assets[k].name === src)) { asset = assets[k]; break; } }
+          src = asset ? asset.dataUrl : null;
+        }
+        if (src && typeof Audio !== 'undefined') { try { new Audio(src).play(); } catch (e) {} }
+      },
     };
   }
 

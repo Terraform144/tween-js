@@ -135,6 +135,18 @@ function buildBootstrapScript(dataJson, scriptsJson) {
     get keys() { return keys; },
     random: function (n) { return Math.floor(Math.random() * (n || 1)); },
     log: function () { console.log.apply(console, arguments); },
+    // Joue un son (asset audio du doc par id/nom, ou URL/dataUrl directe).
+    playSound: function (idOrUrl) {
+      if (!idOrUrl) return;
+      var src = String(idOrUrl);
+      if (!/^(data|https?|blob):/i.test(src)) {
+        var assets = DATA.assets || {};
+        var asset = null;
+        for (var k in assets) { if (assets[k].id === src || (assets[k].kind === 'audio' && assets[k].name === src)) { asset = assets[k]; break; } }
+        src = asset ? asset.dataUrl : null;
+      }
+      if (src && typeof Audio !== 'undefined') { try { new Audio(src).play(); } catch (e) {} }
+    },
   };
 
   // --- Événements compatibles EaselJS (port du système de l'éditeur) ------

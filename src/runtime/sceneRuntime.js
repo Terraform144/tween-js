@@ -493,6 +493,21 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
     // --- Divers ---
     random(n) { return Math.floor(Math.random() * (n || 1)); },
     log(...args) { onConsole && onConsole('log', args); },
+    // Joue un son : Scene.playSound('a1') (id d'asset audio), Scene.playSound('bip.wav')
+    // (nom d'asset audio), ou directement une URL/dataUrl. createjs.Sound (SoundJS)
+    // ne s'initialise pas de façon fiable partout -> on passe par Audio natif.
+    playSound(idOrUrl) {
+      if (!idOrUrl) return;
+      let src = String(idOrUrl);
+      if (!/^(data|https?|blob):/i.test(src)) {
+        const assets = Object.values(state.doc.assets || {});
+        const asset = assets.find((a) => a.id === src) || assets.find((a) => a.kind === 'audio' && a.name === src);
+        src = asset ? asset.dataUrl : null;
+      }
+      if (src && typeof Audio !== 'undefined') {
+        try { new Audio(src).play(); } catch (e) { /* son illisible : ignoré */ }
+      }
+    },
   });
 
   // `run` exécute le code une fois. Les callbacks onEnterFrame/onKey* sont

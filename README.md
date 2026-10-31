@@ -154,7 +154,12 @@ Ouvrir l'URL affichée (http://localhost:5173).
   `createjs.LoadQueue`, `createjs.Ticker`... Les instances nommées portent
   aussi les événements EaselJS (`nom.on("click", fn)`, mousedown, pressmove,
   rollover, tick...) pendant la lecture ; le Ticker CreateJS est mis en
-  pause avec l'éditeur. L'export HTML inline automatiquement les libs
+  pause avec l'éditeur. Pour jouer un son dans un script, utiliser
+  **`Scene.playSound('a1')`** (id ou nom d'un asset audio importé via
+  « Importer audio… ») ou `Scene.playSound('data:audio/...')` / une URL —
+  fonctionne dans l'éditeur et dans les exports. (`createjs.Sound` est
+  embarqué mais son plugin audio ne s'active pas de façon fiable selon les
+  navigateurs : ne pas compter dessus.) L'export HTML inline automatiquement les libs
   CreateJS quand un script les utilise et offre la même API événements
   que l'éditeur (portées run/frame, pipeline pointeur, labels).
 - **Script par MovieClip (classe AS3-like)** : chaque symbole MovieClip possède
