@@ -655,11 +655,70 @@ export class MovieClip {
   }
 
   _renderLayers(ctx, layers, frameIndex) {
-    for (const layer of layers) {
-      if (!layer.visible) continue;
+    // Masque de calque (layer.mask rogne les layer.masked au-dessus de lui en
+    // lecture) : les calques masqués sont dessinés dans un canvas offscreen,
+    // le masque est appliqué en 'destination-in', puis le bloc est aplati sur
+    // le ctx principal. Copie autonome de computeMaskOwner (core/mask.js).
+    const owner = (function computeMaskOwner(ls) {
+      const own = new Array(ls.length).fill(-1);
+      let openMask = -1;
+      for (let i = ls.length - 1; i >= 0; i--) {
+        const l = ls[i];
+        if (l.mask) openMask = i;
+        else if (l.masked && openMask >= 0) own[i] = openMask;
+        else openMask = -1;
+      }
+      return own;
+    })(layers);
+    const hasMask = layers.some((l) => l.mask || l.masked);
+    if (!hasMask) {
+      for (const layer of layers) {
+        if (!layer.visible) continue;
+        for (const el of resolveLayerAtFrame(layer, frameIndex)) {
+          if (el.kind === 'instance') this._renderInstance(ctx, el, frameIndex);
+          else drawShape(ctx, el, this.data);
+        }
+      }
+      return;
+    }
+    const groups = new Map(); // maskIndex -> { canvas, ctx }
+    const offscreen = (w, h) => {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h));
+      return { canvas: c, ctx: c.getContext('2d') };
+    };
+    const renderLayer = (c, layer) => {
       for (const el of resolveLayerAtFrame(layer, frameIndex)) {
-        if (el.kind === 'instance') this._renderInstance(ctx, el, frameIndex);
-        else drawShape(ctx, el, this.data);
+        if (el.kind === 'instance') this._renderInstance(c, el, frameIndex);
+        else drawShape(c, el, this.data);
+      }
+    };
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      if (!layer.visible) continue;
+      const m = owner[i];
+      if (m >= 0) {
+        if (!groups.has(m)) groups.set(m, offscreen(this.data.width || 550, this.data.height || 400));
+        renderLayer(groups.get(m).ctx, layer);
+      } else if (layer.mask) {
+        if (!groups.has(i)) groups.set(i, offscreen(this.data.width || 550, this.data.height || 400));
+        const g = groups.get(i);
+        g.ctx.save();
+        g.ctx.globalCompositeOperation = 'destination-in';
+        // Masque = silhouette seule : contour retiré (strokeWidth 0), sinon le
+        // composite dest-in se comporte mal (même constat que côté éditeur).
+        const maskNoStroke = {
+          ...layer,
+          keyframes: layer.keyframes.map((kf) => ({
+            ...kf,
+            elements: (kf.elements || []).map((e) => ({ ...e, strokeWidth: 0 })),
+          })),
+        };
+        renderLayer(g.ctx, maskNoStroke);
+        g.ctx.restore();
+        ctx.drawImage(g.canvas, 0, 0);
+      } else {
+        renderLayer(ctx, layer);
       }
     }
   }

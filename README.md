@@ -42,6 +42,12 @@ Ouvrir l'URL affichée (http://localhost:5173).
   (forme en fil de fer). Le hit-test sur l'intérieur continue de marcher, les
   tweens de couleur fondent proprement vers/depuis transparent (interpolation
   du canal alpha), et les exports la gèrent nativement.
+- **Masque de calque** : deux boutons dans chaque ligne de calque de la
+  timeline — "ce calque est un masque" et "ce calque est masqué". Un calque
+  masque rogne les calques masqués juste en dessous (silhouette du masque) ;
+  tant que le calque masque est sélectionné, il est affiché normalement pour
+  être édité. Fonctionne en édition, pendant la lecture et dans tous les
+  exports (HTML, compilé, PNG, objet de jeu).
 - **Peau d'oignon (onion skin)** : fantômes des images voisines de la tête de
   lecture, affichés sous la scène pendant l'édition — **bleus vers le passé,
   rouges vers l'avenir**, avec une opacité dégressive (la plus proche est la

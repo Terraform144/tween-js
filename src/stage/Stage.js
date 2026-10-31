@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { getContextLayers, getContextFrameCount, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
 import { onionFrames, tintElementForOnion } from '../core/onionSkin.js';
+import { computeMaskOwner, hasMasks } from '../core/mask.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
 import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
 import { WARP_DEFAULT_COLS, WARP_DEFAULT_ROWS, defaultWarpGrid, ensureWarp, hasValidWarp, drawWarpImage, warpOutlinePath, warpBounds } from '../core/warp.js';
@@ -68,6 +69,24 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const contentLayer = new Konva.Layer();
   const overlayLayer = new Konva.Layer();
   konvaStage.add(bgLayer, onionLayer, contentLayer, overlayLayer);
+
+  // Pile des layers Konva de CONTENU (du bas vers le haut) : contentLayer +
+  // éventuellement un layer dédié par segment masqué (renderLayersWithMasks).
+  // Un masque en destination-in s'applique à tout le canvas de SON layer :
+  // il faut donc un layer à part par bloc masque, sinon il effacerait aussi
+  // les calques normaux peints avant dans le même layer. La pile est recréée
+  // à chaque render (resetContentStack).
+  let contentStack = [contentLayer];
+  function resetContentStack() {
+    for (const l of contentStack.slice(1)) l.destroy();
+    contentStack = [contentLayer];
+    contentLayer.destroyChildren();
+  }
+  function findContentNode(selector) {
+    for (const l of contentStack) { const n = l.findOne(selector); if (n) return n; }
+    return null;
+  }
+  function drawContent() { for (const l of contentStack) l.batchDraw(); }
 
   const bgRect = new Konva.Rect({ x: 0, y: 0, width: initialDoc.width, height: initialDoc.height, fill: initialDoc.backgroundColor });
   bgLayer.add(bgRect);
@@ -463,6 +482,83 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
   }
 
+  // ------------------------------------------------ masque de calque (layer mask)
+  // Un calque layer.mask rogne les calques layer.masked juste en dessous de lui
+  // (computeMaskOwner, core/mask.js). Rendu : chaque bloc masque a son PROPRE
+  // Konva.Layer (un destination-in s'applique à tout le canvas de son layer —
+  // mettre le bloc dans contentLayer effacerait les calques normaux peints
+  // avant). Dans ce layer : d'abord les calques masqués, puis le masque en
+  // globalCompositeOperation 'destination-in'. Le masque rendu à depth=1
+  // (pas d'attachInteraction) + listening muté sur chaque nœud feuille — ne
+  // JAMAIS poser listening:false sur le groupe gco lui-même (Konva applique
+  // quand même le gco mais ne dessine pas les enfants). Tant que le calque
+  // masque est sélectionné, il est rendu normal (visible + interactif).
+  function renderLayersWithMasks(layers, frameIndex, tick) {
+    if (!hasMasks(layers)) {
+      renderInto(contentLayer, layers, frameIndex, tick, 0);
+      return;
+    }
+    const owner = computeMaskOwner(layers);
+    // découpe en segments ordonnés (normal | mask) selon l'ordre des calques
+    const segments = [];
+    let cur = null;
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      if (!layer.visible) continue;
+      const m = owner[i];
+      if (m >= 0) {
+        if (!cur || cur.kind !== 'mask' || cur.maskIndex !== m) { cur = { kind: 'mask', maskIndex: m, layers: [] }; segments.push(cur); }
+        cur.layers.push(layer);
+      } else if (layer.mask) {
+        if (!cur || cur.kind !== 'mask' || cur.maskIndex !== i) { cur = { kind: 'mask', maskIndex: i, layers: [] }; segments.push(cur); }
+        cur.layers.push(layer);
+        cur = null;
+      } else {
+        if (!cur || cur.kind !== 'normal') { cur = { kind: 'normal', layers: [] }; segments.push(cur); }
+        cur.layers.push(layer);
+      }
+    }
+    segments.forEach((seg, idx) => {
+      const kl = idx === 0 ? contentLayer : new Konva.Layer();
+      if (idx > 0) {
+        konvaStage.add(kl);
+        kl.zIndex(2 + idx); // pile juste au-dessus de contentLayer, overlay reste au-dessus
+        contentStack.push(kl);
+        // même transform que contentLayer (caméra de scène)
+        kl.position(contentLayer.position());
+        kl.rotation(contentLayer.rotation());
+        kl.scale(contentLayer.scale());
+      }
+      if (seg.kind === 'normal') { renderInto(kl, seg.layers, frameIndex, tick, 0); return; }
+      const masked = seg.layers.slice(0, -1);
+      const maskLayer = seg.layers[seg.layers.length - 1];
+      // Group englobant INDISPENSABLE : un gco sur un enfant DIRECT du layer
+      // s'applique mal (Konva), mais dans un Group ça marche (vérifié E2E).
+      const g = new Konva.Group();
+      kl.add(g);
+      if (masked.length) renderInto(g, masked, frameIndex, tick, 0);
+      if (maskLayer.id === state.selectedLayerId) {
+        renderInto(g, [maskLayer], frameIndex, tick, 0); // édition : masque visible
+      } else {
+        const mg = new Konva.Group({ globalCompositeOperation: 'destination-in' });
+        g.add(mg);
+        // Le masque n'a besoin que de sa SILHOUETTE (le fill) : un stroke sur un
+        // nœud du groupe destination-in casse le composite dans Konva (vérifié
+        // E2E pixel par pixel) -> on rend le calque masque cloné sans contour.
+        const maskNoStroke = {
+          ...maskLayer,
+          keyframes: maskLayer.keyframes.map((kf) => ({
+            ...kf,
+            elements: (kf.elements || []).map((e) => ({ ...e, stroke: undefined, strokeWidth: 0 })),
+          })),
+        };
+        renderInto(mg, [maskNoStroke], frameIndex, tick, 1);
+        const mute = (n) => { n.listening(false); if (n.children) n.children.forEach(mute); };
+        mg.children.forEach(mute);
+      }
+    });
+  }
+
   // ------------------------------------------------ peau d'oignon (onion skin)
   // Fantômes des images voisines de la tête de lecture, teintés bleu (passé)
   // / rouge (futur), opacité dégressive — voir core/onionSkin.js. Uniquement
@@ -703,7 +799,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function selectedBitmapNode() {
     if (state.selectedElementIds.length !== 1) return null;
-    const node = contentLayer.findOne('#' + state.selectedElementIds[0]);
+    const node = findContentNode('#' + state.selectedElementIds[0]);
     if (!node || node.getAttr('elKind') !== 'bitmap' || isLocked(node.getAttr('elLayerId'))) return null;
     return node;
   }
@@ -767,7 +863,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         // Prévisu : le nœud se redessine avec la pose en cours, le
         // modèle reste intact jusqu'au dragend.
         node.setAttr('warpPointsLive', meshDrag.pts);
-        contentLayer.batchDraw();
+        drawContent();
         overlayLayer.batchDraw();
       });
       h.on('dragend', () => {
@@ -838,21 +934,21 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     bgRect.width(doc.width);
     bgRect.height(doc.height);
     bgRect.fill(doc.backgroundColor);
+    resetContentStack();
     applyCameraTransform();
-    contentLayer.destroyChildren();
-    renderInto(contentLayer, currentLayers(), state.currentFrame, tick, 0);
+    renderLayersWithMasks(currentLayers(), state.currentFrame, tick);
     renderOnionSkin();
     refreshSelectionVisuals();
     refreshPointHandles();
     refreshCameraFrame();
     refreshMeshHandles();
-    contentLayer.draw();
+    for (const l of contentStack) l.draw();
     overlayLayer.batchDraw();
   }
 
   function refreshSelectionVisuals() {
     const nodes = state.selectedElementIds
-      .map((id) => contentLayer.findOne('#' + id))
+      .map((id) => findContentNode('#' + id))
       .filter(Boolean);
     transformer.nodes(state.playing ? [] : nodes);
     refreshPivotHandle();
@@ -873,7 +969,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (state.playing || (state.currentTool !== 'select' && state.currentTool !== 'rotate')) return;
     if (state.selectedElementIds.length !== 1) return;
     const id = state.selectedElementIds[0];
-    const node = contentLayer.findOne('#' + id);
+    const node = findContentNode('#' + id);
     if (!node || node.getAttr('elKind') === 'bone') return;
     if (isLocked(node.getAttr('elLayerId'))) return;
 
@@ -921,7 +1017,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const world2 = node.getAbsoluteTransform(konvaStage).point(local);
       cross.position(world2);
       transformer.forceUpdate();
-      contentLayer.batchDraw();
+      drawContent();
       overlayLayer.batchDraw();
     });
     cross.on('dragend', () => {
@@ -969,7 +1065,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       startRotation: node.rotation(),
     };
     refreshRotateFeedback(p, node.rotation());
-    contentLayer.batchDraw();
+    drawContent();
     overlayLayer.batchDraw();
   }
 
@@ -1000,7 +1096,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     rotateDrag.node.rotation(rotateDrag.startRotation);
     rotateDrag = null;
     rotateGroup.destroyChildren();
-    contentLayer.batchDraw();
+    drawContent();
     overlayLayer.batchDraw();
   }
 
@@ -1173,7 +1269,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     handleGroup.destroyChildren();
     pointRefs = [];
     if (state.currentTool !== 'subselect' || !subselectId) return;
-    const node = contentLayer.findOne('#' + subselectId);
+    const node = findContentNode('#' + subselectId);
     const elData = node && node.getAttr('elData');
     if (!node || !elData) return;
     buildPointHandles(node, elData);
@@ -1362,7 +1458,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       // Remonter au nœud de l'élément depuis la cible du hit (les enfants
       // d'un groupe d'instance n'ont pas l'attr elKind, l'ancêtre si).
       let n = e.target;
-      while (n && n !== contentLayer && !n.getAttr('elKind')) n = n.getParent();
+      while (n && !contentStack.includes(n) && !n.getAttr('elKind')) n = n.getParent();
       // Bones exclus : leur rotation fait partie du workflow IK (tête),
       // les Transformer/poignées dédiées restent leur chemin.
       if (n && n.getAttr('elKind') && n.getAttr('elKind') !== 'bone') {
@@ -1483,7 +1579,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       if (e.evt.shiftKey) deg = Math.round(deg / 15) * 15;
       rotateDrag.node.rotation(deg);
       refreshRotateFeedback(p, deg);
-      contentLayer.batchDraw();
+      drawContent();
       overlayLayer.batchDraw();
       return;
     }
@@ -1602,7 +1698,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const y1 = Math.min(start.y, end.y), y2 = Math.max(start.y, end.y);
     if (x2 - x1 >= MARQUEE_CLICK_THRESHOLD || y2 - y1 >= MARQUEE_CLICK_THRESHOLD) {
       const hitIds = [];
-      contentLayer.children.forEach((node2) => {
+      for (const l of contentStack) l.children.forEach((node2) => {
         if (isLocked(node2.getAttr('elLayerId'))) return;
         const r = node2.getClientRect({ relativeTo: contentLayer });
         const intersects = r.x < x2 && r.x + r.width > x1 && r.y < y2 && r.y + r.height > y1;
@@ -1616,7 +1712,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         } else {
           state.selectedElementIds = hitIds;
         }
-        const lastNode = contentLayer.findOne('#' + hitIds[hitIds.length - 1]);
+        const lastNode = findContentNode('#' + hitIds[hitIds.length - 1]);
         if (lastNode) state.selectedLayerId = lastNode.getAttr('elLayerId');
       }
     }

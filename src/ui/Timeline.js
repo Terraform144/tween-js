@@ -536,6 +536,21 @@ export function mountTimeline(container, state) {
       lock.title = 'Verrouiller / déverrouiller';
       lock.addEventListener('click', (e) => { e.stopPropagation(); layer.locked = !layer.locked; notify(state); });
 
+      // Masque de calque : ce calque ROGNE les calques "masqués" juste en
+      // dessous (layer.mask), et/ou ce calque EST rogné par le masque au-dessus
+      // (layer.masked). Champs optionnels du modèle (absents = false).
+      const maskBtn = document.createElement('span');
+      maskBtn.className = 'mini-btn' + (layer.mask ? ' active' : '');
+      maskBtn.innerHTML = ICONS.layerMask;
+      maskBtn.title = 'Masque de calque — ce calque rogne les calques "masqués" en dessous';
+      maskBtn.addEventListener('click', (e) => { e.stopPropagation(); layer.mask = !layer.mask; notify(state); });
+
+      const maskedBtn = document.createElement('span');
+      maskedBtn.className = 'mini-btn' + (layer.masked ? ' active' : '');
+      maskedBtn.innerHTML = ICONS.layerMasked;
+      maskedBtn.title = 'Calque masqué — rogné par le calque "masque" au-dessus';
+      maskedBtn.addEventListener('click', (e) => { e.stopPropagation(); layer.masked = !layer.masked; notify(state); });
+
       const name = document.createElement('span');
       name.className = 'layer-name';
       name.textContent = layer.name;
@@ -546,7 +561,7 @@ export function mountTimeline(container, state) {
         if (next) { layer.name = next; notify(state); }
       });
 
-      row.append(eye, name, lock);
+      row.append(eye, name, maskBtn, maskedBtn, lock);
       row.addEventListener('click', () => { state.selectedLayerId = layer.id; notify(state); });
       row.addEventListener('pointerdown', (e) => startLayerDrag(e, layer, row));
       layersCol.appendChild(row);

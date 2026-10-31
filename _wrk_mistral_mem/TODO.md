@@ -7,7 +7,7 @@
 
 - [x] **Onion skinning (peau d'oignon)** — ✅ livré 29/10 : fantômes bleus (passé) / rouges (futur), opacité dégressive, contrôles dans la timeline (bouton + nb passé/futur), persisté en prefs. Harnais 31/31 + E2E 17/17.
 - [ ] **Dégradés (linéaire / radial)** — sélecteur de type de remplissage dans Propriétés + stops de couleur éditables. Suit dans le rendu Konva et l'export runtime. (Limite connue du README.)
-- [ ] **Masques de calque** — calque "masque" qui rogne les calques en dessous (effets de révélation, textes découpés...).
+- [x] **Masques de calque** — ✅ livré 29/10 : layer.mask / layer.masked, toggles dans la timeline, rendu éditeur (layer Konva dédié par bloc + destination-in) + runtime export (canvas offscreen), lecture et exports OK. Harnais 9/9 + E2E 12/12.
 - [ ] **Motion guide** — trajectoire en courbe Bézier attachée à un tween de mouvement (l'objet suit la courbe au lieu d'une ligne droite).
 - [ ] **Export vidéo WebM** — capturer la lecture (caméra, tweens, scripts) via MediaRecorder, télécharger un `.webm`.
 
@@ -49,4 +49,4 @@
 
 ---
 
-*Règle rappel : développement ADDITIF par défaut. Pas de push production sans demande explicite.*
+*Règle rappel : développement ADDITIF par défaut. Déploiement production : JAMAIS par l'assistant — c'est l'utilisateur qui le fait lui-même. Push git : origin (GitHub) uniquement, sur demande explicite, 1x/branche/session.*
