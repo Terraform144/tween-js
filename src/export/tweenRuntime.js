@@ -123,6 +123,53 @@ function samplePath(points, closed) {
   };
 }
 
+// --- dégradés (copies autonomes de core/gradient.js) ---
+function gradientLocalBoxKonva(el, renderedHeight) {
+  if (el.kind === 'bitmap' || el.shapeType === 'rect') return { x: 0, y: 0, w: el.width || 0, h: el.height || 0 };
+  if (el.shapeType === 'ellipse') return { x: -(el.width || 0) / 2, y: -(el.height || 0) / 2, w: el.width || 0, h: el.height || 0 };
+  if (el.shapeType === 'text') return { x: 0, y: 0, w: el.width || 0, h: renderedHeight || el.height || (el.fontSize || 24) * 1.2 };
+  const pts = el.points || [];
+  if (!pts.length) return { x: 0, y: 0, w: 0, h: 0 };
+  const xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
+  const minX = Math.min.apply(null, xs), minY = Math.min.apply(null, ys);
+  return { x: minX, y: minY, w: Math.max.apply(null, xs) - minX, h: Math.max.apply(null, ys) - minY };
+}
+// drawShape centre rect/ellipse/bitmap/texte en -w/2,-h/2 (repère local runtime)
+function gradientLocalBoxRuntime(el) {
+  const b = gradientLocalBoxKonva(el, null);
+  if (el.kind === 'bitmap' || el.shapeType === 'rect' || el.shapeType === 'ellipse' || el.shapeType === 'text') {
+    return { x: b.x - b.w / 2, y: b.y - b.h / 2, w: b.w, h: b.h };
+  }
+  return b;
+}
+function gradientPoint(box, fx, fy) { return { x: box.x + fx * box.w, y: box.y + fy * box.h }; }
+
+function lerpGradient(a, b, t) {
+  if (!a || !b || a.type !== b.type) return a;
+  const sa = a.stops || [], sb = b.stops || [];
+  if (sa.length !== sb.length || !sa.length) return t < 0.5 ? a : b;
+  const stops = sa.map(function (s, i) {
+    return { offset: lerp(s.offset, sb[i].offset, t), color: lerpColor(s.color, sb[i].color, t) };
+  });
+  if (a.type === 'radial') return { type: 'radial', cx: lerp(a.cx, b.cx, t), cy: lerp(a.cy, b.cy, t), r: lerp(a.r, b.r, t), stops: stops };
+  return { type: 'linear', x1: lerp(a.x1, b.x1, t), y1: lerp(a.y1, b.y1, t), x2: lerp(a.x2, b.x2, t), y2: lerp(a.y2, b.y2, t), stops: stops };
+}
+
+// Construit l'objet CanvasGradient pour drawShape (repère local runtime).
+function makeCanvasGradient(ctx, g, box) {
+  const pt = function (fx, fy) { return gradientPoint(box, fx, fy); };
+  let grad;
+  if (g.type === 'radial') {
+    const c = pt(g.cx, g.cy);
+    grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, Math.max(0.01, g.r * box.w));
+  } else {
+    const p1 = pt(g.x1, g.y1), p2 = pt(g.x2, g.y2);
+    grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+  }
+  for (const s of g.stops || []) grad.addColorStop(Math.max(0, Math.min(1, s.offset)), s.color);
+  return grad;
+}
+
 // pivotX/pivotY interpolables (voir playback/interpolate.js côté éditeur).
 const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height', 'pivotX', 'pivotY'];
 const COLOR_PROPS = ['fill', 'stroke'];
@@ -152,6 +199,7 @@ function interpolateElement(a, b, t) {
   for (const p of COLOR_PROPS) {
     if (typeof a[p] === 'string' && typeof b[p] === 'string') out[p] = lerpColor(a[p], b[p], t);
   }
+  if (a.fillGradient && b.fillGradient) out.fillGradient = lerpGradient(a.fillGradient, b.fillGradient, t);
   // Morphing point à point si les deux courbes ont le même nombre de points
   // (même index = points correspondants) ; sinon la forme reste rigide et
   // ne fait que bouger/tourner/redimensionner via les props ci-dessus.
@@ -457,7 +505,9 @@ function drawShape(ctx, el, data) {
   const piv = pivotDrawShift(ctx, el);
   if (piv) ctx.translate(piv.x, piv.y);
   ctx.globalAlpha *= (el.opacity == null ? 1 : el.opacity);
-  ctx.fillStyle = el.fill || '#000';
+  // Dégradé de remplissage (prime sur fill) — copie autonome de core/gradient.js
+  const gradBox = gradientLocalBoxRuntime(el);
+  ctx.fillStyle = el.fillGradient ? makeCanvasGradient(ctx, el.fillGradient, gradBox) : (el.fill || '#000');
   ctx.strokeStyle = el.stroke || '#000';
   ctx.lineWidth = el.strokeWidth || 0;
   ctx.lineCap = 'round';
@@ -466,19 +516,19 @@ function drawShape(ctx, el, data) {
   if (el.shapeType === 'rect') {
     ctx.beginPath();
     ctx.rect(-el.width / 2, -el.height / 2, el.width, el.height);
-    if (el.fill) ctx.fill();
+    if (el.fill || el.fillGradient) ctx.fill();
     if (el.strokeWidth) ctx.stroke();
   } else if (el.shapeType === 'ellipse') {
     ctx.beginPath();
     ctx.ellipse(0, 0, Math.max(0, el.width / 2), Math.max(0, el.height / 2), 0, 0, Math.PI * 2);
-    if (el.fill) ctx.fill();
+    if (el.fill || el.fillGradient) ctx.fill();
     if (el.strokeWidth) ctx.stroke();
   } else if (el.shapeType === 'line' || el.shapeType === 'path') {
     const pts = el.points || [];
     if (pts.length) {
       ctx.beginPath();
       tracePath(ctx, pts, !!el.closed);
-      if (el.closed && el.fill) ctx.fill();
+      if (el.closed && (el.fill || el.fillGradient)) ctx.fill();
       if (el.strokeWidth) ctx.stroke();
     }
   } else if (el.shapeType === 'text') {

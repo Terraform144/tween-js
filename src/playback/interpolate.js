@@ -1,4 +1,6 @@
 // Fonctions d'interpolation pures — partagées par l'éditeur (Stage) et,
+import { lerpGradient } from '../core/gradient.js';
+
 // sous forme de copie autonome, par le runtime exporté (voir export/runtimeSource.js).
 
 export function lerp(a, b, t) {
@@ -88,6 +90,11 @@ export function interpolateElement(a, b, t) {
     if (typeof a[p] === 'string' && typeof b[p] === 'string') {
       out[p] = lerpColor(a[p], b[p], t);
     }
+  }
+  // Dégradé de remplissage : interpolé seulement si même type + même nombre de
+  // stops des deux côtés (voir core/gradient.js).
+  if (a.fillGradient && b.fillGradient) {
+    out.fillGradient = lerpGradient(a.fillGradient, b.fillGradient, t, lerp, lerpColor);
   }
   // Morphing point à point : seulement si les deux courbes ont exactement
   // le même nombre de points (même index = points correspondants). Sinon

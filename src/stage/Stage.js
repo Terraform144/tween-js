@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { getContextLayers, getContextFrameCount, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
 import { onionFrames, tintElementForOnion } from '../core/onionSkin.js';
 import { computeMaskOwner, hasMasks } from '../core/mask.js';
+import { elementLocalBoxKonva, gradientPoint } from '../core/gradient.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
 import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
 import { WARP_DEFAULT_COLS, WARP_DEFAULT_ROWS, defaultWarpGrid, ensureWarp, hasValidWarp, drawWarpImage, warpOutlinePath, warpBounds } from '../core/warp.js';
@@ -419,6 +420,30 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       node.setAttr('boneColor', el.color);
       node.setAttr('boneStrokeWidth', el.strokeWidth);
     }
+    // Dégradé de remplissage (prime sur fill). RÈGLE Konva (vérifiée E2E) :
+    // poser fill à null + les attrs du dégradé + fillPriority:'gradient' en UN
+    // setAttrs — appeler fill(...) (même '#000') fait retomber sur la couleur
+    // unie. Coordonnées dans le repère local du node (offset pivot compris).
+    if (el.fillGradient && el.kind !== 'bone' && el.kind !== 'instance') {
+      const g = el.fillGradient;
+      const box = elementLocalBoxKonva(el, node.height ? node.height() : null);
+      const stops = (g.stops || []).flatMap((s) => [s.offset, s.color]);
+      const attrs = { fill: null };
+      if (g.type === 'radial') {
+        const c = gradientPoint(box, g.cx, g.cy);
+        attrs.fillRadialGradientStartPoint = c;
+        attrs.fillRadialGradientEndPoint = { x: c.x + Math.max(0.01, g.r * box.w), y: c.y };
+        attrs.fillRadialGradientStartRadius = 0;
+        attrs.fillRadialGradientEndRadius = Math.max(0.01, g.r * box.w);
+        attrs.fillRadialGradientColorStops = stops;
+      } else {
+        attrs.fillLinearGradientStartPoint = gradientPoint(box, g.x1, g.y1);
+        attrs.fillLinearGradientEndPoint = gradientPoint(box, g.x2, g.y2);
+        attrs.fillLinearGradientColorStops = stops;
+      }
+      attrs.fillPriority = 'gradient';
+      node.setAttrs(attrs);
+    }
     return node;
   }
 
@@ -553,7 +578,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         ...maskLayer,
         keyframes: maskLayer.keyframes.map((kf) => ({
           ...kf,
-          elements: (kf.elements || []).map((e) => ({ ...e, stroke: undefined, strokeWidth: 0 })),
+          // silhouette pleine et opaque : pas de contour, pas de dégradé
+          elements: (kf.elements || []).map((e) => ({ ...e, stroke: undefined, strokeWidth: 0, fill: '#000000', fillGradient: null })),
         })),
       };
       if (maskLayer.id === state.selectedLayerId) {
@@ -606,7 +632,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         elements: (kf.elements || []).map((e) => {
           if (e.kind === 'bitmap' || e.kind === 'instance') return { ...e, opacity: (e.opacity == null ? 1 : e.opacity) * 0.15 };
           if (e.kind === 'bone') return { ...e, color: GHOST_COLOR };
-          return { ...e, fill: GHOST_COLOR, stroke: e.stroke ? GHOST_COLOR : e.stroke };
+          return { ...e, fill: GHOST_COLOR, stroke: e.stroke ? GHOST_COLOR : e.stroke, fillGradient: null };
         }),
       })),
     };

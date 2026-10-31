@@ -42,6 +42,13 @@ Ouvrir l'URL affichée (http://localhost:5173).
   (forme en fil de fer). Le hit-test sur l'intérieur continue de marcher, les
   tweens de couleur fondent proprement vers/depuis transparent (interpolation
   du canal alpha), et les exports la gèrent nativement.
+- **Dégradés (linéaire / radial)** : dans le panneau Propriétés de la forme
+  (et uniquement là), ligne « Dégradé » : aucun / linéaire / radial,
+  coordonnées en fraction de la boîte de l'objet, stops de couleur éditables
+  (offset 0..1, couleur, ∅ = transparent, +/✕ pour ajouter/supprimer). Le
+  dégradé prime sur la couleur de remplissage, s'interpole dans les tweens
+  (couleurs + positions, fondu d'alpha inclus) et fonctionne dans tous les
+  exports. Rendu identique éditeur (Konva) et runtime (canvas 2D).
 - **Motion guide** : deux boutons dans chaque ligne de calque — "guide de
   mouvement" (ce calque fournit la courbe, tracée avec la plume) et "calque
   guidé" (son tween suit la courbe au lieu d'une ligne droite, par longueur

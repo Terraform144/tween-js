@@ -161,6 +161,17 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - E2E _wrk_mistral_mem/repro_e2e_crosscopy.mjs : 9 OK — doc A (rect + instance de symbole + bitmap asset) chargé, copier chaque élément, +New -> projet B vide, Ctrl+V, vérification via le JSON exporté de B : élément collé (nouvel id), symbole importé dans doc.symbols avec son contenu, asset importé dans doc.assets (dataUrl identique), Ctrl+X supprime bien. 0 pageerror. Non-régression : 9 harnais OK. Rebuild 2 versions, node --check OK.
 - Reste à faire : validation visuelle user ; APK non régénéré (règle). v2 : copier/coller des keyframes entières (avec tween), copier des calques entiers, collage avec décalage de position.
 
+### Session 24 - 29/10/2026 — DÉGRADÉS (linéaire/radial, propriétés uniquement)
+- DEMANDE USER : dégradés, mais UNIQUEMENT visibles dans le panneau Propriétés de l'objet (pas dans la barre d'outils gauche — comme le ∅).
+- MODÈLE : el.fillGradient = { type:'linear'|'radial', x1,y1,x2,y2 | cx,cy,r (fractions 0..1 de la boîte), stops:[{offset,color}] } | null ; prime sur fill. Champs optionnels = rétrocompatible. Stops avec 'transparent' (fondu alpha via lerpColor, session 20).
+- core/gradient.js (pur) : defaultGradient, sanitizeGradient (clamp, tri stops), elementLocalBoxKonva/Runtime (repère local du node Konva vs runtime centré), gradientPoint, lerpGradient.
+- RENDU ÉDITEUR (Stage.js buildNode) : setAttrs({ fill: null, fillLinearGradientStartPoint/EndPoint/ColorStops | fillRadialGradient*, fillPriority: 'gradient' }). LEÇONS Konva (E2E pixel par pixel) : (1) ne JAMAIS poser fill(...) avec un gradient actif — le setter fill remet fillPriority à 'color' (résultat noir) -> fill: null dans le setAttrs ; (2) radial a besoin de fillRadialGradientEndRadius (défaut 0 = rien) ; (3) Konva radial ne remplit que le disque (hors rayon = transparent, alors que canvas natif mettrait la dernière couleur — divergence notée).
+- RUNTIME (tweenRuntime.js, copies autonomes) : makeCanvasGradient (createLinearGradient/createRadialGradient en repère local runtime) + drawShape fillStyle = gradient ; lerpGradient dans interpolateElement (même type + même nb stops, sinon garde a/switch à t=0.5). Couvre HTML/compilé/PNG/objet de jeu. Masque/fantôme/onion : fillGradient neutralisé (fill uni).
+- INTERPOLATION éditeur : interpolate.js lerpGradient (mêmes règles).
+- UI : PropertiesPanel.js gradientSection(el) — select Aucun/Linéaire/Radial, champs coordonnées (fractions), stops éditables (offset + color + ∅ + ✕, min 2, + ajouter). Appelée après la ligne Remplissage, formes avec fill seulement.
+- HARNESS : repro_gradient.mjs 21/21 (sanitize, boxes par type, lerpGradient avec transparent, interpolateElement). E2E repro_e2e_gradient.mjs 13/13 : pixels linéaire rouge->bleu (gauche/droite/milieu), panneau (select linear, 2 stops, RIEN dans la toolbar), switch radial (centre rouge, bord mélange), export HTML file:// (mêmes pixels), 0 pageerror. Non-régression 10 harnais OK. Rebuild 2 versions, node --check OK.
+- Reste à faire : validation visuelle user ; APK non régénéré (règle). v2 : dégradé sur le contour (stroke), dégradé en pattern, pipette.
+
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
 - Compréhension architecture complète

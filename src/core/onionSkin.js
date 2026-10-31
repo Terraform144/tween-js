@@ -68,7 +68,7 @@ export function onionFrames(currentFrame, frameCount, os) {
 // - autres -> fill ET stroke deviennent la teinte (les lignes ouvertes n'ont
 //             pas de fill : seul le stroke est teinté)
 export function tintElementForOnion(el, tint, alpha) {
-  const c = { ...el, opacity: alpha };
+  const c = { ...el, opacity: alpha, fillGradient: null };
   if (el.kind === 'bone') {
     c.color = tint;
   } else if (el.kind !== 'bitmap' && el.kind !== 'instance') {

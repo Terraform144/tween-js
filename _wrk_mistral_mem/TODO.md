@@ -12,7 +12,7 @@
 
 ## 🎯 Prochaines priorités
 
-- [ ] **Dégradés (linéaire / radial)** — sélecteur de type de remplissage dans Propriétés + stops de couleur éditables (avec alpha, cf. transparent). Rendu Konva (createLinearGradient/createRadialGradient) + runtime export (copie autonome) + interpolation des tweens. **Prochaine feature prévue.**
+- [x] **Dégradés (linéaire / radial)** — ✅ livré 29/10 : uniquement dans les propriétés de la forme (demande user), stops éditables avec ∅ transparent, tween interpolé, éditeur + tous les exports. Harnais 21/21 + E2E 13/13 (pixels éditeur + export).
 - [ ] **Export vidéo WebM** — capturer la lecture (caméra, tweens, scripts) via MediaRecorder, télécharger un `.webm`.
 
 ## 🔧 Confort / précision

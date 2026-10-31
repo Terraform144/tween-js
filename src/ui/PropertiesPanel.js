@@ -1,4 +1,5 @@
 import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones, getSkeletonsFromKeyframe, getAsset, TRANSPARENT } from '../core/model.js';
+import { defaultGradient, sanitizeGradient } from '../core/gradient.js';
 import { ICONS } from './icons.js';
 import { setElementPivotField, resetElementPivot } from '../core/pivot.js';
 import { simplifyShape } from '../util/simplify.js';
@@ -97,6 +98,100 @@ export function mountPropertiesPanel(container, state) {
     linkLabelToField(l, input);
     row.append(l, input, noColorBtn);
     body.appendChild(row);
+  }
+
+  // ------------------------------------------------ section dégradé (propriétés uniquement,
+  // comme demandé : PAS de sélecteur dans la barre d'outils gauche)
+  function fracRow(label, value, onChange) {
+    return numberRow(label, value, (v) => onChange(Math.max(0, Math.min(1, v))), { step: 0.05 });
+  }
+
+  function gradientSection(el) {
+    if (el.kind !== 'shape') return;
+    const hasFill = el.shapeType === 'rect' || el.shapeType === 'ellipse' || el.shapeType === 'text'
+      || ((el.shapeType === 'path' || el.shapeType === 'line') && el.closed);
+    if (!hasFill) return;
+    const g = el.fillGradient || null;
+
+    const typeRow = document.createElement('div');
+    typeRow.className = 'prop-row';
+    const tl = document.createElement('label');
+    tl.textContent = 'Dégradé';
+    const sel = document.createElement('select');
+    sel.innerHTML = '<option value="none">Aucun (couleur unie)</option><option value="linear">Linéaire</option><option value="radial">Radial</option>';
+    sel.value = g ? g.type : 'none';
+    sel.title = 'Remplissage en dégradé (prime sur la couleur de remplissage). Coordonnées en fraction de la boîte de l\'objet (0..1).';
+    sel.addEventListener('change', () => {
+      mutateSelectedElement((e) => {
+        if (sel.value === 'none') e.fillGradient = null;
+        else e.fillGradient = sanitizeGradient({ ...(e.fillGradient || defaultGradient(e)), type: sel.value });
+      });
+    });
+    linkLabelToField(tl, sel);
+    typeRow.append(tl, sel);
+    body.appendChild(typeRow);
+    if (!g) return;
+
+    if (g.type === 'linear') {
+      fracRow('Début X', g.x1, (v) => mutateSelectedElement((e) => { e.fillGradient.x1 = v; }));
+      fracRow('Début Y', g.y1, (v) => mutateSelectedElement((e) => { e.fillGradient.y1 = v; }));
+      fracRow('Fin X', g.x2, (v) => mutateSelectedElement((e) => { e.fillGradient.x2 = v; }));
+      fracRow('Fin Y', g.y2, (v) => mutateSelectedElement((e) => { e.fillGradient.y2 = v; }));
+    } else {
+      fracRow('Centre X', g.cx, (v) => mutateSelectedElement((e) => { e.fillGradient.cx = v; }));
+      fracRow('Centre Y', g.cy, (v) => mutateSelectedElement((e) => { e.fillGradient.cy = v; }));
+      fracRow('Rayon', g.r, (v) => mutateSelectedElement((e) => { e.fillGradient.r = Math.max(0.01, v); }));
+    }
+
+    // stops de couleur (offset 0..1 + couleur, ∅ = transparent)
+    (g.stops || []).forEach((s, i) => {
+      const r = document.createElement('div');
+      r.className = 'prop-row';
+      const lab = document.createElement('label');
+      lab.textContent = `Stop ${i + 1}`;
+      const off = document.createElement('input');
+      off.type = 'number'; off.min = '0'; off.max = '1'; off.step = '0.05';
+      off.value = s.offset;
+      off.style.width = '52px';
+      off.title = 'Position du stop dans le dégradé (0 = début, 1 = fin)';
+      off.addEventListener('change', () => mutateSelectedElement((e) => {
+        e.fillGradient.stops[i].offset = Math.max(0, Math.min(1, parseFloat(off.value) || 0));
+      }));
+      const col = document.createElement('input');
+      col.type = 'color';
+      col.value = s.color === TRANSPARENT ? '#000000' : (s.color || '#000000');
+      col.addEventListener('change', () => mutateSelectedElement((e) => { e.fillGradient.stops[i].color = col.value; }));
+      const noCol = document.createElement('button');
+      noCol.type = 'button';
+      noCol.className = 'icon-btn no-color-btn';
+      noCol.innerHTML = ICONS.noColor;
+      noCol.title = 'Transparent';
+      noCol.classList.toggle('active', s.color === TRANSPARENT);
+      noCol.addEventListener('click', () => mutateSelectedElement((e) => { e.fillGradient.stops[i].color = TRANSPARENT; }));
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'icon-btn';
+      del.innerHTML = ICONS.close;
+      del.title = 'Supprimer ce stop (minimum 2)';
+      del.disabled = (g.stops || []).length <= 2;
+      del.addEventListener('click', () => mutateSelectedElement((e) => { e.fillGradient.stops.splice(i, 1); }));
+      linkLabelToField(lab, off);
+      r.append(lab, off, col, noCol, del);
+      body.appendChild(r);
+    });
+
+    const addRow = document.createElement('div');
+    addRow.className = 'prop-row';
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Ajouter un stop';
+    addBtn.title = 'Ajouter une étape de couleur dans le dégradé';
+    addBtn.addEventListener('click', () => mutateSelectedElement((e) => {
+      const stops = e.fillGradient.stops;
+      const last = stops[stops.length - 1];
+      stops.push({ offset: 1, color: last ? last.color : '#ffffff' });
+    }));
+    addRow.appendChild(addBtn);
+    body.appendChild(addRow);
   }
 
   function textRow(label, value, onChange, opts = {}) {
@@ -303,6 +398,7 @@ export function mountPropertiesPanel(container, state) {
 
     if (el.kind === 'shape') {
       colorRow('Remplissage', el.fill, (v) => mutateSelectedElement((e) => (e.fill = v)));
+      gradientSection(el); // dégradé de remplissage (propriétés uniquement)
       colorRow('Contour', el.stroke, (v) => mutateSelectedElement((e) => (e.stroke = v)));
       numberRow('Ép. contour', el.strokeWidth, (v) => mutateSelectedElement((e) => (e.strokeWidth = Math.max(0, v))));
       if (el.shapeType === 'text') {
