@@ -41,14 +41,27 @@ const input = await page.$('input[type=file][accept=".json,application/json"]');
 await input.uploadFile('/tmp/e2e/mask-test.json');
 await new Promise(r => setTimeout(r, 500));
 
-// helper pixels du contentLayer (children[2]) en coordonnées scène
+// helper pixels COMPOSITÉS des layers de contenu (children[2..] sauf overlay) en coordonnées scène
 const pxEval = (x, y) => page.evaluate((x, y) => {
   const st = Konva.stages[0];
-  const layer = st.children[2];
-  const cv = layer.canvas._canvas;
-  const pr = cv.width / st.width(); // pixelRatio pur (le scale du stage est dans la transform du contexte)
-  const d = cv.getContext('2d').getImageData(Math.round(x * st.scaleX() * pr), Math.round(y * st.scaleX() * pr), 1, 1).data;
-  return [d[0], d[1], d[2], d[3]];
+  const pr = st.children[2].canvas._canvas.width / st.width();
+  const sx = Math.round(x * st.scaleX() * pr), sy = Math.round(y * st.scaleX() * pr);
+  // composite source-over des layers de contenu (du bas vers le haut), overlay exclu
+  let r = 0, g = 0, b = 0, a = 0;
+  const layers = [...st.children].slice(2, -1);
+  for (const l of layers) {
+    const cv = l.canvas._canvas;
+    const d = cv.getContext('2d').getImageData(sx, sy, 1, 1).data;
+    const sa = d[3] / 255;
+    const da = a + sa * (1 - a);
+    if (da > 0) {
+      r = (d[0] * sa + r * a * (1 - sa)) / da;
+      g = (d[1] * sa + g * a * (1 - sa)) / da;
+      b = (d[2] * sa + b * a * (1 - sa)) / da;
+    }
+    a = da;
+  }
+  return [Math.round(r), Math.round(g), Math.round(b), Math.round(a * 255)];
 }, x, y);
 const isRed = (p) => p[0] > 200 && p[1] < 60 && p[2] < 60;
 const isWhite = (p) => p[0] > 240 && p[1] > 240 && p[2] > 240;
@@ -67,7 +80,7 @@ console.log('  struct:', JSON.stringify(struct));
 ok(struct.group && struct.hasRect, 'bloc masque = Group contenant le rect masqué');
 ok(struct.maskDestIn && struct.maskChildren === 1, 'masque posé en destination-in (1 ellipse)');
 
-// 2) pixels : centre du masque = rouge (visible), hors masque = rogné (contentLayer transparent, fond blanc dessous)
+// 2) pixels : centre du masque = rouge (visible), hors masque = fantôme gris clair 15% en édition
 const pIn = await pxEval(275, 200);
 const pOut = await pxEval(100, 200);
 const pBg = await page.evaluate(() => {
@@ -77,7 +90,16 @@ const pBg = await page.evaluate(() => {
   return [d[0], d[1], d[2], d[3]];
 });
 ok(isRed(pIn), `pixel au centre du masque = rouge ${JSON.stringify(pIn)}`);
-ok(pOut[3] === 0 && isWhite(pBg), `pixel hors masque rogné (content transparent ${JSON.stringify(pOut)}, fond blanc ${JSON.stringify(pBg)})`);
+ok(pOut[3] >= 30 && pOut[3] <= 45 && Math.abs(pOut[0] - 176) < 12, `hors masque: fantôme gris clair 15% en édition ${JSON.stringify(pOut)}`);
+ok(isWhite(pBg), `fond blanc dessous ${JSON.stringify(pBg)}`);
+
+// 2b) en lecture : plus de fantôme, le rogné est purement invisible (alpha 0)
+await page.click('button[title="Lecture / Pause (Entrée)"]');
+await new Promise(r => setTimeout(r, 400));
+const pOutPlay = await pxEval(100, 200);
+ok(pOutPlay[3] === 0, `lecture: plus de fantôme hors masque (alpha 0) ${JSON.stringify(pOutPlay)}`);
+await page.click('button[title="Arrêter la lecture"]');
+await new Promise(r => setTimeout(r, 200));
 
 // 3) toggle masked OFF sur le calque fond -> le rect réapparaît partout
 // (re-querie des lignes au moment du clic : la timeline se re-rend à chaque notify)

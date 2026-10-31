@@ -520,18 +520,18 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         cur.layers.push(layer);
       }
     }
+    const segLayers = []; // { kl, ghost? } dans l'ordre des segments
     segments.forEach((seg, idx) => {
       const kl = idx === 0 ? contentLayer : new Konva.Layer();
       if (idx > 0) {
         konvaStage.add(kl);
-        kl.zIndex(2 + idx); // pile juste au-dessus de contentLayer, overlay reste au-dessus
         contentStack.push(kl);
         // même transform que contentLayer (caméra de scène)
         kl.position(contentLayer.position());
         kl.rotation(contentLayer.rotation());
         kl.scale(contentLayer.scale());
       }
-      if (seg.kind === 'normal') { renderInto(kl, seg.layers, frameIndex, tick, 0); return; }
+      if (seg.kind === 'normal') { renderInto(kl, seg.layers, frameIndex, tick, 0); segLayers.push({ kl, ghost: null }); return; }
       const masked = seg.layers.slice(0, -1);
       const maskLayer = seg.layers[seg.layers.length - 1];
       // Group englobant INDISPENSABLE : un gco sur un enfant DIRECT du layer
@@ -539,26 +539,70 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const g = new Konva.Group();
       kl.add(g);
       if (masked.length) renderInto(g, masked, frameIndex, tick, 0);
+      // Le masque n'a besoin que de sa SILHOUETTE (le fill) : un stroke sur un
+      // nœud du groupe destination-in casse le composite dans Konva (vérifié
+      // E2E pixel par pixel) -> on rend le calque masque cloné sans contour.
+      const maskNoStroke = {
+        ...maskLayer,
+        keyframes: maskLayer.keyframes.map((kf) => ({
+          ...kf,
+          elements: (kf.elements || []).map((e) => ({ ...e, stroke: undefined, strokeWidth: 0 })),
+        })),
+      };
       if (maskLayer.id === state.selectedLayerId) {
         renderInto(g, [maskLayer], frameIndex, tick, 0); // édition : masque visible
       } else {
         const mg = new Konva.Group({ globalCompositeOperation: 'destination-in' });
         g.add(mg);
-        // Le masque n'a besoin que de sa SILHOUETTE (le fill) : un stroke sur un
-        // nœud du groupe destination-in casse le composite dans Konva (vérifié
-        // E2E pixel par pixel) -> on rend le calque masque cloné sans contour.
-        const maskNoStroke = {
-          ...maskLayer,
-          keyframes: maskLayer.keyframes.map((kf) => ({
-            ...kf,
-            elements: (kf.elements || []).map((e) => ({ ...e, stroke: undefined, strokeWidth: 0 })),
-          })),
-        };
         renderInto(mg, [maskNoStroke], frameIndex, tick, 1);
         const mute = (n) => { n.listening(false); if (n.children) n.children.forEach(mute); };
         mg.children.forEach(mute);
       }
+      // ÉDITION seule : fantôme des parties ROGNÉES en gris clair transparent
+      // 15% (demande user). Layer Konva DÉDIÉ (sinon son destination-out
+      // effacerait aussi la partie visible du layer du bloc) : les calques
+      // masqués grisés + le masque en destination-out = il ne reste que la
+      // partie HORS masque. Pas en lecture, pas dans les exports.
+      let ghost = null;
+      if (!state.playing && masked.length) {
+        ghost = new Konva.Layer({ listening: false });
+        konvaStage.add(ghost);
+        contentStack.push(ghost);
+        ghost.position(contentLayer.position());
+        ghost.rotation(contentLayer.rotation());
+        ghost.scale(contentLayer.scale());
+        const g2 = new Konva.Group();
+        ghost.add(g2);
+        renderInto(g2, masked.map(ghostLayerOf), frameIndex, tick, 1);
+        const mg2 = new Konva.Group({ globalCompositeOperation: 'destination-out' });
+        g2.add(mg2);
+        renderInto(mg2, [maskNoStroke], frameIndex, tick, 1);
+      }
+      segLayers.push({ kl, ghost });
     });
+    // ordre des layers : visible et fantôme intercalés, dans l'ordre des segments
+    segLayers.forEach((s, k) => {
+      s.kl.zIndex(2 + 2 * k);
+      if (s.ghost) s.ghost.zIndex(2 + 2 * k + 1);
+    });
+  }
+
+  // Fantôme des parties rognées d'un calque masqué (édition seule) : gris
+  // clair transparent à 15% (demande user). fill/stroke remplacés par la
+  // couleur fantôme ; bitmap/instance = opacité x 0.15 seule ; bone = color.
+  const GHOST_COLOR = 'rgba(176,176,176,0.15)';
+  function ghostLayerOf(layer) {
+    return {
+      ...layer,
+      keyframes: (layer.keyframes || []).map((kf) => ({
+        ...kf,
+        elements: (kf.elements || []).map((e) => {
+          if (e.kind === 'bitmap' || e.kind === 'instance') return { ...e, opacity: (e.opacity == null ? 1 : e.opacity) * 0.15 };
+          if (e.kind === 'bone') return { ...e, color: GHOST_COLOR };
+          return { ...e, fill: GHOST_COLOR, stroke: e.stroke ? GHOST_COLOR : e.stroke };
+        }),
+      })),
+    };
   }
 
   // ------------------------------------------------ peau d'oignon (onion skin)
