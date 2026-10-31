@@ -10,7 +10,7 @@ import { enableDragScroll } from '../util/dragScroll.js';
 import { toggleFullscreen, fullscreenElement, onFullscreenChange } from '../util/fullscreen.js';
 import { getAllProjects, saveProject, loadProject, deleteProject, deleteAllProjects } from '../util/projects.js';
 
-export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onAudioImport = () => {}, onProjectLoad = () => {} }) {
+export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onAudioImport = () => {}, onProjectLoad = () => {}, onExportVideo = () => {}, onExportProject = () => {} }) {
   container.innerHTML = '';
 
   const brand = document.createElement('span');
@@ -173,6 +173,8 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     { icon: 'exportHtml', label: 'Exporter HTML', action: () => downloadStandaloneHTML(state.doc) },
     { icon: 'exportHtml', label: 'Compiler un HTML', action: () => downloadCompiledHTML(state.doc) },
     { icon: 'export', label: 'Exporter PNG (ZIP)', action: () => downloadPNGSequence(state.doc) },
+    { icon: 'video', label: 'Exporter vidéo WebM…', action: () => onExportVideo() },
+    { icon: 'folderOpen', label: 'Exporter projet vers dossier…', action: () => onExportProject() },
   ];
   for (const item of fileMenuItems) {
     const b = document.createElement('button');

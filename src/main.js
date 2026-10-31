@@ -10,6 +10,8 @@ import { mountPropertiesPanel } from './ui/PropertiesPanel.js';
 import { mountMenuBar } from './ui/MenuBar.js';
 import { mountProjectTabs } from './ui/ProjectTabs.js';
 import { createSceneRuntime } from './runtime/sceneRuntime.js';
+import { downloadVideoWebM } from './export/videoExport.js';
+import { downloadProjectFolder } from './export/projectExport.js';
 import { getClipState, clearClipStates } from './runtime/clipStates.js';
 import { resolveLayersAtFrame } from './playback/resolve.js';
 import { sanitizeOnionSkin } from './core/onionSkin.js';
@@ -332,6 +334,31 @@ const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
   onProjectLoad: (doc) => {
     // Ouvrir un projet des archives dans une NOUVELLE fenêtre (non destructif)
     openProjectWindow(doc);
+  },
+  onExportProject: async () => {
+    // Export "projet vers dossier" : arborescence projet.json + assets/ + scripts/
+    // en dossier FSA (Chromium) ou ZIP (fallback) — voir export/projectExport.js.
+    try {
+      const r = await downloadProjectFolder(state.doc);
+      console.log(`[export projet] ${r.mode === 'dir' ? 'dossier' : 'ZIP'} « ${r.name} » écrit`);
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // dossier annulé par l'utilisateur
+      console.error(err);
+      alert('Export projet impossible : ' + (err && err.message ? err.message : err));
+    }
+  },
+  onExportVideo: async () => {
+    // Export WebM de la lecture réelle (caméra, tweens, scripts...) — une passe
+    // frame 0 → frameCount-1, téléchargée en <nom>.webm (voir export/videoExport.js).
+    try {
+      await downloadVideoWebM(state, stage.konvaStage, {
+        notify,
+        onProgress: (n, total) => { console.log(`[export vidéo] frame ${n}/${total}`); },
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Export vidéo impossible : ' + (err && err.message ? err.message : err));
+    }
   },
 });
 

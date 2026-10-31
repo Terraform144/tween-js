@@ -3,7 +3,7 @@
 // de l'API Scene/Game), boutons Exécuter/Arrêter et console de sortie.
 import { EditorView, basicSetup } from 'codemirror';
 import { javascript, javascriptLanguage } from '@codemirror/lang-javascript';
-import { createScript, getNamedElements, getContextLayers, getKeyframeAt } from '../core/model.js';
+import { createScript, getContextLayers, getKeyframeAt } from '../core/model.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
 import { ICONS } from './icons.js';
@@ -11,62 +11,12 @@ import {
   sanitizeFileName, pickJsFile, exportJsFile, openInVsCode, getVscodeFolder,
   supportsLinkedFiles, linkFile, readLinkedFile, requestLinkedPermission,
 } from './externalScripts.js';
+import { makeCompletionSources } from './completions.js';
 
-// Complétions de l'API Scene/Game exposée par le runtime (sceneRuntime.js).
-// On les fournit via languageDataAt("autocomplete") du langage JavaScript :
-// autocompletion() combine la source du langage ET la nôtre (override non
-// utilisé, ce qui préserverait l'autocomplétion JS native).
-const SCENE_COMPLETIONS = [
-  'width', 'height', 'frameRate', 'backgroundColor', 'name', 'frameCount',
-  'playing', 'currentFrame', 'play', 'stop', 'gotoAndPlay', 'gotoAndStop',
-  'addShape', 'addInstance', 'onEnterFrame', 'onKeyDown', 'onKeyUp', 'onClick',
-  'keys', 'random', 'log',
-];
-
-const sceneCompletionSource = (context) => {
-  const word = context.matchBefore(/[\w$]*/);
-  if (!word) return null;
-  const before = context.state.sliceDoc(Math.max(0, word.from - 20), word.from);
-  if (!/(?:Scene|Game)\.$/.test(before)) return null;
-  return {
-    from: word.from,
-    options: SCENE_COMPLETIONS.map((label) => ({ label, type: 'property' })),
-  };
-};
-
-// Propriétés manipulables depuis un script sur un élément nommé.
-const INSTANCE_PROPS = [
-  'x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity',
-  'width', 'height', 'fill', 'stroke', 'strokeWidth', 'name', 'text', 'fontSize',
-];
-
-// Complétion des Noms d'instance du document courant comme variables
-// directement utilisables (nom.x += 1). On ignore les positions après un
-// point / crochet pour ne pas parasiter Scene.* ou obj.prop.
-const instanceNameCompletionSource = (context) => {
-  const word = context.matchBefore(/[\w$]*/);
-  if (!word) return null;
-  const before = context.state.sliceDoc(Math.max(0, word.from - 1), word.from);
-  if (before === '.' || before === '[') return null;
-  const options = Object.keys(getNamedElements(state.doc, state.editPath, state.currentFrame))
-    .map((label) => ({ label, type: 'variable' }));
-  if (!options.length) return null;
-  return { from: word.from, options };
-};
-
-// Complétion des propriétés d'un élément nommé après « nom. ».
-const instancePropsCompletionSource = (context) => {
-  const word = context.matchBefore(/[\w$]*/);
-  if (!word) return null;
-  const before = context.state.sliceDoc(Math.max(0, word.from - 40), word.from);
-  const m = /([A-Za-z_$][\w$]*)\.$/.exec(before);
-  if (!m) return null;
-  if (!(m[1] in getNamedElements(state.doc, state.editPath, state.currentFrame))) return null;
-  return {
-    from: word.from,
-    options: INSTANCE_PROPS.map((label) => ({ label, type: 'property' })),
-  };
-};
+// Les sources d'autocomplétion (API Scene/Game racine ou scopée au clip,
+// createjs.*, noms d'instances et leurs propriétés) vivent dans completions.js
+// (module pur, testé sous Node) et sont fournies via languageDataAt :
+// autocompletion() combine la source du langage JS ET les nôtres.
 
 export function mountScriptsPanel(container, state, { runtime }) {
   const addBtn = document.createElement('button');
@@ -435,7 +385,11 @@ export function mountScriptsPanel(container, state, { runtime }) {
       extensions: [
         basicSetup,
         javascript(),
-        javascriptLanguage.data.of({ autocomplete: [sceneCompletionSource, instanceNameCompletionSource, instancePropsCompletionSource] }),
+        // Une source par appel data.of (Facet.of ne retient que le 1er argument)
+        // : languageDataAt pousse la valeur entière, donc un array de fonctions
+        // serait pris pour une liste d'options (completeFromList) et crasherait
+        // le FuzzyMatcher (label undefined). Bug pré-existant corrigé ici.
+        ...makeCompletionSources(state, () => symbolTarget || !!frameTarget).map((s) => javascriptLanguage.data.of({ autocomplete: s })),
         EditorView.theme({
           '&': { fontSize: '12px', height: '100%' },
           '.cm-scroller': { fontFamily: "'Cascadia Mono', 'Consolas', monospace", lineHeight: '1.45' },

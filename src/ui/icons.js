@@ -48,6 +48,7 @@ export const ICONS = {
   lockOpen: svg('<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"/><path d="M8 10.5V8a4 4 0 0 1 7.6-2.2"/>'),
   pencil: svg('<path d="M4 20l.9-4L15.4 5.5a1.4 1.4 0 0 1 2 0l1.1 1.1a1.4 1.4 0 0 1 0 2L8 19l-4 1Z"/><path d="M13.8 7.1l3.1 3.1"/>'),
   export: svg('<path d="M12 4v11"/><path d="M8 8.4 12 4l4 4.4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/>'),
+  video: svg('<rect x="3" y="6.5" width="12.5" height="11" rx="1.5"/><path d="M15.5 10.2 21 7v10l-5.5-3.2"/><path d="M7 10.5l3 1.5-3 1.5z" fill="currentColor" stroke="none"/>'),
   undo: svg('<path d="M7 8H16a5 5 0 0 1 0 10h-3"/><path d="M7 8l4-4M7 8l4 4"/>'),
   redo: svg('<path d="M17 8H8a5 5 0 0 0 0 10h3"/><path d="M17 8l-4-4M17 8l-4 4"/>'),
   movieclip: svg('<rect x="3.5" y="5" width="17" height="14" rx="1.5"/><path d="M9.5 9l6 3.5-6 3.5Z" fill="currentColor" stroke="none"/>'),

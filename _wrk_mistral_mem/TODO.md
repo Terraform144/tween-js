@@ -13,7 +13,7 @@
 ## 🎯 Prochaines priorités
 
 - [x] **Dégradés (linéaire / radial)** — ✅ livré 29/10 : uniquement dans les propriétés de la forme (demande user), stops éditables avec ∅ transparent, tween interpolé, éditeur + tous les exports. Harnais 21/21 + E2E 13/13 (pixels éditeur + export).
-- [ ] **Export vidéo WebM** — capturer la lecture (caméra, tweens, scripts) via MediaRecorder, télécharger un `.webm`.
+- [x] **Export vidéo WebM** — ✅ livré 31/10 : menu Fichier > « Exporter vidéo WebM… », `src/export/videoExport.js` (MediaRecorder vp9>vp8>webm sur canvas 2D alimenté par `stage.konvaStage.toCanvas()` à chaque changement de frame, une passe frame 0→frameCount-1 pilotée par la boucle de lecture réelle, état restauré après, `<nom>.webm` téléchargé). Harnais 16/16 + E2E navigateur 8/8 (blob EBML valide). v2 : piste audio muxée, boucle N passes, choix résolution/bitrate.
 
 ## 🔧 Confort / précision
 
@@ -26,8 +26,8 @@
 
 ## 💡 Gros projets (continuité workflow VS Code)
 
-- [ ] Autocomplétion de l'API du clip dans CodeMirror (Scene, createjs, instances nommées)
-- [ ] Export "projet vers dossier" (File System Access API : JSON + assets + scripts .js liés éclatés)
+- [x] **Autocomplétion de l'API du clip dans CodeMirror** — ✅ livré 31/10 : module pur `src/ui/completions.js` (Scene racine vs scope clip selon la cible éditée, `createjs.` + sous-API Tween/Ease/Ticker/Sound + `Tween.get(...).`/`new LoadQueue().`, noms d'instances + props + API événements). Harnais 28/28 + probe CM6 (vrai CompletionContext) + E2E navigateur 7/7. Bug pré-existant corrigé au passage : les sources étaient passées en un seul array à `data.of` (completeFromList → crash FuzzyMatcher) — une extension `data.of` PAR source maintenant.
+- [x] **Export "projet vers dossier"** — ✅ livré 31/10 : `src/export/projectExport.js`, menu Fichier > « Exporter projet vers dossier… ». Arborescence `projet.json` (tjsFormat=folder-project v1, metas scriptFile retirées, assets en `src: "assets/<fichier>"` sans dataUrl) + `assets/*` (binaires décodés, extensions depuis le type MIME, collisions gérées) + `scripts/*.js` (scripts nommés, `<sym>_class.js`, `<sym>_f<n>_<calque>.js`, `scene_f<n>_*.js`). Dossier FSA via showDirectoryPicker (Chromium), ZIP via makeZip en fallback. Harnais 18/18 + E2E navigateur 9/9 (faux handle FSA, arborescence vérifiée octet par octet). v2 : « Ouvrir un dossier… » (relire, résoudre les src relatifs).
 
 ## 📋 Validations côté utilisateur — ✅ TOUTES VALIDÉES le 29/10/2026
 
