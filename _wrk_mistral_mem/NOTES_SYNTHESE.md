@@ -1,4 +1,6 @@
 # NOTES SYNTHESE - Projet TweenJS
+- NOTE USER 29/10 soir : l utilisateur veut DEVELOPPER AVEC MOI et compte sur moi pour l aider a implementer les prochaines todo (voir _wrk_mistral_mem/TODO.md : export WebM, shape hints, theme sombre, autocompletion CodeMirror, export dossier...). Session collaborative reguliere, a ce soir.
+
 *Mise à jour : 29/10/2026*
 *Dernière session : docs fusionnées (v5 — chapitres 9-10) + APK regénéré sur machine Linux (JDK 21 local, chrome-headless-shell)*
 *VALIDATION USER 29/10/2026 : pivot+rotation (rotPin), outil Caméra (C), script de symbole + workflow VS Code (lien vivant Chrome), retour arrière doc dans l'APK Android — TOUS VALIDÉS. Liste des idées/prochaines étapes : _wrk_mistral_mem/TODO.md (onion skinning en top priorité).*
