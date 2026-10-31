@@ -17,6 +17,17 @@ export function sanitizeGrid(g) {
   };
 }
 
+// Guide le plus proche d'une coordonnée, dans la tolérance (null si aucun).
+export function nearestGuide(list, v, tol = 6) {
+  if (!list || !list.length) return null;
+  let best = null, bestD = tol;
+  for (const p of list) {
+    const d = Math.abs(p - v);
+    if (d <= bestD) { best = p; bestD = d; }
+  }
+  return best;
+}
+
 // Aimantation sur la grille : arrondi au multiple de spacing le plus proche.
 export function snapValue(v, spacing) {
   if (!spacing || spacing <= 0) return v;

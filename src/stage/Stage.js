@@ -3,7 +3,7 @@ import { getContextLayers, getContextFrameCount, insertKeyframe, createShape, cr
 import { onionFrames, tintElementForOnion } from '../core/onionSkin.js';
 import { computeMaskOwner, hasMasks } from '../core/mask.js';
 import { elementLocalBoxKonva, gradientPoint } from '../core/gradient.js';
-import { gridLines, snapPoint, addGuide, removeGuide, rulerStep } from '../core/grid.js';
+import { gridLines, snapPoint, addGuide, removeGuide, rulerStep, nearestGuide } from '../core/grid.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
 import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
 import { WARP_DEFAULT_COLS, WARP_DEFAULT_ROWS, defaultWarpGrid, ensureWarp, hasValidWarp, drawWarpImage, warpOutlinePath, warpBounds } from '../core/warp.js';
@@ -683,9 +683,22 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   // ------------------------------------------------ grille + guides + règles
+  // Snap : d'abord la grille (si visible), puis les GUIDES qui gagnent s'ils
+  // sont à moins de 6px — même si la grille est masquée, les guides snappent.
   function snapIfEnabled(x, y) {
-    if (state.grid.snap && state.grid.visible) return snapPoint({ x, y }, state.grid.spacing);
-    return { x, y };
+    if (!state.grid.snap) return { x, y };
+    let nx = x, ny = y;
+    if (state.grid.visible) {
+      const p = snapPoint({ x, y }, state.grid.spacing);
+      nx = p.x;
+      ny = p.y;
+    }
+    const g = state.doc.guides || {};
+    const gv = nearestGuide(g.v, x, 6);
+    if (gv != null) nx = gv;
+    const gh = nearestGuide(g.h, y, 6);
+    if (gh != null) ny = gh;
+    return { x: nx, y: ny };
   }
 
   function refreshGridAndGuides() {

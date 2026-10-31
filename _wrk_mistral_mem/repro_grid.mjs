@@ -1,6 +1,6 @@
 // Harnais grille + snap + règles/guides — core/grid.js (pur).
 // Run: node _wrk_mistral_mem/repro_grid.mjs
-import { defaultGrid, sanitizeGrid, snapValue, snapPoint, gridLines, rulerStep, addGuide, removeGuide, guideAt } from '../src/core/grid.js';
+import { defaultGrid, sanitizeGrid, snapValue, snapPoint, gridLines, rulerStep, addGuide, removeGuide, guideAt, nearestGuide } from '../src/core/grid.js';
 
 let pass = 0, fail = 0;
 const ok = (c, l) => { if (c) { pass++; console.log('  OK  ' + l); } else { fail++; console.log('  FAIL ' + l); } };
@@ -41,6 +41,15 @@ console.log('== guides ==');
   ok(guideAt(doc, 'v', 200, 6) === null, 'guideAt hors tolérance -> null');
   ok(removeGuide(doc, 'v', 120) && doc.guides.v.length === 1, 'removeGuide');
   ok(removeGuide(doc, 'v', 999) === false, 'removeGuide absent -> false');
+}
+
+console.log('== nearestGuide (snap sur les guides) ==');
+{
+  const list = [40, 120, 200];
+  ok(nearestGuide(list, 122, 6) === 120, 'le plus proche dans la tolérance');
+  ok(nearestGuide(list, 46, 6) === 40, 'bord de tolérance inclus (|46-40|=6)');
+  ok(nearestGuide(list, 60, 6) === null, 'hors tolérance -> null');
+  ok(nearestGuide([], 10, 6) === null, 'liste vide -> null');
 }
 
 console.log(`\n${pass} OK, ${fail} FAIL`);
