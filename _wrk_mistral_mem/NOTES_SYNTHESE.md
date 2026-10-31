@@ -134,6 +134,7 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - HARNESS : _wrk_mistral_mem/repro_transparent.mjs — 14 OK (lerpColor éditeur + copie autonome extraite du vrai source tweenRuntime.js, interpolateElement, TRANSPARENT). E2E _wrk_mistral_mem/repro_e2e_transparent.mjs (vite preview :4180) — 10 OK : rectA fill transparent rendu, bouton ∅ toolbar actif, rect dessiné à la souris hérite fill transparent, panneau propriétés ∅ actif sur Remplissage, tween rouge->transparent à mi-frame = rgba(255,0,0,0.5), 0 pageerror.
 - Non-régression : createjs 28/28, pivot 45/45, camera 40/40, sessions OK, symbolscript 21/21, onion 31/31. Rebuild DEUX versions DANS L'ORDRE ; node --check OK ; marqueurs (noColor, no-color-btn, rgba() template) présents dans les 2 bundles + CSS.
 - Reste à faire : validation visuelle user ; APK non régénéré (règle : après validation, et déploiement prod = user uniquement).
+- COMPLEMENT (même jour, demande user) : le bouton ∅ n'existe QUE dans le panneau Propriétés de la forme — RETIRE de la barre d'outils gauche (Toolbar.js restauré à l'original, .color-line supprimé du CSS, .no-color-btn conservé pour le panneau). E2E re-joué 11/11 (0 bouton ∅ dans .tool-color-row, ∅ des propriétés applique bien fill transparent, tween rgba OK). Rebuild 2 versions fait.
 
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet

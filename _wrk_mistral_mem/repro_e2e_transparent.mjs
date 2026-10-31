@@ -1,10 +1,11 @@
 // E2E couleurs transparentes — preuve de bout en bout dans un vrai navigateur.
-// Scénario : doc avec rectA fill 'transparent' stroke noir (f0, calque L1) et
-// rectB fill #ff0000 -> 'transparent' en tween linéaire sur 2 frames (L2).
-// 1) rendu éditeur : rectA fill='transparent' ; 2) bouton ∅ de la toolbar pose
-// state.fillColor='transparent' et un rect dessiné à la souris hérite ce fill ;
-// 3) panneau propriétés : ligne Remplissage avec bouton ∅ actif sur rectA ;
-// 4) tween à mi-frame : rectB fill='rgba(255,0,0,0.5)' ; 5) 0 pageerror.
+// Demande user : le bouton ∅ (transparent) n'existe QUE dans le panneau
+// Propriétés de la forme, PAS dans la barre d'outils gauche.
+// Scénario : doc avec rectA fill 'transparent' (f0, L1) et rectB rouge ->
+// transparent en tween linéaire (L2). 1) rendu rectA transparent ; 2) AUCUN
+// bouton ∅ dans la toolbar ; 3) rect dessiné à la souris puis ∅ via les
+// propriétés -> fill transparent ; 4) tween mi-frame rgba(255,0,0,0.5) ;
+// 5) 0 pageerror.
 // Run: node _wrk_mistral_mem/repro_e2e_transparent.mjs  (vite preview :4180)
 import { createRequire } from 'module';
 import { writeFileSync } from 'fs';
@@ -43,7 +44,7 @@ const input = await page.$('input[type=file][accept=".json,application/json"]');
 await input.uploadFile('/tmp/e2e/transparent-test.json');
 await new Promise(r => setTimeout(r, 500));
 
-// 1) rendu éditeur frame 0 : rectA transparent, rectB rouge
+// 1) rendu éditeur frame 0
 const fills0 = await page.evaluate(() => {
   const content = Konva.stages[0].children[2];
   return content.find('Rect').map(r => ({ fill: r.fill(), stroke: r.stroke() }));
@@ -52,18 +53,12 @@ ok(fills0.length === 2, '2 rects rendus');
 ok(fills0.some(r => r.fill === 'transparent' && r.stroke === '#073642'), 'rectA fill=transparent, contour noir conservé');
 ok(fills0.some(r => r.fill === '#ff0000'), 'rectB fill rouge à frame 0');
 
-// 2) bouton ∅ remplissage de la toolbar + dessin d'un rect à la souris
-const transBtns = await page.$$('.tool-color-row .no-color-btn');
-ok(transBtns.length === 2, '2 boutons ∅ dans la toolbar (fill + stroke)');
-await transBtns[0].click();
-await new Promise(r => setTimeout(r, 100));
-const fillIsTrans = await page.evaluate(() => {
-  const b = document.querySelectorAll('.tool-color-row .no-color-btn')[0];
-  return b.classList.contains('active');
-});
-ok(fillIsTrans, 'bouton ∅ fill actif après clic');
+// 2) AUCUN bouton ∅ dans la barre d'outils gauche
+const toolbarNoColor = await page.evaluate(() => document.querySelectorAll('.tool-color-row .no-color-btn').length);
+ok(toolbarNoColor === 0, '0 bouton ∅ dans la toolbar (demande user)');
+
+// 3) dessiner un rect à la souris, puis le rendre transparent via les propriétés
 await page.click('button[title="Rectangle (R)"]');
-// coordonnées page d'un point scène (450, 300)
 const pt = await page.evaluate(() => {
   const st = Konva.stages[0];
   const r = st.container().getBoundingClientRect();
@@ -75,33 +70,49 @@ await page.mouse.down();
 await page.mouse.move(pt.x2, pt.y2, { steps: 5 });
 await page.mouse.up();
 await new Promise(r => setTimeout(r, 300));
-const fills1 = await page.evaluate(() => {
+const drawn = await page.evaluate(() => {
   const content = Konva.stages[0].children[2];
-  return content.find('Rect').map(r => ({ fill: r.fill(), x: r.x() }));
+  const n = content.find('Rect').find(r => r.x() > 400);
+  return n ? { x: n.x(), fill: n.fill() } : null;
 });
-ok(fills1.length === 3 && fills1.some(r => r.x > 400 && r.fill === 'transparent'), `rect dessiné à la souris (x>400) hérite fill transparent (${JSON.stringify(fills1)})`);
+ok(!!drawn && drawn.fill !== 'transparent', `rect dessiné à la souris, fill par défaut (${drawn && drawn.fill})`);
 
-// 3) sélection de rectA -> panneau propriétés : ∅ actif sur la ligne Remplissage
-const centerA = await page.evaluate(() => {
+// sélectionner ce rect (clic sur son centre)
+await page.click('button[title="Sélection (V)"]');
+const centerDrawn = await page.evaluate(() => {
   const st = Konva.stages[0];
   const content = st.children[2];
-  const node = content.find('Rect').find(r => r.fill() === 'transparent' && r.x() === 100);
+  const node = content.find('Rect').find(r => r.x() > 400);
   const p = node.getAbsoluteTransform().point({ x: node.offsetX(), y: node.offsetY() });
   const r = st.container().getBoundingClientRect();
   return { x: r.left + p.x, y: r.top + p.y };
 });
-await page.click('button[title="Sélection (V)"]');
-await page.mouse.click(centerA.x, centerA.y);
+await page.mouse.click(centerDrawn.x, centerDrawn.y);
 await new Promise(r => setTimeout(r, 300));
-const propInfo = await page.evaluate(() => {
+
+// cliquer le ∅ de la ligne Remplissage dans le panneau propriétés
+const clicked = await page.evaluate(() => {
   const rows = [...document.querySelectorAll('.prop-row')];
   const fillRow = rows.find(r => r.querySelector('label') && r.querySelector('label').textContent === 'Remplissage');
-  if (!fillRow) return { found: false };
-  const btn = fillRow.querySelector('.no-color-btn');
-  return { found: true, transActive: !!(btn && btn.classList.contains('active')) };
+  const btn = fillRow && fillRow.querySelector('.no-color-btn');
+  if (!btn) return { found: false };
+  const wasActive = btn.classList.contains('active');
+  btn.click();
+  return { found: true, wasActive };
 });
-ok(propInfo.found, 'ligne « Remplissage » présente dans le panneau propriétés');
-ok(propInfo.transActive, 'bouton ∅ actif sur Remplissage (rectA bien transparent)');
+ok(clicked.found, 'bouton ∅ présent dans les propriétés (ligne Remplissage)');
+ok(clicked.wasActive === false, '∅ inactif avant clic (fill opaque)');
+await new Promise(r => setTimeout(r, 300));
+const afterTrans = await page.evaluate(() => {
+  const content = Konva.stages[0].children[2];
+  const n = content.find('Rect').find(r => r.x() > 400);
+  const rows = [...document.querySelectorAll('.prop-row')];
+  const fillRow = rows.find(r => r.querySelector('label') && r.querySelector('label').textContent === 'Remplissage');
+  const btn = fillRow && fillRow.querySelector('.no-color-btn');
+  return { fill: n.fill(), btnActive: !!(btn && btn.classList.contains('active')) };
+});
+ok(afterTrans.fill === 'transparent', `rect sélectionné passé à fill=transparent via ∅ (${afterTrans.fill})`);
+ok(afterTrans.btnActive, 'bouton ∅ des propriétés actif après application');
 
 // 4) tween à mi-frame : frame 1 -> rectB rgba(255,0,0,0.5)
 const cells = await page.$$('.tl-ruler .cell');

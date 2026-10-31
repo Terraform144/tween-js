@@ -307,9 +307,9 @@ html, body {
   .tool-btn svg { width: 21px; height: 21px; }
 }
 .tool-color-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
-.tool-color-row .color-line { display: flex; align-items: center; gap: 3px; }
 .tool-color-row input[type="color"] { width: 26px; height: 20px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
-/* Bouton « transparent » (∅) à côté des sélecteurs de couleur */
+/* Bouton « transparent » (∅) dans le panneau propriétés, à côté du sélecteur
+   de couleur de la forme (demande user : PAS dans la barre d'outils gauche) */
 .no-color-btn { width: 20px; height: 20px; padding: 0; flex: none; }
 .no-color-btn svg { width: 14px; height: 14px; }
 .tool-color-row input[type="range"] { width: 100px; cursor: pointer; }
