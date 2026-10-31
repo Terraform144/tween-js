@@ -1,14 +1,18 @@
 # TODO — Idées et prochaines étapes TweenJS
-*Ajouté le 29/10/2026 — propositions discutées en session, à prioriser avec l'utilisateur*
+*Mis à jour le 29/10/2026 (soir) — 4 features livrées et pushées sur origin/TweenJS_workflow.V.0.1*
 
 ---
 
-## 🎯 Top 5 (impact max)
+## ✅ Livré le 29/10/2026 (commits 510572f..392e26d, pushés)
 
-- [x] **Onion skinning (peau d'oignon)** — ✅ livré 29/10 : fantômes bleus (passé) / rouges (futur), opacité dégressive, contrôles dans la timeline (bouton + nb passé/futur), persisté en prefs. Harnais 31/31 + E2E 17/17.
-- [ ] **Dégradés (linéaire / radial)** — sélecteur de type de remplissage dans Propriétés + stops de couleur éditables. Suit dans le rendu Konva et l'export runtime. (Limite connue du README.)
-- [x] **Masques de calque** — ✅ livré 29/10 : layer.mask / layer.masked, toggles dans la timeline, rendu éditeur (layer Konva dédié par bloc + destination-in) + runtime export (canvas offscreen), lecture et exports OK. Harnais 9/9 + E2E 12/12.
-- [x] **Motion guide** — ✅ livré 29/10 : layer.guide / layer.guided, trajectoire par longueur d'arc (Bézier échantillonné), tween guidé en édition + lecture + exports ; guide non rendu en lecture/export. Harnais 17/17 + E2E 8/8.
+- [x] **Onion skinning** — fantômes bleus (passé) / rouges (futur), opacité dégressive, contrôles timeline, persisté. Harnais 31/31 + E2E 17/17.
+- [x] **Couleurs transparentes** — `transparent` pour fill/stroke, bouton ∅ UNIQUEMENT dans les propriétés de la forme (demande user), tween fondu alpha (éditeur + runtime). Harnais 14/14 + E2E 11/11.
+- [x] **Masque de calque** — layer.mask/masked, toggles timeline, layer Konva dédié par bloc + destination-in, fantôme gris 15% des parties rognées en édition seule, runtime offscreen. Harnais 9/9 + E2E 14/14.
+- [x] **Motion guide** — layer.guide/guided, trajectoire Bézier par longueur d'arc, tween guidé partout, guide non rendu en lecture/export. Harnais 17/17 + E2E 8/8.
+
+## 🎯 Prochaines priorités
+
+- [ ] **Dégradés (linéaire / radial)** — sélecteur de type de remplissage dans Propriétés + stops de couleur éditables (avec alpha, cf. transparent). Rendu Konva (createLinearGradient/createRadialGradient) + runtime export (copie autonome) + interpolation des tweens. **Prochaine feature prévue.**
 - [ ] **Export vidéo WebM** — capturer la lecture (caméra, tweens, scripts) via MediaRecorder, télécharger un `.webm`.
 
 ## 🔧 Confort / précision
@@ -26,27 +30,17 @@
 
 ## 📋 Validations côté utilisateur — ✅ TOUTES VALIDÉES le 29/10/2026
 
-- [x] Validation visuelle du pivot déplaçable + outil Rotation (Q) + rotPin
-- [x] Validation visuelle de l'outil Caméra (C) : cadre, pan/zoom/rotation, lecture, exports
-- [x] Validation du script de symbole + workflow VS Code (bouton MovieClip, import/export .js, lien vivant Chrome)
-- [x] Test mobile : retour arrière Android après la doc (version HTML dans l'APK)
+- [x] Pivot déplaçable + Rotation (Q) + rotPin · Caméra (C) · script symbole + VS Code · retour arrière doc APK
 
-## 📝 Idées v2 notées en session 18 (backlog)
+## 📝 Backlog v2 (noté en session 18)
 
-- [ ] Piste caméra dans la Timeline (visibilité / drag des clés caméra)
-- [ ] Easing du tween caméra (au-delà de l'interpolation linéaire)
-- [ ] `Scene.camera` dans l'API scripts
-- [ ] Parallaxe par profondeur de calque (Animate 2019)
-- [ ] Édition À TRAVERS la caméra (aujourd'hui la caméra ne s'applique qu'en lecture)
-- [ ] Lien vivant (FSA) aussi sur les scripts d'image (v1 = scène + symboles seulement)
-- [ ] Watch par polling hors Chromium (nécessiterait un dev-server local)
+- [ ] Piste caméra dans la Timeline · easing du tween caméra · `Scene.camera` dans l'API scripts · parallaxe par calque · édition à travers la caméra · lien vivant (FSA) sur les scripts d'image · watch par polling hors Chromium
+- [ ] v2 masque : masques imbriqués, masque animé (tween sur le calque masque) · v2 guide : orientation selon la tangente, plusieurs objets par guide
 
-## ⚙️ Améliorations pinceau (backlog historique)
+## ⚙️ Améliorations pinceau
 
-- [ ] Plus de patterns (éclaboussures, texture)
-- [ ] Sensibilité à la pression (tablettes)
-- [ ] Texture bitmap dans le pinceau
+- [ ] Plus de patterns (éclaboussures, texture) · sensibilité pression (tablettes) · texture bitmap
 
 ---
 
-*Règle rappel : développement ADDITIF par défaut. Déploiement production : JAMAIS par l'assistant — c'est l'utilisateur qui le fait lui-même. Push git : origin (GitHub) uniquement, sur demande explicite, 1x/branche/session.*
+*Règles : développement ADDITIF par défaut · déploiement production = JAMAIS par l'assistant (c'est l'utilisateur qui le fait) · push git = origin (GitHub) uniquement, sur demande explicite, 1x/branche/session · rebuild des 2 versions dans l'ordre (build:vanilla → cp → build) · APK régénéré seulement après validation user.*
