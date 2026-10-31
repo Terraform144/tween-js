@@ -44,4 +44,4 @@
 
 ---
 
-*Règles : développement ADDITIF par défaut · déploiement production = JAMAIS par l'assistant (c'est l'utilisateur qui le fait) · push git = origin (GitHub) uniquement, sur demande explicite, 1x/branche/session · rebuild des 2 versions dans l'ordre (build:vanilla → cp → build) · APK régénéré seulement après validation user.*
+*Règles : développement ADDITIF par défaut · AVANT chaque commit+push : synchroniser Animate_JS_PureVanilla (build:vanilla → cp bundle → cp style.css/README/docs/index.html) · builds dans l'ordre (vanilla → main) · déploiement production = JAMAIS par l'assistant (c'est l'utilisateur qui le fait) · push git = origin (GitHub) sur demande explicite · APK régénéré seulement sur demande explicite.*

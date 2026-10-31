@@ -443,6 +443,7 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 
 ## CONFIGURATION DEPLOIEMENT
 
+- REGLE PERMANENTE (user 29/10) : AVANT chaque commit+push, synchroniser Animate_JS_PureVanilla : build:vanilla -> cp bundle -> cp style.css -> cp README -> docs html+pdf vers PureVanilla/docs et public/docs -> index.html vanilla. Ordre des builds : build:vanilla PUIS build main.
 ### Production — INTERDIT, l'utilisateur le fait LUI-MÊME
 - **REGLE (demande utilisateur 30/09/2026, RENFORCEE 29/10/2026) : NE JAMAIS POUSSER EN PRODUCTION, MÊME SUR DEMANDE EXPLICITE.** Ni git push vers un remote de prod, ni redeploiement du dossier `dist` sur le serveur (pscp ou autre) : **le deploiement en production est realise UNIQUEMENT par l'utilisateur lui-meme**, jamais par l'assistant. Push git : uniquement vers `origin` (GitHub), et au plus une fois par branche et par session, sur demande explicite de l'utilisateur ("pousse").
 - Securite (30/09/2026) : tous les identifiants, adresses et mots de passe du serveur ont ete retires du depot et de son historique. Ne plus jamais les committer. Aucun remote de production n'est configure localement (verifie 29/10 : seul `origin` = GitHub).
