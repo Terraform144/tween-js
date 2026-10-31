@@ -13,6 +13,7 @@ import { createSceneRuntime } from './runtime/sceneRuntime.js';
 import { getClipState, clearClipStates } from './runtime/clipStates.js';
 import { resolveLayersAtFrame } from './playback/resolve.js';
 import { sanitizeOnionSkin } from './core/onionSkin.js';
+import { sanitizeGrid } from './core/grid.js';
 import { playFrameSounds } from './core/audio.js';
 import { getPref, setPref, hasPref } from './util/prefs.js';
 import { toggleFullscreen, isElementFullscreen, onFullscreenChange } from './util/fullscreen.js';
@@ -25,6 +26,8 @@ const state = createEditorState(doc);
 
 // Peau d'oignon : réglage d'interface global (pas par projet), persisté.
 state.onionSkin = sanitizeOnionSkin(getPref('onionSkin', state.onionSkin));
+// Grille + snap + règles : idem.
+state.grid = sanitizeGrid(getPref('gridPrefs', state.grid));
 
 // --- Fenêtres-projets (multi-documents) ----------------------------------
 // `state` sert de façade : ses champs par projet (doc, editPath, sélection,

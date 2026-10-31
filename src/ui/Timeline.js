@@ -70,6 +70,30 @@ export function mountTimeline(container, state) {
   pastInput.addEventListener('change', commitOnion);
   futureInput.addEventListener('change', commitOnion);
 
+  // Grille + snap + règles de la scène (persistés prefs 'gridPrefs').
+  const btnGrid = svgButton('grid', 'Afficher/masquer la grille de la scène');
+  const spacingInput = document.createElement('input');
+  spacingInput.type = 'number'; spacingInput.min = '2'; spacingInput.max = '500'; spacingInput.step = '1';
+  spacingInput.className = 'onion-num'; spacingInput.title = 'Espacement de la grille (px)';
+  const btnSnap = svgButton('magnet', 'Aimanter (snap) les déplacements sur la grille');
+  const btnRulers = svgButton('ruler', 'Afficher/masquer les règles (tirer un guide depuis une règle)');
+  function syncGridUi() {
+    if (document.activeElement !== spacingInput) spacingInput.value = String(state.grid.spacing);
+    btnGrid.classList.toggle('active', !!state.grid.visible);
+    btnSnap.classList.toggle('active', !!state.grid.snap);
+    btnRulers.classList.toggle('active', state.grid.rulers !== false);
+  }
+  function commitGrid() {
+    state.grid.spacing = Math.max(2, Math.min(500, parseInt(spacingInput.value, 10) || 10));
+    setPref('gridPrefs', state.grid);
+    syncGridUi();
+    notify(state);
+  }
+  btnGrid.addEventListener('click', () => { state.grid.visible = !state.grid.visible; setPref('gridPrefs', state.grid); syncGridUi(); notify(state); });
+  btnSnap.addEventListener('click', () => { state.grid.snap = !state.grid.snap; setPref('gridPrefs', state.grid); syncGridUi(); notify(state); });
+  btnRulers.addEventListener('click', () => { state.grid.rulers = state.grid.rulers === false; setPref('gridPrefs', state.grid); syncGridUi(); notify(state); });
+  spacingInput.addEventListener('change', commitGrid);
+
   const labelInput = document.createElement('input');
   labelInput.type = 'text';
   labelInput.placeholder = 'Étiquette (label)';
@@ -100,7 +124,7 @@ export function mountTimeline(container, state) {
   });
   applyCollapsed();
 
-  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, btnStop, sep(), btnOnion, pastInput, futureInput, frameInfo, btnCollapse);
+  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, btnStop, sep(), btnOnion, pastInput, futureInput, sep(), btnGrid, spacingInput, btnSnap, btnRulers, frameInfo, btnCollapse);
   enableDragScroll(toolbar);
 
   const body = document.createElement('div');
@@ -768,6 +792,7 @@ export function mountTimeline(container, state) {
     playhead.style.height = (layersInContext().length + (cameraTrackVisible() ? 1 : 0)) * rowHeight() + 20 + 'px';
     btnPlay.innerHTML = ICONS[state.playing ? 'pause' : 'play'];
     syncOnionInputs();
+    syncGridUi();
     frameInfo.textContent = `Image ${state.currentFrame + 1} / ${n} — ${state.doc.frameRate} i/s`;
 
     const layer = selectedLayer();

@@ -42,6 +42,12 @@ Ouvrir l'URL affichée (http://localhost:5173).
   (forme en fil de fer). Le hit-test sur l'intérieur continue de marcher, les
   tweens de couleur fondent proprement vers/depuis transparent (interpolation
   du canal alpha), et les exports la gèrent nativement.
+- **Grille + snap + règles** : barre de la timeline (à côté de l'onion skin) —
+  bouton grille (afficher/masquer), espacement en px, bouton aimant (snap des
+  déplacements et créations sur la grille), bouton règles. Les règles en haut
+  et à gauche de la scène sont graduées (pas adaptatif au zoom) ; glisser
+  depuis une règle pose un **guide** (persisté dans le JSON, tiretés orange,
+  clic droit sur un guide pour le supprimer). Réglages mémorisés.
 - **Piste audio** : menu Fichier → « Importer audio… » (mp3/wav/ogg…) stocke le
   son dans les assets ; une piste « Audio » apparaît dans la timeline (scène
   racine) : choisir le son dans la liste, poser à l'image courante (bouton +)

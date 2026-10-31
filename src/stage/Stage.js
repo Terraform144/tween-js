@@ -3,6 +3,7 @@ import { getContextLayers, getContextFrameCount, insertKeyframe, createShape, cr
 import { onionFrames, tintElementForOnion } from '../core/onionSkin.js';
 import { computeMaskOwner, hasMasks } from '../core/mask.js';
 import { elementLocalBoxKonva, gradientPoint } from '../core/gradient.js';
+import { gridLines, snapPoint, addGuide, removeGuide, rulerStep } from '../core/grid.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
 import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
 import { WARP_DEFAULT_COLS, WARP_DEFAULT_ROWS, defaultWarpGrid, ensureWarp, hasValidWarp, drawWarpImage, warpOutlinePath, warpBounds } from '../core/warp.js';
@@ -110,6 +111,12 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // Grille de déformation posée sur un bitmap sélectionné (outil maillage)
   const meshGroup = new Konva.Group();
   overlayLayer.add(transformer, handleGroup, pivotGroup, rotateGroup, cameraGroup, meshGroup);
+
+  // Grille de la scène + guides tirés depuis les règles (overlay, non interactif
+  // sauf clic droit sur un guide pour le supprimer).
+  const gridGroup = new Konva.Group({ listening: false });
+  const guidesGroup = new Konva.Group();
+  overlayLayer.add(gridGroup, guidesGroup);
 
   // Cache d'images décodées, indexé par dataUrl (immuable par contenu). Tant qu'une image n'est pas
   // décodée (chargement asynchrone depuis le dataUrl), le nœud affiche un
@@ -675,6 +682,138 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     onionLayer.draw();
   }
 
+  // ------------------------------------------------ grille + guides + règles
+  function snapIfEnabled(x, y) {
+    if (state.grid.snap && state.grid.visible) return snapPoint({ x, y }, state.grid.spacing);
+    return { x, y };
+  }
+
+  function refreshGridAndGuides() {
+    gridGroup.destroyChildren();
+    guidesGroup.destroyChildren();
+    const doc = state.doc;
+    const sp = state.grid.spacing;
+    if (state.grid.visible) {
+      const { xs, ys } = gridLines(doc.width, doc.height, sp);
+      for (const x of xs) {
+        gridGroup.add(new Konva.Line({
+          points: [x, 0, x, doc.height],
+          stroke: (sp > 0 && x % (sp * 5) === 0) ? 'rgba(7,54,66,0.18)' : 'rgba(7,54,66,0.08)',
+          strokeWidth: 1, listening: false,
+        }));
+      }
+      for (const y of ys) {
+        gridGroup.add(new Konva.Line({
+          points: [0, y, doc.width, y],
+          stroke: (sp > 0 && y % (sp * 5) === 0) ? 'rgba(7,54,66,0.18)' : 'rgba(7,54,66,0.08)',
+          strokeWidth: 1, listening: false,
+        }));
+      }
+    }
+    const g = doc.guides || { v: [], h: [] };
+    for (const x of g.v || []) {
+      const ln = new Konva.Line({ points: [x, 0, x, doc.height], stroke: 'rgba(203,75,22,0.55)', strokeWidth: 1, dash: [6, 4], hitStrokeWidth: 8 });
+      ln.on('contextmenu', (e) => { e.evt.preventDefault(); removeGuide(doc, 'v', x); notify(state); });
+      guidesGroup.add(ln);
+    }
+    for (const y of g.h || []) {
+      const ln = new Konva.Line({ points: [0, y, doc.width, y], stroke: 'rgba(203,75,22,0.55)', strokeWidth: 1, dash: [6, 4], hitStrokeWidth: 8 });
+      ln.on('contextmenu', (e) => { e.evt.preventDefault(); removeGuide(doc, 'h', y); notify(state); });
+      guidesGroup.add(ln);
+    }
+    renderRulers();
+  }
+
+  // Règles : deux bandes DOM dans #stage-wrap (hors du pan), graduations selon
+  // zoom/pan. Glisser depuis une règle pose un guide (doc.guides, persisté).
+  const rulersHost = container.parentElement || container;
+  const rulerH = document.createElement('div');
+  rulerH.id = 'ruler-h';
+  const rulerV = document.createElement('div');
+  rulerV.id = 'ruler-v';
+  rulersHost.appendChild(rulerH);
+  rulersHost.appendChild(rulerV);
+
+  function renderRulers() {
+    const on = state.grid.rulers !== false;
+    rulerH.style.display = on ? 'block' : 'none';
+    rulerV.style.display = on ? 'block' : 'none';
+    if (!on) return;
+    const wrapRect = rulersHost.getBoundingClientRect();
+    const stageRect = konvaStage.container().getBoundingClientRect();
+    const scale = konvaStage.scaleX() || 1;
+    drawRuler(rulerH, 'h', wrapRect, stageRect, scale);
+    drawRuler(rulerV, 'v', wrapRect, stageRect, scale);
+  }
+
+  function drawRuler(el, orient, wrapRect, stageRect, scale) {
+    const horizontal = orient === 'h';
+    const w = horizontal ? Math.max(10, Math.round(wrapRect.width)) : 16;
+    const h = horizontal ? 16 : Math.max(10, Math.round(wrapRect.height));
+    el.style.width = w + 'px';
+    el.style.height = h + 'px';
+    if (!el.firstChild) el.appendChild(document.createElement('canvas'));
+    const cv = el.firstChild;
+    if (cv.width !== w) cv.width = w;
+    if (cv.height !== h) cv.height = h;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#eee8d5';
+    ctx.fillRect(0, 0, w, h);
+    const off = horizontal ? stageRect.left - wrapRect.left : stageRect.top - wrapRect.top;
+    const scene0 = -off / scale;
+    const step = rulerStep(scale);
+    const limit = horizontal ? w : h;
+    ctx.strokeStyle = '#93a1a1';
+    ctx.fillStyle = '#586e75';
+    ctx.font = '8px sans-serif';
+    ctx.lineWidth = 1;
+    for (let s = Math.ceil(scene0 / step) * step; s * scale + off <= limit; s += step) {
+      const px = Math.round(s * scale + off);
+      ctx.beginPath();
+      if (horizontal) { ctx.moveTo(px, 10); ctx.lineTo(px, 16); } else { ctx.moveTo(10, px); ctx.lineTo(16, px); }
+      ctx.stroke();
+      if (s % (step * 5) === 0) {
+        const label = String(s);
+        if (horizontal) ctx.fillText(label, px + 1, 9); else ctx.fillText(label, 1, px + 8);
+      }
+    }
+  }
+
+  function rulerDragStart(orient) {
+    let temp = null;
+    let pos = null;
+    const move = (ev) => {
+      const stageRect = konvaStage.container().getBoundingClientRect();
+      const scale = konvaStage.scaleX() || 1;
+      pos = orient === 'h' ? (ev.clientY - stageRect.top) / scale : (ev.clientX - stageRect.left) / scale;
+      if (!temp) {
+        temp = new Konva.Line({
+          points: orient === 'h' ? [0, pos, state.doc.width, pos] : [pos, 0, pos, state.doc.height],
+          stroke: 'rgba(203,75,22,0.8)', strokeWidth: 1, listening: false,
+        });
+        guidesGroup.add(temp);
+      } else {
+        temp.points(orient === 'h' ? [0, pos, state.doc.width, pos] : [pos, 0, pos, state.doc.height]);
+      }
+      overlayLayer.batchDraw();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      if (temp) temp.destroy();
+      if (pos != null && pos >= 0) {
+        const max = orient === 'h' ? state.doc.height : state.doc.width;
+        if (pos <= max) { addGuide(state.doc, orient === 'h' ? 'h' : 'v', pos); notify(state); }
+      }
+      overlayLayer.batchDraw();
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+  rulerH.addEventListener('mousedown', (e) => { e.preventDefault(); rulerDragStart('h'); });
+  rulerV.addEventListener('mousedown', (e) => { e.preventDefault(); rulerDragStart('v'); });
+
   // ------------------------------------------------------------ caméra
   // Pendant la lecture, le monde entier (page + contenu) est vu à travers
   // la caméra : la transform document->cadre est appliquée à bgLayer ET
@@ -1021,6 +1160,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     refreshPointHandles();
     refreshCameraFrame();
     refreshMeshHandles();
+    refreshGridAndGuides();
     for (const l of contentStack) l.draw();
     overlayLayer.batchDraw();
   }
@@ -1258,8 +1398,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (!el) return;
     
     const oldX = el.x, oldY = el.y, oldRotation = el.rotation;
-    el.x = node.x();
-    el.y = node.y();
+    const sp = snapIfEnabled(node.x(), node.y());
+    el.x = sp.x;
+    el.y = sp.y;
     el.rotation = node.rotation();
     el.scaleX = node.scaleX();
     el.scaleY = node.scaleY();
@@ -1848,15 +1989,18 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const x = Math.min(last.x, start.x), y = Math.min(last.y, start.y);
       const w = Math.abs(last.x - start.x), h = Math.abs(last.y - start.y);
       if (w < 2 || h < 2) return;
-      el = createShape('rect', { x: x + w / 2, y: y + h / 2, width: w, height: h, fill: state.fillColor, stroke: state.strokeColor, strokeWidth: state.strokeWidth });
+      const c = snapIfEnabled(x + w / 2, y + h / 2); // snap du centre si grille active
+      el = createShape('rect', { x: c.x, y: c.y, width: w, height: h, fill: state.fillColor, stroke: state.strokeColor, strokeWidth: state.strokeWidth });
     } else if (tool === 'ellipse') {
       const w = Math.abs(last.x - start.x), h = Math.abs(last.y - start.y);
       if (w < 2 || h < 2) return;
-      el = createShape('ellipse', { x: (start.x + last.x) / 2, y: (start.y + last.y) / 2, width: w, height: h, fill: state.fillColor, stroke: state.strokeColor, strokeWidth: state.strokeWidth });
+      const c = snapIfEnabled((start.x + last.x) / 2, (start.y + last.y) / 2);
+      el = createShape('ellipse', { x: c.x, y: c.y, width: w, height: h, fill: state.fillColor, stroke: state.strokeColor, strokeWidth: state.strokeWidth });
     } else if (tool === 'line') {
       const dx = last.x - start.x, dy = last.y - start.y;
       if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
-      el = createShape('line', { x: start.x, y: start.y, points: [createPathPoint(0, 0), createPathPoint(dx, dy)], stroke: state.strokeColor, strokeWidth: state.strokeWidth, width: Math.abs(dx), height: Math.abs(dy) });
+      const s = snapIfEnabled(start.x, start.y);
+      el = createShape('line', { x: s.x, y: s.y, points: [createPathPoint(0, 0), createPathPoint(dx, dy)], stroke: state.strokeColor, strokeWidth: state.strokeWidth, width: Math.abs(dx), height: Math.abs(dy) });
     } else if (tool === 'bone') {
       const dx = last.x - start.x, dy = last.y - start.y;
       const length = Math.sqrt(dx * dx + dy * dy);
@@ -2184,9 +2328,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
   function createTextAtWithBounds(bounds) {
     // bounds = { x, y, width, height }
+    const c = snapIfEnabled(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     const el = createShape('text', {
-      x: bounds.x + bounds.width / 2,
-      y: bounds.y + bounds.height / 2,
+      x: c.x,
+      y: c.y,
       width: Math.max(20, bounds.width),
       height: Math.max(20, bounds.height),
       text: 'Texte',

@@ -2,6 +2,7 @@
 // Toute mutation doit être suivie d'un appel à notify(state).
 
 import { defaultOnionSkin } from './core/onionSkin.js';
+import { defaultGrid } from './core/grid.js';
 
 export function createEditorState(doc) {
   return {
@@ -22,6 +23,7 @@ export function createEditorState(doc) {
     zoom: 1,
     onionSkin: defaultOnionSkin(), // peau d'oignon : fantômes bleus (passé) / rouges (futur) — réglage d'interface global, persisté via prefs (voir main.js / Timeline.js)
     audioAssetId: null, // dernier asset audio importé/sélectionné pour la piste audio (réglage d'interface global)
+    grid: defaultGrid(), // grille + snap + règles de la scène (persisté via prefs 'gridPrefs', voir main.js / Timeline.js)
     listeners: new Set(),
   };
 }

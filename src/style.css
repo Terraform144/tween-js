@@ -433,6 +433,18 @@ body.sheet-fullscreen .stage-zoom-controls {
 /* Curseur main : grabbing pendant le glisser, grab au survol */
 #stage-container.panning { cursor: grab; }
 #stage-container.panning.grabbing { cursor: grabbing; }
+/* Règles (bandes de graduation en haut/gauche de la zone scène) */
+#stage-wrap #ruler-h, #stage-wrap #ruler-v {
+  position: absolute;
+  z-index: 5;
+  background: #eee8d5;
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+#stage-wrap #ruler-h { top: 0; left: 16px; right: 0; height: 16px; cursor: ns-resize; }
+#stage-wrap #ruler-v { top: 16px; left: 0; bottom: 0; width: 16px; cursor: ew-resize; }
+#stage-wrap #ruler-h canvas, #stage-wrap #ruler-v canvas { display: block; }
 @media (pointer: coarse), (max-width: 1024px) {
   .stage-zoom-controls button { width: 36px; height: 36px; }
   .stage-zoom-controls .zoom-percent { font-size: 13px; min-width: 48px; }

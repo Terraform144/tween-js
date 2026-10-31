@@ -184,6 +184,14 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 
 - TEST SoundJS + tout CreateJS dans la boîte de script (29/10, demande user) : harnais repro_createjs_all.mjs 7/7 via Exécuter — TweenJS sur élément nommé OK, EaselJS Stage+Shape+Text offscreen OK (render pixel vérifié), PreloadJS LoadQueue dataUrl OK, Ticker OK (8 ticks/400ms), EventDispatcher OK, SoundJS play(wav) retourne une instance mais playState 'playFailed' dans ce headless (chrome-headless-shell sans pipeline audio : activePlugin reste null même avec registerPlugins inline ajouté à index.html main+vanilla — dans un vrai Chrome le plugin s'activera). Fallback fiable déjà en place : Scene.playSound. RESSOURCE : Ressources/midi-song.wav généré par _wrk_mistral_mem/gen_midi_song.mjs (PCM 16-bit 16kHz mono, 7s, onde carrée lead + triangle basse, "Au clair de la lune", 225 Ko) — committé dans ./Ressources/.
 
+### Session 26 - 29/10/2026 — GRILLE + SNAP + RÈGLES/GUIDES
+- DEMANDE USER : grille + snap + règles dans la scène.
+- core/grid.js (pur) : defaultGrid {visible:false, spacing:10, snap:false, rulers:true}, sanitizeGrid (rulers: défaut true, 0/false -> false — piège attraché par le harnais), snapValue/snapPoint (arrondi au multiple), gridLines, rulerStep (pas adaptatif 10..5000 selon scale), addGuide/removeGuide/guideAt. state.grid (createEditorState) + pref 'gridPrefs' (main.js). doc.guides = { v:[], h:[] } persisté JSON.
+- UI Timeline : à côté de l'onion — bouton grille + input espacement + bouton aimant (snap) + bouton règles. PIEGE E2E : le sélecteur title*="grille" matchait le bouton MAILLAGE (son title contient « grille ») -> titres exacts dans le harnais.
+- Stage.js : gridGroup + guidesGroup dans overlayLayer ; refreshGridAndGuides() dans render() (lignes tous les spacing, tous les 5*spacing plus foncé ; guides tiretés orange, clic droit supprime). Règles : deux bandes DOM #ruler-h/#ruler-v dans #stage-wrap (hors pan), canvas 2D, graduations recalculées à chaque render selon zoom/pan (rulerStep), drag depuis une règle = guide temporaire + pose au mouseup (addGuide, coordonnées scène via stageRect/scale). snapIfEnabled appliqué dans commitTransform (drag) + création rect/ellipse/line/texte.
+- HARNESS : repro_grid.mjs 16/16. E2E repro_e2e_grid.mjs 7/7 : grille 97 lignes, snap (134.5 -> 130 multiple de 10), règles avec graduations, guide tiré depuis la règle (doc.guides.h=[103] via JSON exporté) et rendu en overlay, 0 pageerror. Non-régression 12 harnais OK. Rebuild 2 versions, node --check OK.
+- Reste à faire : validation visuelle user ; APK non régénéré (règle). v2 : snap aussi sur les poignées Bézier et le pinceau, snap sur les bords d'autres éléments (pas que la grille), guides aimantés eux-mêmes, grille en points (dots) au lieu de lignes.
+
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
 - Compréhension architecture complète
