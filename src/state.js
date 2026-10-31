@@ -1,6 +1,8 @@
 // État central de l'éditeur — un objet mutable simple + pub/sub.
 // Toute mutation doit être suivie d'un appel à notify(state).
 
+import { defaultOnionSkin } from './core/onionSkin.js';
+
 export function createEditorState(doc) {
   return {
     doc,
@@ -18,6 +20,7 @@ export function createEditorState(doc) {
     brushSize: 5,
     brushPattern: 'round', // Patterns: 'round', 'flat', 'calligraphy', 'taper'
     zoom: 1,
+    onionSkin: defaultOnionSkin(), // peau d'oignon : fantômes bleus (passé) / rouges (futur) — réglage d'interface global, persisté via prefs (voir main.js / Timeline.js)
     listeners: new Set(),
   };
 }

@@ -36,6 +36,12 @@ Ouvrir l'URL affichée (http://localhost:5173).
 - **Scène** : outils Sélection, Sous-sélection, Rectangle, Ellipse, Ligne,
   Plume, Texte. Déplacement / redimensionnement / rotation via poignées.
   Suppr pour effacer la sélection.
+- **Peau d'oignon (onion skin)** : fantômes des images voisines de la tête de
+  lecture, affichés sous la scène pendant l'édition — **bleus vers le passé,
+  rouges vers l'avenir**, avec une opacité dégressive (la plus proche est la
+  plus visible). Bouton 👁-oignon + deux champs (nb passé / nb futur) dans la
+  barre de la timeline ; réglage mémorisé d'une session à l'autre. Aucun effet
+  pendant la lecture ni dans les exports (outil d'édition uniquement).
 - **Caméra (touche C)** : caméra virtuelle de scène façon Animate CC pour des
   cadrages cinématographiques. Cadre en liseré pointillé sur la scène :
   glisser l'intérieur = déplacer le cadre (pan), poignées d'angle ou molette

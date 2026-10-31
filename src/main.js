@@ -12,6 +12,7 @@ import { mountProjectTabs } from './ui/ProjectTabs.js';
 import { createSceneRuntime } from './runtime/sceneRuntime.js';
 import { getClipState, clearClipStates } from './runtime/clipStates.js';
 import { resolveLayersAtFrame } from './playback/resolve.js';
+import { sanitizeOnionSkin } from './core/onionSkin.js';
 import { getPref, setPref, hasPref } from './util/prefs.js';
 import { toggleFullscreen, isElementFullscreen, onFullscreenChange } from './util/fullscreen.js';
 import { ICONS } from './ui/icons.js';
@@ -20,6 +21,9 @@ import { isNarrowViewport, isTouchLike, isPhoneSize, isLargeScreen } from './uti
 const doc = createDocument({ name: 'Sans titre' });
 
 const state = createEditorState(doc);
+
+// Peau d'oignon : réglage d'interface global (pas par projet), persisté.
+state.onionSkin = sanitizeOnionSkin(getPref('onionSkin', state.onionSkin));
 
 // --- Fenêtres-projets (multi-documents) ----------------------------------
 // `state` sert de façade : ses champs par projet (doc, editPath, sélection,

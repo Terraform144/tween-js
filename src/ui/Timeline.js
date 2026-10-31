@@ -38,6 +38,37 @@ export function mountTimeline(container, state) {
   const btnPlay = svgButton('play', 'Lecture / Pause (Entrée)');
   const btnStop = svgButton('stop', 'Arrêter la lecture');
 
+  // Peau d'oignon (onion skin) : fantômes des images voisines de la tête de
+  // lecture — BLEUS vers le passé, ROUGES vers l'avenir. Réglage global,
+  // persisté (prefs 'onionSkin'), le rendu vit dans Stage.js (onionLayer).
+  const btnOnion = svgButton('onion', 'Peau d\'oignon (onion skin) — fantômes bleus vers le passé, rouges vers l\'avenir');
+  const pastInput = document.createElement('input');
+  pastInput.type = 'number'; pastInput.min = '0'; pastInput.max = '50'; pastInput.step = '1';
+  pastInput.className = 'onion-num'; pastInput.title = 'Nombre d\'images passées en fantôme (bleu)';
+  const futureInput = document.createElement('input');
+  futureInput.type = 'number'; futureInput.min = '0'; futureInput.max = '50'; futureInput.step = '1';
+  futureInput.className = 'onion-num'; futureInput.title = 'Nombre d\'images futures en fantôme (rouge)';
+  function syncOnionInputs() {
+    if (document.activeElement !== pastInput) pastInput.value = String(state.onionSkin.past);
+    if (document.activeElement !== futureInput) futureInput.value = String(state.onionSkin.future);
+    btnOnion.classList.toggle('active', !!state.onionSkin.enabled);
+  }
+  function commitOnion() {
+    state.onionSkin.past = Math.max(0, Math.min(50, parseInt(pastInput.value, 10) || 0));
+    state.onionSkin.future = Math.max(0, Math.min(50, parseInt(futureInput.value, 10) || 0));
+    setPref('onionSkin', state.onionSkin);
+    syncOnionInputs();
+    notify(state);
+  }
+  btnOnion.addEventListener('click', () => {
+    state.onionSkin.enabled = !state.onionSkin.enabled;
+    setPref('onionSkin', state.onionSkin);
+    syncOnionInputs();
+    notify(state);
+  });
+  pastInput.addEventListener('change', commitOnion);
+  futureInput.addEventListener('change', commitOnion);
+
   const labelInput = document.createElement('input');
   labelInput.type = 'text';
   labelInput.placeholder = 'Étiquette (label)';
@@ -68,7 +99,7 @@ export function mountTimeline(container, state) {
   });
   applyCollapsed();
 
-  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, btnStop, frameInfo, btnCollapse);
+  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, btnStop, sep(), btnOnion, pastInput, futureInput, frameInfo, btnCollapse);
   enableDragScroll(toolbar);
 
   const body = document.createElement('div');
@@ -610,6 +641,7 @@ export function mountTimeline(container, state) {
     playhead.style.left = state.currentFrame * CELL_W + 'px';
     playhead.style.height = (layersInContext().length + (cameraTrackVisible() ? 1 : 0)) * rowHeight() + 20 + 'px';
     btnPlay.innerHTML = ICONS[state.playing ? 'pause' : 'play'];
+    syncOnionInputs();
     frameInfo.textContent = `Image ${state.currentFrame + 1} / ${n} — ${state.doc.frameRate} i/s`;
 
     const layer = selectedLayer();

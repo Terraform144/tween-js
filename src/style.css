@@ -726,6 +726,17 @@ body.fs-css .fs-css-active {
 .tl-toolbar > * { flex: none; }
 .tl-toolbar .sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
 .tl-toolbar .frame-info { color: var(--text-dim); font-size: 11px; margin-left: auto; }
+/* Peau d'oignon : champs "nb passé / futur" compacts dans la barre de timeline */
+.tl-toolbar input.onion-num {
+  width: 34px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 3px 2px;
+  font-size: 11px;
+  text-align: center;
+}
 .tl-body {
   flex: 1;
   min-height: 0;

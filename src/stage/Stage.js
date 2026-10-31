@@ -1,5 +1,6 @@
 import Konva from 'konva';
-import { getContextLayers, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
+import { getContextLayers, getContextFrameCount, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
+import { onionFrames, tintElementForOnion } from '../core/onionSkin.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
 import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
 import { WARP_DEFAULT_COLS, WARP_DEFAULT_ROWS, defaultWarpGrid, ensureWarp, hasValidWarp, drawWarpImage, warpOutlinePath, warpBounds } from '../core/warp.js';
@@ -61,9 +62,12 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   const konvaStage = new Konva.Stage({ container: panLayer, width: initialDoc.width, height: initialDoc.height });
 
   const bgLayer = new Konva.Layer({ listening: false });
+  // Peau d'oignon : fantômes des images voisines sous le contenu courant,
+  // au-dessus du fond. Non interactif, re-rempli à chaque render().
+  const onionLayer = new Konva.Layer({ listening: false });
   const contentLayer = new Konva.Layer();
   const overlayLayer = new Konva.Layer();
-  konvaStage.add(bgLayer, contentLayer, overlayLayer);
+  konvaStage.add(bgLayer, onionLayer, contentLayer, overlayLayer);
 
   const bgRect = new Konva.Rect({ x: 0, y: 0, width: initialDoc.width, height: initialDoc.height, fill: initialDoc.backgroundColor });
   bgLayer.add(bgRect);
@@ -459,6 +463,43 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
   }
 
+  // ------------------------------------------------ peau d'oignon (onion skin)
+  // Fantômes des images voisines de la tête de lecture, teintés bleu (passé)
+  // / rouge (futur), opacité dégressive — voir core/onionSkin.js. Uniquement
+  // HORS lecture (pendant la lecture la tête avance : pas de fantôme fixe).
+  // Rendu dans onionLayer, sous le contenu courant, non interactif. Les
+  // instances de symboles sont résolues à la frame fantôme (modulo leur
+  // frameCount) : on voit aussi le fantôme du contenu interne du clip.
+  // v1 : pas de skinning (déformation par bones) appliqué aux fantômes.
+  function renderOnionInto(parent, layers, frameIndex, tint, alpha, depth = 0) {
+    const elements = resolveLayersAtFrame(layers, frameIndex);
+    for (const el of elements) {
+      const node = buildNode(tintElementForOnion(el, tint, alpha));
+      node.listening(false);
+      parent.add(node);
+      if (el.kind === 'instance') {
+        const symbol = state.doc.symbols[el.symbolId];
+        if (symbol) {
+          const childFrame = frameIndex % Math.max(1, symbol.frameCount);
+          renderOnionInto(node, symbol.layers, childFrame, tint, alpha, depth + 1);
+        }
+      }
+    }
+  }
+
+  function renderOnionSkin() {
+    onionLayer.destroyChildren();
+    if (!state.playing) {
+      const n = getContextFrameCount(state.doc, state.editPath);
+      for (const f of onionFrames(state.currentFrame, n, state.onionSkin)) {
+        const g = new Konva.Group({ listening: false });
+        renderOnionInto(g, currentLayers(), f.index, f.tint, f.alpha, 0);
+        onionLayer.add(g);
+      }
+    }
+    onionLayer.draw();
+  }
+
   // ------------------------------------------------------------ caméra
   // Pendant la lecture, le monde entier (page + contenu) est vu à travers
   // la caméra : la transform document->cadre est appliquée à bgLayer ET
@@ -800,6 +841,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     applyCameraTransform();
     contentLayer.destroyChildren();
     renderInto(contentLayer, currentLayers(), state.currentFrame, tick, 0);
+    renderOnionSkin();
     refreshSelectionVisuals();
     refreshPointHandles();
     refreshCameraFrame();

@@ -33,6 +33,7 @@ export const ICONS = {
   chevronLeft: svg('<path d="M15 6l-6 6 6 6"/>'),
   tag: svg('<path d="M11 3H6a2 2 0 0 0-2 2v5l10.5 10.5a1 1 0 0 0 1.4 0l5.1-5.1a1 1 0 0 0 0-1.4L11 3Z"/><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/>'),
   eye: svg('<path d="M2.5 12S6.5 5.5 12 5.5 21.5 12 21.5 12 17.5 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.6"/>'),
+  onion: svg('<rect x="8.5" y="3.5" width="12" height="9" rx="1" opacity="0.3"/><rect x="6" y="7" width="12" height="9" rx="1" opacity="0.55"/><rect x="3.5" y="10.5" width="12" height="9" rx="1"/>'),
   eyeOff: svg('<path d="M3 3l18 18"/><path d="M10.6 5.6c.45-.07.9-.1 1.4-.1 5.5 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.9 3.6M6.4 6.7A16.9 16.9 0 0 0 2.5 12S6.5 18.5 12 18.5c1.3 0 2.5-.25 3.6-.7"/><path d="M9.4 9.9a2.6 2.6 0 0 0 3.6 3.6"/>'),
   lockClosed: svg('<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
   lockOpen: svg('<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"/><path d="M8 10.5V8a4 4 0 0 1 7.6-2.2"/>'),
