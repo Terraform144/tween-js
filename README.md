@@ -102,7 +102,9 @@ Ouvrir l'URL affichée (http://localhost:5173).
   historique annuler/rétablir. Bouton "+ Nouveau" ; "Nouveau", "Ouvrir…" et
   "Archives" ouvrent désormais dans une nouvelle fenêtre sans rien perdre.
   La lecture se met en pause automatiquement quand une fenêtre n'est plus
-  active.
+  active. **Copier/coller entre projets** : Ctrl+C / Ctrl+X / Ctrl+V avec un
+  presse-papiers partagé entre toutes les fenêtres — les images (assets) et
+  les symboles référencés sont importés automatiquement dans le projet cible.
 - **Symboles / bibliothèque** : sélectionner des objets puis "Convertir en
   symbole" (F8) crée un symbole Graphic ou MovieClip réutilisable ; double-
   clic sur une instance (ou un élément de la bibliothèque) pour éditer le

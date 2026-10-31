@@ -154,6 +154,12 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - HARNESS : repro_guide.mjs 17/17 (owner, samplePath ligne/Bézier, resolveLayersAtFrame frame 0/2/4 + includeGuides + sans tween). E2E repro_e2e_guide.mjs 8/8 : frame 2 -> rect au sommet (250,25) exact, guide rendu en édition, PAS en lecture (paths=0), export HTML en file:// -> le rect passe par le sommet (rouge vu) et le guide jamais peint (noir 0x), 0 pageerror. Non-régression : createjs 28, pivot 45, camera 40, sessions, symbolscript 21, onion 31, transparent 14, mask 9. Rebuild 2 versions, node --check OK, marqueurs pointAt/computeGuideOwner dans les 2 bundles.
 - Reste à faire : validation visuelle user ; APK non régénéré (règle). v2 : orientation selon la tangente ("orient to path"), plusieurs objets sur un même guide, guide avec plusieurs courbes.
 
+### Session 23 - 29/10/2026 — COPIER/COLLER ENTRE FENÊTRES-PROJETS
+- Contexte : Ctrl+C/X/V existaient déjà (Stage.js, clipboard local à createStage = global car un seul stage monté, state = façade par projet -> le cross-projets marchait déjà pour les formes simples). MANQUAIT : la portabilité des assets (bitmaps) et symboles (instances) au collage dans un doc qui ne les connaît pas.
+- FIX additif (Stage.js) : clipboard = { elements, assets, symbols }. copySelected collecte récursivement les assets référencés (doc.assets[assetId]) et les symboles (instance -> symbole + dépendances imbriquées). pasteClipboard importe dans le doc CIBLE (projet actif) ceux qui manquent (doc.assets[id], doc.symbols[id]) puis colle (cloneElement(el, true) = nouvel id d'élément ; assetId/symbolId conservés). Sûr car le compteur d'ids est global (core/model.js) -> ids uniques entre docs, aucun conflit. Le collage reste annulable (commitToActiveKeyframe + notify).
+- E2E _wrk_mistral_mem/repro_e2e_crosscopy.mjs : 9 OK — doc A (rect + instance de symbole + bitmap asset) chargé, copier chaque élément, +New -> projet B vide, Ctrl+V, vérification via le JSON exporté de B : élément collé (nouvel id), symbole importé dans doc.symbols avec son contenu, asset importé dans doc.assets (dataUrl identique), Ctrl+X supprime bien. 0 pageerror. Non-régression : 9 harnais OK. Rebuild 2 versions, node --check OK.
+- Reste à faire : validation visuelle user ; APK non régénéré (règle). v2 : copier/coller des keyframes entières (avec tween), copier des calques entiers, collage avec décalage de position.
+
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
 - Compréhension architecture complète

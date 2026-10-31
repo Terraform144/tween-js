@@ -19,7 +19,7 @@
 
 - [ ] Grille + aimants (snap) + règles dans la scène
 - [ ] Shape hints pour le morphing (appariement guidé, pas seulement par index)
-- [ ] Copier/coller entre les fenêtres-projets ouverts (presse-papiers multi-doc)
+- [x] **Copier/coller entre les fenêtres-projets** — ✅ livré 29/10 : presse-papiers global partagé (Ctrl+C/X/V), assets (bitmaps) et symboles importés automatiquement dans le projet cible au collage. E2E 9/9 (rect + instance/symbole + bitmap cross-projets, Ctrl+X).
 - [ ] Piste audio dans la timeline (SoundJS déjà embarqué, pas de timeline sonore)
 - [ ] Thème sombre de l'interface (Solarized dark)
 

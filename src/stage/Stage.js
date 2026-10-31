@@ -193,7 +193,14 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   let marquee = null; // { start, node, additive } — sélection rectangulaire en cours (outil sélection)
   let subselectId = null; // id de l'élément path/line actuellement édité par l'outil sous-sélection
   let pointRefs = []; // nœuds Konva des ancres/poignées affichées, reconstruits à chaque sélection
-  let clipboard = []; // éléments copiés (Ctrl+C/X), hors state.doc pour ne jamais entrer dans l'historique d'annulation
+  // Presse-papiers GLOBAL (hors state.doc, donc hors historique d'annulation),
+  // partagé entre toutes les fenêtres-projets : copier dans un projet, basculer
+  // d'onglet, coller dans l'autre. Contient les éléments + les assets (bitmaps)
+  // et symboles (instances) référencés, pour que le collage fonctionne même
+  // dans un document qui ne les connaît pas. Les ids sont globalement uniques
+  // (compteur partagé dans core/model.js) -> importer asset/symbole avec le
+  // même id dans un autre doc ne peut pas entrer en conflit.
+  let clipboard = { elements: [], assets: {}, symbols: {} };
   let panStart = null; // { mouseX, mouseY, offsetX, offsetY } — glisser-déposer en cours avec la main
   let panOffset = { x: 0, y: 0 }; // décalage CSS translate courant du conteneur
 
@@ -2198,7 +2205,27 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const kf = getActiveKeyframe(layer, state.currentFrame);
     const elements = kf.elements.filter((e) => state.selectedElementIds.includes(e.id) && e.kind !== 'bone');
     if (!elements.length) return;
-    clipboard = elements.map((el) => cloneElement(el, false));
+    const assets = {};
+    const symbols = {};
+    // Collecte récursive des assets (bitmaps) et symboles (instances + leurs
+    // dépendances) référencés par la sélection, pour un collage cross-projets.
+    const collectSymbol = (sym) => {
+      if (!sym || symbols[sym.id]) return;
+      symbols[sym.id] = sym;
+      for (const l of sym.layers || []) {
+        for (const k of l.keyframes || []) {
+          for (const e of k.elements || []) {
+            if (e.kind === 'bitmap' && state.doc.assets && state.doc.assets[e.assetId]) assets[e.assetId] = state.doc.assets[e.assetId];
+            if (e.kind === 'instance') collectSymbol(state.doc.symbols[e.symbolId]);
+          }
+        }
+      }
+    };
+    for (const el of elements) {
+      if (el.kind === 'bitmap' && state.doc.assets && state.doc.assets[el.assetId]) assets[el.assetId] = state.doc.assets[el.assetId];
+      if (el.kind === 'instance') collectSymbol(state.doc.symbols[el.symbolId]);
+    }
+    clipboard = { elements: elements.map((el) => cloneElement(el, false)), assets, symbols };
   }
 
   function cutSelected() {
@@ -2208,10 +2235,18 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   function pasteClipboard() {
-    if (!clipboard.length) return;
+    if (!clipboard.elements.length) return;
     const layer = activeLayer();
     if (!layer || layer.locked) return;
-    const pasted = clipboard.map((el) => cloneElement(el, true));
+    // Importe les assets/symboles du presse-papiers dans le document CIBLE
+    // (projet actif) s'il ne les connaît pas — c'est ce qui rend le collage
+    // fonctionnel entre fenêtres-projets.
+    const doc = state.doc;
+    doc.assets = doc.assets || {};
+    for (const id in clipboard.assets) if (!doc.assets[id]) doc.assets[id] = clipboard.assets[id];
+    doc.symbols = doc.symbols || {};
+    for (const id in clipboard.symbols) if (!doc.symbols[id]) doc.symbols[id] = clipboard.symbols[id];
+    const pasted = clipboard.elements.map((el) => cloneElement(el, true));
     commitToActiveKeyframe((kf) => { pasted.forEach((el) => kf.elements.push(el)); });
     state.selectedElementIds = pasted.map((el) => el.id);
     state.selectedLayerId = layer.id;
