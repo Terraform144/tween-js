@@ -12,6 +12,19 @@
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
+// Piste audio (copie autonome de core/audio.js) : joue les sons (assets
+// kind:'audio', dataUrl) posés sur une frame, via new Audio().
+function tjsPlayFrameSounds(data, frame) {
+  if (typeof Audio === 'undefined' || !data || !data.audio) return;
+  for (const ev of data.audio) {
+    if (ev.frame !== frame) continue;
+    const asset = (data.assets || {})[ev.assetId];
+    if (asset && asset.dataUrl) {
+      try { new Audio(asset.dataUrl).play(); } catch (e) { /* son illisible : ignoré */ }
+    }
+  }
+}
+
 function applyEasing(t, easing) {
   if (easing === 'easeIn') return t * t;
   if (easing === 'easeOut') return 1 - (1 - t) * (1 - t);
@@ -568,6 +581,7 @@ function drawShape(ctx, el, data) {
 export class MovieClip {
   constructor(data, props = {}) {
     this.data = data; // { frameRate, frameCount, layers, frameLabels, symbols, width, height }
+    this._lastAudioFrame = -1; // piste audio : dernière frame sonorisée
     this.x = props.x || 0;
     this.y = props.y || 0;
     this.rotation = props.rotation || 0;
@@ -678,6 +692,12 @@ export class MovieClip {
     if (this._onFrameScript && this._frame !== this._lastScriptFrame) {
       this._lastScriptFrame = this._frame;
       this._onFrameScript(this._frame);
+    }
+    // Piste audio (copie autonome de core/audio.js) : joue les sons posés sur
+    // l'image atteinte, une seule fois par image.
+    if (this._frame !== this._lastAudioFrame) {
+      this._lastAudioFrame = this._frame;
+      tjsPlayFrameSounds(this.data, this._frame);
     }
     // Boucle de jeu du clip (onEnterFrame posé par son script de symbole).
     // Un clip arrêté ne tick pas (sémantique Animate : pas d'enterFrame

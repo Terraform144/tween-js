@@ -21,6 +21,7 @@ export function createEditorState(doc) {
     brushPattern: 'round', // Patterns: 'round', 'flat', 'calligraphy', 'taper'
     zoom: 1,
     onionSkin: defaultOnionSkin(), // peau d'oignon : fantômes bleus (passé) / rouges (futur) — réglage d'interface global, persisté via prefs (voir main.js / Timeline.js)
+    audioAssetId: null, // dernier asset audio importé/sélectionné pour la piste audio (réglage d'interface global)
     listeners: new Set(),
   };
 }

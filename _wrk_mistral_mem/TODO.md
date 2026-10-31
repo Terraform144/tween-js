@@ -20,7 +20,7 @@
 - [ ] Grille + aimants (snap) + règles dans la scène
 - [ ] Shape hints pour le morphing (appariement guidé, pas seulement par index)
 - [x] **Copier/coller entre les fenêtres-projets** — ✅ livré 29/10 : presse-papiers global partagé (Ctrl+C/X/V), assets (bitmaps) et symboles importés automatiquement dans le projet cible au collage. E2E 9/9 (rect + instance/symbole + bitmap cross-projets, Ctrl+X).
-- [ ] Piste audio dans la timeline (SoundJS déjà embarqué, pas de timeline sonore)
+- [x] **Piste audio dans la timeline** — ✅ livré 29/10 : import audio (menu Fichier), piste Audio dans la timeline (select + bouton +, dblclic cellule, clic droit supprime), son joué à la frame atteinte en lecture éditeur + exports (HTML/compilé via buildFullDocData). Harnais 12/12 + E2E 8/8 (espion Audio.play).
 - [ ] Thème sombre de l'interface (Solarized dark)
 
 ## 💡 Gros projets (continuité workflow VS Code)

@@ -9,6 +9,7 @@ import {
   hasCamera, getCameraKeyframeAt, upsertCameraKeyframe, moveCameraKeyframe,
   nextCameraEasing, CAMERA_EASING_LABELS,
 } from '../core/camera.js';
+import { audioAssets, upsertAudioEvent, removeAudioEventAt } from '../core/audio.js';
 import { ICONS } from './icons.js';
 import { isTouchLike, isPhoneSize } from '../util/responsive.js';
 import { enableDragScroll } from '../util/dragScroll.js';
@@ -196,6 +197,100 @@ export function mountTimeline(container, state) {
   // droit sur une clé fait tourner l'easing du tween qui la quitte.
   function cameraTrackVisible() {
     return !state.editPath.length && hasCamera(state.doc);
+  }
+
+  // Piste audio : visible en scène racine dès qu'un asset audio existe.
+  function audioTrackVisible() {
+    return !state.editPath.length && audioAssets(state.doc).length > 0;
+  }
+
+  let lastAudioCellClick = { index: -1, time: 0 };
+
+  function buildAudioTrack() {
+    const assets = audioAssets(state.doc);
+    const row = document.createElement('div');
+    row.className = 'tl-layer-row tl-audio-row';
+    row.title = "Piste audio — choisir un son dans la liste, double-clic sur une image pour le poser ; clic droit sur un son : supprimer ; bouton + : poser à l'image courante";
+    const icon = document.createElement('span');
+    icon.className = 'mini-btn cam-icon';
+    icon.innerHTML = ICONS.audio;
+    const name = document.createElement('span');
+    name.className = 'layer-name';
+    name.textContent = 'Audio';
+    const sel = document.createElement('select');
+    sel.className = 'audio-asset-select';
+    sel.title = 'Son à poser sur la piste audio';
+    for (const a of assets) {
+      const o = document.createElement('option');
+      o.value = a.id;
+      o.textContent = a.name;
+      sel.appendChild(o);
+    }
+    sel.value = (state.audioAssetId && assets.some((a) => a.id === state.audioAssetId)) ? state.audioAssetId : assets[0].id;
+    sel.addEventListener('change', () => { state.audioAssetId = sel.value; });
+    const addBtn = document.createElement('span');
+    addBtn.className = 'mini-btn';
+    addBtn.innerHTML = ICONS.plus;
+    addBtn.title = "Poser le son sélectionné à l'image courante";
+    addBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      upsertAudioEvent(state.doc, state.currentFrame, sel.value);
+      state.audioAssetId = sel.value;
+      notify(state);
+    });
+    row.append(icon, name, sel, addBtn);
+    layersCol.appendChild(row);
+
+    const n = frameCount();
+    const track = document.createElement('div');
+    track.className = 'tl-track-row tl-audio-track';
+    track.style.width = n * CELL_W + 'px';
+    for (let i = 0; i < n; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'tl-frame-cell tl-audio-cell';
+      cell.style.width = CELL_W + 'px';
+      if (i === state.currentFrame) cell.classList.add('selected');
+      const ev = (state.doc.audio || []).find((e) => e.frame === i);
+      if (ev) {
+        const asset = (state.doc.assets || {})[ev.assetId];
+        cell.classList.add('audio-event');
+        cell.innerHTML = ICONS.audio;
+        cell.title = `Son « ${asset ? asset.name : ev.assetId} » à l'image ${i + 1} — clic droit : supprimer`;
+        cell.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          removeAudioEventAt(state.doc, i);
+          notify(state);
+        });
+      }
+      cell.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        const now = Date.now();
+        if (lastAudioCellClick.index === i && now - lastAudioCellClick.time < 400) {
+          lastAudioCellClick = { index: -1, time: 0 };
+          upsertAudioEvent(state.doc, i, sel.value);
+          state.audioAssetId = sel.value;
+          state.currentFrame = i;
+          notify(state);
+          return;
+        }
+        lastAudioCellClick = { index: i, time: now };
+        scrubbing = true;
+        scrubTarget = i;
+        state.currentFrame = i;
+        notify(state);
+      });
+      cell.addEventListener('pointermove', () => {
+        if (scrubbing && scrubTarget !== i) {
+          scrubTarget = i;
+          state.currentFrame = i;
+          notify(state);
+        }
+      });
+      track.appendChild(cell);
+    }
+    tracksBody.appendChild(track);
   }
 
   let camKeyDrag = null; // { kf, startIndex, startX, targetIndex, cell, track, minIndex, maxIndex }
@@ -519,6 +614,8 @@ export function mountTimeline(container, state) {
 
     // Piste caméra : au-dessus de tous les calques, scène racine seulement.
     if (cameraTrackVisible()) buildCameraTrack();
+    // Piste audio : sous la piste caméra, scène racine seulement.
+    if (audioTrackVisible()) buildAudioTrack();
 
     for (const layer of layers) {
       const row = document.createElement('div');

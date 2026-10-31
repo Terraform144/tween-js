@@ -10,7 +10,7 @@ import { enableDragScroll } from '../util/dragScroll.js';
 import { toggleFullscreen, fullscreenElement, onFullscreenChange } from '../util/fullscreen.js';
 import { getAllProjects, saveProject, loadProject, deleteProject, deleteAllProjects } from '../util/projects.js';
 
-export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onProjectLoad = () => {} }) {
+export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onAudioImport = () => {}, onProjectLoad = () => {} }) {
   container.innerHTML = '';
 
   const brand = document.createElement('span');
@@ -115,6 +115,32 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     imgFileInput.value = '';
   });
 
+  // Bouton d'import de fichiers audio (mp3/wav/ogg...) : stocké comme asset
+  // kind:'audio' en dataUrl (persistable dans le JSON), posable sur la piste
+  // audio de la timeline.
+  const audioFileInput = document.createElement('input');
+  audioFileInput.type = 'file';
+  audioFileInput.accept = 'audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac';
+  audioFileInput.style.display = 'none';
+  audioFileInput.addEventListener('change', () => {
+    const file = audioFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const asset = addAsset(state.doc, {
+        name: file.name,
+        kind: 'audio',
+        type: file.type || 'audio/mpeg',
+        dataUrl: reader.result,
+      });
+      notify(state);
+      onAudioImport(asset);
+    };
+    reader.onerror = () => alert('Impossible de lire ce fichier audio.');
+    reader.readAsDataURL(file);
+    audioFileInput.value = '';
+  });
+
   // Menu Fichier : regroupe les opérations d'entrée/sortie (ouvrir, importer
   // SVG/image, enregistrer JSON, exporter HTML). Le panneau est monté en
   // position:fixed dans menuPortal() — #menubar a un overflow-x:auto qui
@@ -142,6 +168,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     { icon: 'folderOpen', label: 'Ouvrir…', action: () => fileInput.click() },
     { icon: 'importSvg', label: 'Importer SVG', action: () => svgFileInput.click() },
     { icon: 'importImage', label: 'Importer image…', action: () => imgFileInput.click() },
+    { icon: 'audio', label: 'Importer audio…', action: () => audioFileInput.click() },
     { icon: 'save', label: 'Enregistrer JSON', action: () => downloadTextFile(serializeDocument(state.doc), safeName(state.doc.name) + '.json', 'application/json') },
     { icon: 'exportHtml', label: 'Exporter HTML', action: () => downloadStandaloneHTML(state.doc) },
     { icon: 'exportHtml', label: 'Compiler un HTML', action: () => downloadCompiledHTML(state.doc) },
@@ -398,7 +425,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   bgInput.addEventListener('input', () => { state.doc.backgroundColor = bgInput.value; notify(state); });
 
   container.append(
-    brand, btnUndo, btnRedo, btnNew, fileMenu, archivesMenu, aboutMenu, btnFullscreen, fileInput, svgFileInput, imgFileInput,
+    brand, btnUndo, btnRedo, btnNew, fileMenu, archivesMenu, aboutMenu, btnFullscreen, fileInput, svgFileInput, imgFileInput, audioFileInput,
     spacer,
     nameInput,
     wLabel, wInput, hLabel, hInput,

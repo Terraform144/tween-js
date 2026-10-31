@@ -42,6 +42,12 @@ Ouvrir l'URL affichée (http://localhost:5173).
   (forme en fil de fer). Le hit-test sur l'intérieur continue de marcher, les
   tweens de couleur fondent proprement vers/depuis transparent (interpolation
   du canal alpha), et les exports la gèrent nativement.
+- **Piste audio** : menu Fichier → « Importer audio… » (mp3/wav/ogg…) stocke le
+  son dans les assets ; une piste « Audio » apparaît dans la timeline (scène
+  racine) : choisir le son dans la liste, poser à l'image courante (bouton +)
+  ou par double-clic sur une cellule ; clic droit sur un son = supprimer. À la
+  lecture, chaque son est joué quand sa frame est atteinte — dans l'éditeur
+  comme dans les exports HTML/compilé.
 - **Dégradés (linéaire / radial)** : dans le panneau Propriétés de la forme
   (et uniquement là), ligne « Dégradé » : aucun / linéaire / radial,
   coordonnées en fraction de la boîte de l'objet, stops de couleur éditables

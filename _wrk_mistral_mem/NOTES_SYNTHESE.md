@@ -172,6 +172,15 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - HARNESS : repro_gradient.mjs 21/21 (sanitize, boxes par type, lerpGradient avec transparent, interpolateElement). E2E repro_e2e_gradient.mjs 13/13 : pixels linéaire rouge->bleu (gauche/droite/milieu), panneau (select linear, 2 stops, RIEN dans la toolbar), switch radial (centre rouge, bord mélange), export HTML file:// (mêmes pixels), 0 pageerror. Non-régression 10 harnais OK. Rebuild 2 versions, node --check OK.
 - Reste à faire : validation visuelle user ; APK non régénéré (règle). v2 : dégradé sur le contour (stroke), dégradé en pattern, pipette.
 
+### Session 25 - 29/10/2026 — PISTE AUDIO DANS LA TIMELINE
+- DEMANDE USER : piste audio. Modèle : doc.audio = [{ id, assetId, frame }] (optionnel, rétrocompatible) ; assets audio = assets normaux avec kind:'audio' (défaut image). Import : menu Fichier > « Importer audio… » (MenuBar, FileReader dataUrl, addAsset kind:'audio').
+- core/audio.js (pur + playFrameSounds avec new Audio(dataUrl)) : audioEventsAt, upsertAudioEvent (remplace si même frame, tri), removeAudioEventAt, audioAssets, playFrameSounds.
+- Timeline.js : piste « Audio » (visible en scène racine si ≥1 asset audio), pattern copié de la piste caméra : select des sons + bouton + (pose à la frame courante), cellules : event = classe audio-event + clic droit supprime ; cellule vide = double-clic pose (détection double pointerdown comme caméra) ; hauteurs playhead/tracks ajustées.
+- Lecture éditeur : main.js loop, dans le bloc `if (advanced)` et scène racine seule -> playFrameSounds(state.doc, state.currentFrame). state.audioAssetId = dernier son importé (champ global d'interface).
+- Runtime exporté : copie autonome tjsPlayFrameSounds + appel dans MovieClip.update quand la frame change (une fois par frame, comme les frame scripts ; _lastAudioFrame init -1 dans le ctor). exportHTML buildFullDocData += audio (couvert aussi pour le compilé via exportCompiled). PNG : pas de son (images fixes).
+- HARNESS : repro_audio.mjs 12/12 (events, tri, replace, remove, audioAssets filtre kind, playFrameSounds avec stub Audio + cas sans Audio/asset inconnu). E2E repro_e2e_audio.mjs 8/8 : espion HTMLAudioElement.prototype.play via evaluateOnNewDocument ; piste visible + event frame 2 affiché ; bouton + pose frame 5 ; lecture -> play appelé 1x (frame 2) ; export HTML en file:// -> play appelé 2x (boucle) ; 0 pageerror. Non-régression 11 harnais OK. Rebuild 2 versions, node --check OK.
+- Reste à faire : validation user ; APK non régénéré (règle). v2 : plusieurs sons superposés sur une frame (doc.audio autorise déjà plusieurs events même frame? non — upsert remplace par frame ; v2 = liste), durée/volume/loop par event, son attaché à un calque (pas racine), waveform affichée sur la piste.
+
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
 - Compréhension architecture complète

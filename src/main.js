@@ -13,6 +13,7 @@ import { createSceneRuntime } from './runtime/sceneRuntime.js';
 import { getClipState, clearClipStates } from './runtime/clipStates.js';
 import { resolveLayersAtFrame } from './playback/resolve.js';
 import { sanitizeOnionSkin } from './core/onionSkin.js';
+import { playFrameSounds } from './core/audio.js';
 import { getPref, setPref, hasPref } from './util/prefs.js';
 import { toggleFullscreen, isElementFullscreen, onFullscreenChange } from './util/fullscreen.js';
 import { ICONS } from './ui/icons.js';
@@ -322,6 +323,9 @@ const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
   onImageImport: (asset) => {
     addBitmapAsset(asset, { x: state.doc.width / 2, y: state.doc.height / 2 });
   },
+  onAudioImport: (asset) => {
+    state.audioAssetId = asset.id; // sélectionné par défaut sur la piste audio
+  },
   onProjectLoad: (doc) => {
     // Ouvrir un projet des archives dans une NOUVELLE fenêtre (non destructif)
     openProjectWindow(doc);
@@ -598,6 +602,9 @@ function loop(time) {
   if (advanced) {
     sceneRuntime.onFrame(state.currentFrame);
     sceneRuntime.runFrameScripts(state.currentFrame);
+    // Piste audio : à chaque image atteinte pendant la lecture (scène racine
+    // seulement), on joue les sons posés sur cette image.
+    if (!state.editPath.length) playFrameSounds(state.doc, state.currentFrame);
     // Re-vérifier state.playing : un script racine peut appeler Scene.stop()
     // ce qui met state.playing = false. Dans ce cas on rend l'image courante
     // (pour refléter l'arrêt) mais on n'avance plus les clips ni la timeline.

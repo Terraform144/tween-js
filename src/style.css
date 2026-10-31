@@ -892,6 +892,15 @@ body.fs-css .fs-css-active {
 .tl-track-row.tl-camera-track { background: #073642; border-bottom-color: #052b32; }
 .tl-frame-cell.tl-camera-cell { background: #0a4152; border-right-color: #0c4757; }
 .tl-frame-cell.tl-camera-cell.camera-key { background: #0d4c60; }
+/* Piste audio */
+.tl-layer-row.tl-audio-row { background: #2d2a1e; }
+.tl-layer-row.tl-audio-row .layer-name { color: #e8d9a0; font-weight: 600; }
+.tl-layer-row.tl-audio-row .cam-icon { color: #b58900; }
+.tl-audio-row .audio-asset-select { background: var(--bg-2); border: 1px solid var(--border); color: var(--text); border-radius: 3px; font-size: 11px; max-width: 130px; }
+.tl-track-row.tl-audio-track { background: #3a3620; border-bottom-color: #2d2a1e; }
+.tl-frame-cell.tl-audio-cell { background: #443f24; border-right-color: #4d4728; }
+.tl-frame-cell.tl-audio-cell.audio-event { background: #b58900; color: #fff7e0; }
+.tl-frame-cell.tl-audio-cell.audio-event svg { width: 11px; height: 11px; vertical-align: -1px; }
 .tl-frame-cell.tl-camera-cell.camera-key::after {
   content: "";
   position: absolute;

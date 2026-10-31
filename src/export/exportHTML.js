@@ -35,6 +35,7 @@ export function buildFullDocData(doc) {
     assets: doc.assets || {},
     symbols,
     camera: doc.camera || null, // images clés caméra de scène (outil caméra)
+    audio: doc.audio || [], // événements son de la piste audio (frame -> asset audio)
   };
 }
 
