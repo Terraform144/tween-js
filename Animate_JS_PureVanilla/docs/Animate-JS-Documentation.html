@@ -58,6 +58,7 @@
     <li>Utiliser un MovieClip dans votre propre jeu</li>
     <li>Coder avec TweenJS : script de MovieClip et éditeur de code externe</li>
     <li>Simplification de forme (Ramer-Douglas-Peucker)</li>
+    <li>Nouveautés du 29/10/2026</li>
     <li>Dépannage</li>
     <li>Annexes : raccourcis et limites connues</li>
   </ol>
@@ -660,7 +661,19 @@ simplifyShape(shape, tolerance = 1.0, closed = null, smoothPasses = 0)</code></p
   <li><b>Prévisualisation</b> : un curseur montrant en direct le résultat et le nombre de points conservés avant de valider.</li>
 </ul>
 
-<h1 class="chap">11. Dépannage</h1>
+<h1 class="chap">11. Nouveautés du 29/10/2026</h1>
+<ul>
+  <li><b>Peau d'oignon (onion skin)</b> : bouton dans la barre de la timeline + deux champs (nb passé / nb futur). Les images voisines de la tête de lecture s'affichent sous la scène — <b>bleues vers le passé, rouges vers l'avenir</b>, opacité dégressive. Édition seulement ; mémorisé d'une session à l'autre.</li>
+  <li><b>Couleurs transparentes</b> : bouton ∅ dans le panneau Propriétés (Remplissage / Contour) pour poser <code>transparent</code> — ex. contour noir + remplissage transparent. Les tweens de couleur fondent proprement vers/depuis transparent (canal alpha).</li>
+  <li><b>Masque de calque</b> : deux boutons par ligne de calque (masque / masqué). Le masque rogne les calques masqués en dessous, en édition comme en lecture et dans tous les exports. En édition, les parties rognées apparaissent en <b>gris clair transparent à 15 %</b>. Sélectionner le calque masque l'affiche pour l'éditer.</li>
+  <li><b>Motion guide</b> : boutons guide / guidé par ligne de calque. Le tween du calque guidé suit la courbe du guide (par longueur d'arc, easing compris) — y compris les instances de MovieClip. L'objet reste à la fin du guide après le tween. Le guide n'est ni lu ni exporté.</li>
+  <li><b>Copier/coller entre fenêtres-projets</b> : Ctrl+C / Ctrl+X / Ctrl+V avec un presse-papiers partagé entre toutes les fenêtres ouvertes ; les images (assets) et symboles référencés sont importés automatiquement dans le projet cible.</li>
+  <li><b>Piste audio</b> : menu Fichier → « Importer audio… » ; une piste <b>Audio</b> apparaît dans la timeline (liste des sons, bouton + pour poser à l'image courante, double-clic sur une cellule, clic droit pour supprimer). Le son est joué quand sa frame est atteinte, dans l'éditeur et dans les exports HTML/compilé. Dans un script : <code>Scene.playSound('id-ou-nom-asset')</code> ou <code>Scene.playSound('data:audio/...')</code>.</li>
+  <li><b>Dégradés (linéaire / radial)</b> : ligne « Dégradé » dans le panneau Propriétés de la forme (et uniquement là) : type, coordonnées en fraction de la boîte, stops de couleur éditables (offset, couleur, ∅ transparent, +/✕). Interpolés dans les tweens, rendus à l'identique dans l'éditeur et les exports.</li>
+  <li><b>CreateJS dans les scripts</b> : testé — TweenJS, EaselJS (Stage/Shape/Text), PreloadJS (LoadQueue), Ticker et EventDispatcher fonctionnent dans la boîte de script. <code>createjs.Sound</code> est embarqué mais son plugin audio ne s'active pas de façon fiable selon les navigateurs : préférez <code>Scene.playSound(...)</code>.</li>
+</ul>
+
+<h1 class="chap">12. Dépannage</h1>
 <table>
   <tr><th>Symptôme</th><th>Cause probable</th><th>Remède</th></tr>
   <tr><td><code>ReferenceError: X is not defined</code></td><td>L'instance n'existe pas à l'image courante, ou le nom diffère (casse, espace)</td><td>Quadri-diagnostic ; vérifier le Nom d'instance et l'image</td></tr>
@@ -671,7 +684,7 @@ simplifyShape(shape, tolerance = 1.0, closed = null, smoothPasses = 0)</code></p
   <tr><td>L'export HTML est blanc</td><td>Vieille version (bug corrigé)</td><td>Re-exporter depuis une version à jour</td></tr>
 </table>
 
-<h1 class="chap">12. Annexes</h1>
+<h1 class="chap">13. Annexes</h1>
 <h2>12.1 Raccourcis clavier</h2>
 <table>
   <tr><th>Touche</th><th>Action</th></tr>
