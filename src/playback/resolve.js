@@ -28,19 +28,36 @@ export function resolveLayersAtFrame(layers, frameIndex, opts = {}) {
     if (!layer.visible) return;
     if (layer.guide && !includeGuides) return;
     let elements = resolveLayerAtFrame(layer, frameIndex);
-    // Motion guide : calque guidé + tween en cours -> la position de chaque
-    // élément est posée sur la courbe du guide à la progression t (easing
-    // compris), en gardant le delta relatif au premier élément de la clé.
+    // Motion guide : calque guidé + guide -> la position de chaque élément est
+    // posée sur la courbe du guide. t = progression du tween actif (easing
+    // compris) ; APRÈS le dernier tween -> t=1 (l'objet reste à la fin du
+    // guide, comme Animate) ; avant le premier -> t=0. Sans aucun tween sur le
+    // calque, pas de surcharge (position normale).
     const gi = guideOwner[i];
     if (gi != null && gi >= 0 && guideCurves.has(gi)) {
+      let t = null;
       const kf = tweenKfAt(layer, frameIndex);
-      const next = kf && getNextKeyframe(layer, kf);
-      if (kf && next && next.index !== kf.index) {
-        const span = next.index - kf.index;
-        const raw = Math.min(1, Math.max(0, (frameIndex - kf.index) / span));
-        const t = applyEasing(raw, kf.tween.easing);
+      if (kf) {
+        const next = getNextKeyframe(layer, kf);
+        if (next && next.index !== kf.index) {
+          const span = next.index - kf.index;
+          const raw = Math.min(1, Math.max(0, (frameIndex - kf.index) / span));
+          t = applyEasing(raw, kf.tween.easing);
+        }
+      } else {
+        let lastBefore = null, firstAfter = null;
+        for (const k of layer.keyframes || []) {
+          if (!k.tween) continue;
+          if (k.index <= frameIndex) lastBefore = k;
+          else if (!firstAfter) firstAfter = k;
+        }
+        if (lastBefore) t = 1;
+        else if (firstAfter) t = 0;
+      }
+      if (t != null) {
         const pt = guideCurves.get(gi).pointAt(t);
-        const base = kf.elements[0] ? { x: kf.elements[0].x, y: kf.elements[0].y } : { x: 0, y: 0 };
+        const baseKf = kf || getActiveKeyframe(layer, frameIndex);
+        const base = baseKf && baseKf.elements[0] ? { x: baseKf.elements[0].x, y: baseKf.elements[0].y } : { x: 0, y: 0 };
         elements = elements.map((el) => ({ ...el, x: pt.x + (el.x - base.x), y: pt.y + (el.y - base.y) }));
       }
     }

@@ -748,14 +748,31 @@ export class MovieClip {
       let els = resolveLayerAtFrame(layer, frameIndex);
       const gi = guideOwner[i];
       if (gi != null && gi >= 0 && guideCurves.has(gi)) {
+        let t = null;
         const kf = tweenKfAt(layer, frameIndex);
-        const next = kf && getNextKeyframe(layer, kf);
-        if (kf && next && next.index !== kf.index) {
-          const span = next.index - kf.index;
-          const raw = Math.min(1, Math.max(0, (frameIndex - kf.index) / span));
-          const t = applyEasing(raw, kf.tween.easing);
+        if (kf) {
+          const next = getNextKeyframe(layer, kf);
+          if (next && next.index !== kf.index) {
+            const span = next.index - kf.index;
+            const raw = Math.min(1, Math.max(0, (frameIndex - kf.index) / span));
+            t = applyEasing(raw, kf.tween.easing);
+          }
+        } else {
+          // après le dernier tween guidé -> t=1 (objet reste à la fin du
+          // guide), avant le premier -> t=0 (copie autonome de resolve.js)
+          let lastBefore = null, firstAfter = null;
+          for (const k of layer.keyframes || []) {
+            if (!k.tween) continue;
+            if (k.index <= frameIndex) lastBefore = k;
+            else if (!firstAfter) firstAfter = k;
+          }
+          if (lastBefore) t = 1;
+          else if (firstAfter) t = 0;
+        }
+        if (t != null) {
           const pt = guideCurves.get(gi).pointAt(t);
-          const base = kf.elements[0] ? { x: kf.elements[0].x, y: kf.elements[0].y } : { x: 0, y: 0 };
+          const baseKf = kf || getActiveKeyframe(layer, frameIndex);
+          const base = baseKf && baseKf.elements[0] ? { x: baseKf.elements[0].x, y: baseKf.elements[0].y } : { x: 0, y: 0 };
           els = els.map((el) => ({ ...el, x: pt.x + (el.x - base.x), y: pt.y + (el.y - base.y) }));
         }
       }
