@@ -75,7 +75,7 @@ await sleep(400);
 await page.evaluate(() => document.querySelector('.file-menu-btn').click());
 await page.waitForSelector('.file-menu-panel.open', { timeout: 3000 });
 const clicked = await page.evaluate(() => {
-  const b = [...document.querySelectorAll('.file-menu-panel.open button')].find((x) => x.textContent.includes('dossier'));
+  const b = [...document.querySelectorAll('.file-menu-panel.open button')].find((x) => x.textContent.includes('Exporter') && x.textContent.includes('dossier'));
   if (!b) return false;
   b.click();
   return true;

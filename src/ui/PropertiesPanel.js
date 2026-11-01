@@ -1,5 +1,6 @@
 import { getContextLayers, getActiveKeyframe, getKeyframeAt, insertKeyframe, getChildBones, getSkeletonBones, getSkeletonsFromKeyframe, getAsset, TRANSPARENT } from '../core/model.js';
 import { defaultGradient, sanitizeGradient } from '../core/gradient.js';
+import { sanitizeHints, nextHintId } from '../core/shapeHints.js';
 import { ICONS } from './icons.js';
 import { setElementPivotField, resetElementPivot } from '../core/pivot.js';
 import { simplifyShape } from '../util/simplify.js';
@@ -278,6 +279,68 @@ export function mountPropertiesPanel(container, state) {
     return select;
   }
 
+  // Shape hints (morphing guidé) : paires de points même id sur la keyframe de
+  // départ et celle d'arrivée — voir core/shapeHints.js. Uniquement pour les
+  // formes avec points (path/line).
+  function hintsSection(el) {
+    if (el.kind !== 'shape') return;
+    if (!Array.isArray(el.points) || !el.points.length) return;
+    const n = el.points.length;
+    const hints = sanitizeHints(el.shapeHints, n);
+
+    const titleRow = document.createElement('div');
+    titleRow.className = 'prop-row prop-section-title';
+    titleRow.textContent = 'Shape hints (morphing)';
+    titleRow.title = 'Paires de points (même id) entre l\'image de départ et celle d\'arrivée : elles alignent le morphing au lieu de l\'appariement par index. Ajoutez le même id sur les deux keyframes.';
+    body.appendChild(titleRow);
+
+    hints.forEach((h, i) => {
+      const r = document.createElement('div');
+      r.className = 'prop-row';
+      const lab = document.createElement('label');
+      lab.textContent = `Hint ${i + 1}`;
+      const idIn = document.createElement('input');
+      idIn.type = 'text'; idIn.value = h.id; idIn.style.width = '56px';
+      idIn.title = 'Identifiant du hint — le même id sur la forme de départ et d\'arrivée forme la paire';
+      idIn.addEventListener('change', () => mutateSelectedElement((e) => {
+        const hs = sanitizeHints(e.shapeHints, n);
+        if (hs[i]) hs[i].id = idIn.value.trim() || h.id;
+        e.shapeHints = hs;
+      }));
+      const idxIn = document.createElement('input');
+      idxIn.type = 'number'; idxIn.min = '0'; idxIn.max = String(n - 1); idxIn.step = '1';
+      idxIn.value = h.pointIndex; idxIn.style.width = '52px';
+      idxIn.title = `Index du point de la courbe (0..${n - 1})`;
+      idxIn.addEventListener('change', () => mutateSelectedElement((e) => {
+        const hs = sanitizeHints(e.shapeHints, n);
+        if (hs[i]) hs[i].pointIndex = Math.max(0, Math.min(n - 1, parseInt(idxIn.value, 10) || 0));
+        e.shapeHints = hs;
+      }));
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'icon-btn'; del.innerHTML = ICONS.close;
+      del.title = 'Supprimer ce hint';
+      del.addEventListener('click', () => mutateSelectedElement((e) => {
+        e.shapeHints = sanitizeHints(e.shapeHints, n).filter((_, j) => j !== i);
+      }));
+      linkLabelToField(lab, idIn);
+      r.append(lab, idIn, idxIn, del);
+      body.appendChild(r);
+    });
+
+    const addRow = document.createElement('div');
+    addRow.className = 'prop-row';
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Ajouter un hint';
+    addBtn.title = 'Pose un shape hint sur cette image clé (même id à poser sur l\'autre keyframe pour guider le morphing)';
+    addBtn.addEventListener('click', () => mutateSelectedElement((e) => {
+      const hs = sanitizeHints(e.shapeHints, n);
+      hs.push({ id: nextHintId(hs), pointIndex: 0 });
+      e.shapeHints = hs;
+    }));
+    addRow.appendChild(addBtn);
+    body.appendChild(addRow);
+  }
+
   function renderTweenSection() {
     const layer = selectedLayer();
     if (!layer) return;
@@ -399,6 +462,7 @@ export function mountPropertiesPanel(container, state) {
     if (el.kind === 'shape') {
       colorRow('Remplissage', el.fill, (v) => mutateSelectedElement((e) => (e.fill = v)));
       gradientSection(el); // dégradé de remplissage (propriétés uniquement)
+      hintsSection(el); // shape hints de morphing (formes à points uniquement)
       colorRow('Contour', el.stroke, (v) => mutateSelectedElement((e) => (e.stroke = v)));
       numberRow('Ép. contour', el.strokeWidth, (v) => mutateSelectedElement((e) => (e.strokeWidth = Math.max(0, v))));
       if (el.shapeType === 'text') {

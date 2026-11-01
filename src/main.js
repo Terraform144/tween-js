@@ -11,7 +11,7 @@ import { mountMenuBar } from './ui/MenuBar.js';
 import { mountProjectTabs } from './ui/ProjectTabs.js';
 import { createSceneRuntime } from './runtime/sceneRuntime.js';
 import { downloadVideoWebM } from './export/videoExport.js';
-import { downloadProjectFolder } from './export/projectExport.js';
+import { downloadProjectFolder, loadProjectFromDirectory } from './export/projectExport.js';
 import { getClipState, clearClipStates } from './runtime/clipStates.js';
 import { resolveLayersAtFrame } from './playback/resolve.js';
 import { sanitizeOnionSkin } from './core/onionSkin.js';
@@ -30,6 +30,10 @@ const state = createEditorState(doc);
 state.onionSkin = sanitizeOnionSkin(getPref('onionSkin', state.onionSkin));
 // Grille + snap + règles : idem.
 state.grid = sanitizeGrid(getPref('gridPrefs', state.grid));
+
+// Thème de l'interface (light | dark — Solarized), persisté pref 'theme'.
+// La feuille de la scène reste blanche dans les deux thèmes (c'est le document).
+document.documentElement.dataset.theme = getPref('theme', 'light') === 'dark' ? 'dark' : 'light';
 
 // --- Fenêtres-projets (multi-documents) ----------------------------------
 // `state` sert de façade : ses champs par projet (doc, editPath, sélection,
@@ -334,6 +338,26 @@ const menuBarCtl = mountMenuBar(document.getElementById('menubar'), state, {
   onProjectLoad: (doc) => {
     // Ouvrir un projet des archives dans une NOUVELLE fenêtre (non destructif)
     openProjectWindow(doc);
+  },
+  onToggleTheme: () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    setPref('theme', next);
+    notify(state);
+  },
+  onOpenProjectFolder: async () => {
+    // v2 export dossier : rouvre un projet éclaté (projet.json + assets/ + scripts/).
+    // Les .js du dossier scripts/ écrasent le code inline ; les assets src relatifs
+    // sont relus en binaire. Ouvert dans une NOUVELLE fenêtre-projet (non destructif).
+    try {
+      const { doc, scriptsLinked } = await loadProjectFromDirectory();
+      openProjectWindow(doc);
+      console.log(`[ouvrir dossier] projet chargé, ${scriptsLinked} script(s) .js réinjectés`);
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // dossier annulé
+      console.error(err);
+      alert('Ouvrir le dossier impossible : ' + (err && err.message ? err.message : err));
+    }
   },
   onExportProject: async () => {
     // Export "projet vers dossier" : arborescence projet.json + assets/ + scripts/

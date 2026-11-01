@@ -187,6 +187,34 @@ function makeCanvasGradient(ctx, g, box) {
 const NUMERIC_PROPS = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'opacity', 'width', 'height', 'pivotX', 'pivotY'];
 const COLOR_PROPS = ['fill', 'stroke'];
 
+// --- Shape hints (copie autonome de core/shapeHints.js, même discipline) ---
+// match[i] = index dans b.points correspondant à a.points[i] ; null si pas de
+// hints communs (l'appelant retombe sur l'appariement par index).
+function computePointMatch(aPoints, bPoints, aHints, bHints) {
+  var n = aPoints.length, m = bPoints.length;
+  if (!n || n !== m) return null;
+  var pairs = [];
+  for (var hi = 0; hi < (aHints || []).length; hi++) {
+    var ha = aHints[hi];
+    var hb = null;
+    for (var hj = 0; hj < (bHints || []).length; hj++) if (bHints[hj].id === ha.id) { hb = bHints[hj]; break; }
+    if (hb && ha.pointIndex >= 0 && ha.pointIndex < n && hb.pointIndex >= 0 && hb.pointIndex < m) pairs.push([ha.pointIndex, hb.pointIndex]);
+  }
+  if (!pairs.length) return null;
+  pairs.sort(function (p, q) { return p[0] - q[0]; });
+  var match = new Array(n), i;
+  for (i = 0; i < n; i++) match[i] = -1;
+  for (i = 0; i < pairs.length; i++) match[pairs[i][0]] = pairs[i][1];
+  // Points non hintés : bijection 1 à 1 dans l'ordre circulaire global en
+  // partant du premier hint des deux côtés (même logique que core/shapeHints.js).
+  var usedB = {}, restA = [], restB = [];
+  for (i = 0; i < pairs.length; i++) usedB[pairs[i][1]] = true;
+  for (var s = 0; s < n; s++) { var ia = (pairs[0][0] + s) % n; if (match[ia] === -1) restA.push(ia); }
+  for (var s2 = 0; s2 < m; s2++) { var ib = (pairs[0][1] + s2) % m; if (!usedB[ib]) restB.push(ib); }
+  for (i = 0; i < restA.length; i++) match[restA[i]] = restB[i];
+  return match;
+}
+
 function lerpHandle(h1, h2, t) {
   const a = h1 || { x: 0, y: 0 };
   const b = h2 || { x: 0, y: 0 };
@@ -213,11 +241,15 @@ function interpolateElement(a, b, t) {
     if (typeof a[p] === 'string' && typeof b[p] === 'string') out[p] = lerpColor(a[p], b[p], t);
   }
   if (a.fillGradient && b.fillGradient) out.fillGradient = lerpGradient(a.fillGradient, b.fillGradient, t);
-  // Morphing point à point si les deux courbes ont le même nombre de points
-  // (même index = points correspondants) ; sinon la forme reste rigide et
-  // ne fait que bouger/tourner/redimensionner via les props ci-dessus.
+  // Morphing point à point si les deux courbes ont le même nombre de points.
+  // Avec shape hints communs (même id des deux côtés) : la permutation
+  // computePointMatch aligne les points hintés (copie autonome de
+  // core/shapeHints.js) ; sinon même index = points correspondants.
   if (Array.isArray(a.points) && Array.isArray(b.points) && a.points.length === b.points.length && a.points.length > 0) {
-    out.points = a.points.map((p, i) => lerpPoint(p, b.points[i], t));
+    var match = computePointMatch(a.points, b.points, a.shapeHints, b.shapeHints);
+    out.points = match
+      ? a.points.map((p, i) => lerpPoint(p, b.points[match[i]], t))
+      : a.points.map((p, i) => lerpPoint(p, b.points[i], t));
   }
   // Maillage de déformation bitmap (cf. core/warp.js côté éditeur) :
   // interpolation des intersections si la structure cols/rows concorde.

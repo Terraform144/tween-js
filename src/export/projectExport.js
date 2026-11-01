@@ -16,6 +16,7 @@
 // fichiers { path, data: Uint8Array, text? } sans toucher au disque.
 import { makeZip } from '../util/zip.js';
 import { downloadBlobFile } from '../util/download.js';
+import { deserializeDocument } from '../core/model.js';
 
 const EXT_BY_MIME = {
   'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif',
@@ -181,4 +182,101 @@ export async function downloadProjectFolder(doc) {
   }
   exportProjectToZip(doc);
   return { mode: 'zip', name: sanitizeFileName(doc.name || 'projet') + '.zip' };
+}
+
+// ---------------------------------------------------------------------------
+// v2 — Ouvrir un dossier : le dossier devient la source de vérité.
+// Lit projet.json + assets/* + scripts/*.js ; les .js écrasent le code inline
+// des scripts (match par nom de fichier, même convention que l'export) et les
+// assets src: "assets/x" sont relus en binaire -> dataUrl restauré.
+// ---------------------------------------------------------------------------
+
+// bytes -> dataUrl (btoa navigateur, Buffer Node pour les harnais).
+function bytesToDataUrl(mime, bytes) {
+  if (typeof btoa === 'function') {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return 'data:' + (mime || 'application/octet-stream') + ';base64,' + btoa(bin);
+  }
+  return 'data:' + (mime || 'application/octet-stream') + ';base64,' + Buffer.from(bytes).toString('base64');
+}
+
+// PUR : restaure les dataUrl des assets depuis les binaires lus (Map path -> bytes).
+export function resolveAssetsFromFiles(doc, files) {
+  let n = 0;
+  for (const id in doc.assets || {}) {
+    const a = doc.assets[id];
+    if (!a.src) continue;
+    const bytes = files.get(a.src);
+    if (!bytes) continue; // fichier manquant : on garde le src tel quel
+    a.dataUrl = bytesToDataUrl(a.type, bytes);
+    delete a.src;
+    n++;
+  }
+  return n;
+}
+
+// PUR : réinjecte les scripts/*.js dans le doc (le .js écrase le code inline).
+// Convention de nommage = celle de l'export (buildProjectTree) :
+//   <script>.js                    -> doc.scripts (sanitize(name) == <script>)
+//   <sym>_class.js                 -> symbols (sanitize(name||id) == <sym>).script
+//   <sym>_f<N>_<calque>.js         -> symbole <sym>, calque <calque>, kf index N-1
+//   scene_f<N>_<calque>.js         -> idem sur la scène racine
+// Retourne le nombre de scripts réinjectés.
+export function applyScriptFiles(doc, scriptFiles) {
+  const usedScripts = new Set();
+  let n = 0;
+  const symByBase = new Map();
+  for (const id in doc.symbols || {}) {
+    const s = doc.symbols[id];
+    symByBase.set(sanitizeFileName(s.name || id), s);
+  }
+  for (const { name, code } of scriptFiles) {
+    const base = name.replace(/\.js$/, '');
+    // script de symbole ?
+    let m = /^(.*)_class$/.exec(base);
+    if (m && symByBase.has(m[1])) { symByBase.get(m[1]).script = code; n++; continue; }
+    // script d'image ?
+    m = /^(.*)_f(\d+)_(.+)$/.exec(base);
+    if (m) {
+      const frame = parseInt(m[2], 10) - 1;
+      const layers = m[1] === 'scene' ? doc.layers : (symByBase.get(m[1]) || {}).layers;
+      const layer = (layers || []).find((l) => sanitizeFileName(l.name || 'calque') === m[3]);
+      const kf = layer && (layer.keyframes || []).find((k) => k.index === frame);
+      if (kf) { kf.script = code; n++; continue; }
+    }
+    // script nommé du doc
+    const sc = (doc.scripts || []).find((s) => !usedScripts.has(s.id) && sanitizeFileName(s.name || 'script') === base);
+    if (sc) { sc.code = code; usedScripts.add(sc.id); n++; continue; }
+    // pas de correspondance (renommé) : le code inline du JSON reste — on ignore
+  }
+  return n;
+}
+
+// Lit récursivement un FileSystemDirectoryHandle -> Map(path -> Uint8Array).
+async function readDirRecursive(handle, prefix, out) {
+  for await (const [name, h] of handle.entries()) {
+    const path = prefix ? prefix + '/' + name : name;
+    if (h.kind === 'directory') await readDirRecursive(h, path, out);
+    else out.set(path, new Uint8Array(await (await h.getFile()).arrayBuffer()));
+  }
+}
+
+// Ouvre un dossier projet (geste utilisateur) et retourne { doc, name }.
+// Le doc est reconstitué : assets en dataUrl, scripts .js prioritaires.
+export async function loadProjectFromDirectory() {
+  if (!supportsDirectoryExport()) throw new Error("L'ouverture d'un dossier nécessite un navigateur Chromium (File System Access API)");
+  const [dir] = await window.showDirectoryPicker({ mode: 'read' });
+  const files = new Map();
+  await readDirRecursive(dir, '', files);
+  const jsonBytes = files.get('projet.json');
+  if (!jsonBytes) throw new Error('projet.json introuvable dans ce dossier');
+  const raw = JSON.parse(new TextDecoder().decode(jsonBytes));
+  if (raw.tjsFormat && raw.tjsFormat !== 'folder-project') throw new Error('Format de projet inconnu : ' + raw.tjsFormat);
+  resolveAssetsFromFiles(raw, files);
+  const scriptFiles = [...files.entries()]
+    .filter(([p]) => p.startsWith('scripts/') && p.endsWith('.js'))
+    .map(([p, data]) => ({ name: p.slice('scripts/'.length), code: new TextDecoder().decode(data) }));
+  applyScriptFiles(raw, scriptFiles);
+  return { doc: deserializeDocument(JSON.stringify(raw)), name: dir.name, scriptsLinked: scriptFiles.length };
 }

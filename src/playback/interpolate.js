@@ -1,5 +1,6 @@
 // Fonctions d'interpolation pures — partagées par l'éditeur (Stage) et,
 import { lerpGradient } from '../core/gradient.js';
+import { computePointMatch } from '../core/shapeHints.js';
 
 // sous forme de copie autonome, par le runtime exporté (voir export/runtimeSource.js).
 
@@ -97,11 +98,16 @@ export function interpolateElement(a, b, t) {
     out.fillGradient = lerpGradient(a.fillGradient, b.fillGradient, t, lerp, lerpColor);
   }
   // Morphing point à point : seulement si les deux courbes ont exactement
-  // le même nombre de points (même index = points correspondants). Sinon
-  // on garde les points de départ tels quels — la forme bouge alors comme
-  // un bloc rigide via x/y/rotation/scale ci-dessus, sans se déformer.
+  // le même nombre de points. Sans shape hints, même index = points
+  // correspondants ; avec des hints communs (même id des deux côtés), la
+  // permutation computePointMatch aligne les points hintés et répartit le
+  // reste proportionnellement (voir core/shapeHints.js). Sinon on garde les
+  // points de départ — la forme bouge comme un bloc rigide (x/y/rotation/scale).
   if (Array.isArray(a.points) && Array.isArray(b.points) && a.points.length === b.points.length && a.points.length > 0) {
-    out.points = a.points.map((p, i) => lerpPoint(p, b.points[i], t));
+    const match = computePointMatch(a.points, b.points, a.shapeHints, b.shapeHints);
+    out.points = match
+      ? a.points.map((p, i) => lerpPoint(p, b.points[match[i]], t))
+      : a.points.map((p, i) => lerpPoint(p, b.points[i], t));
   }
   // Maillage de déformation bitmap (cf. core/warp.js) : même discipline que
   // les points de courbe — on interpole les intersections seulement si la

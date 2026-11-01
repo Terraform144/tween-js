@@ -3,6 +3,8 @@ import { notify } from '../state.js';
 import { downloadStandaloneHTML } from '../export/exportHTML.js';
 import { downloadCompiledHTML } from '../export/exportCompiled.js';
 import { downloadPNGSequence } from '../export/exportPNG.js';
+import { supportsDirectoryExport } from '../export/projectExport.js';
+import { getPref } from '../util/prefs.js';
 import { downloadTextFile } from '../util/download.js';
 import { ICONS } from './icons.js';
 import { parseSvg } from '../util/importSvg.js';
@@ -10,7 +12,7 @@ import { enableDragScroll } from '../util/dragScroll.js';
 import { toggleFullscreen, fullscreenElement, onFullscreenChange } from '../util/fullscreen.js';
 import { getAllProjects, saveProject, loadProject, deleteProject, deleteAllProjects } from '../util/projects.js';
 
-export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onAudioImport = () => {}, onProjectLoad = () => {}, onExportVideo = () => {}, onExportProject = () => {} }) {
+export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onAudioImport = () => {}, onProjectLoad = () => {}, onExportVideo = () => {}, onExportProject = () => {}, onOpenProjectFolder = () => {}, onToggleTheme = () => {} }) {
   container.innerHTML = '';
 
   const brand = document.createElement('span');
@@ -166,6 +168,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   fileMenuPanel.className = 'file-menu-panel';
   const fileMenuItems = [
     { icon: 'folderOpen', label: 'Ouvrir…', action: () => fileInput.click() },
+    { icon: 'folderOpen', label: 'Ouvrir un dossier…', action: () => onOpenProjectFolder(), disabled: !supportsDirectoryExport(), title: supportsDirectoryExport() ? 'Ouvrir un projet éclaté (projet.json + assets/ + scripts/) — Chromium uniquement' : "Non supporté hors Chromium (File System Access API)" },
     { icon: 'importSvg', label: 'Importer SVG', action: () => svgFileInput.click() },
     { icon: 'importImage', label: 'Importer image…', action: () => imgFileInput.click() },
     { icon: 'audio', label: 'Importer audio…', action: () => audioFileInput.click() },
@@ -175,11 +178,14 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     { icon: 'export', label: 'Exporter PNG (ZIP)', action: () => downloadPNGSequence(state.doc) },
     { icon: 'video', label: 'Exporter vidéo WebM…', action: () => onExportVideo() },
     { icon: 'folderOpen', label: 'Exporter projet vers dossier…', action: () => onExportProject() },
+    { icon: 'moon', label: () => (getPref('theme', 'light') === 'dark' ? '✓ Thème sombre (Solarized dark)' : 'Thème sombre (Solarized dark)'), action: () => onToggleTheme() },
   ];
   for (const item of fileMenuItems) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.innerHTML = ICONS[item.icon] + `<span>${item.label}</span>`;
+    b.innerHTML = ICONS[item.icon] + `<span>${typeof item.label === 'function' ? item.label() : item.label}</span>`;
+    if (item.title) b.title = item.title;
+    if (item.disabled) b.disabled = true;
     b.addEventListener('click', () => { closeFileMenu(); item.action(); });
     fileMenuPanel.appendChild(b);
   }
