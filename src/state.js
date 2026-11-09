@@ -19,7 +19,7 @@ export function createEditorState(doc) {
     strokeColor: '#073642',
     strokeWidth: 2,
     brushSize: 5,
-    brushPattern: 'round', // Patterns: 'round', 'flat', 'calligraphy', 'taper'
+    brushPattern: 'round', // Patterns: round, flat, calligraphy, taper, pencil, marker, airbrush, drybrush, chalk
     zoom: 1,
     onionSkin: defaultOnionSkin(), // peau d'oignon : fantômes bleus (passé) / rouges (futur) — réglage d'interface global, persisté via prefs (voir main.js / Timeline.js)
     audioAssetId: null, // dernier asset audio importé/sélectionné pour la piste audio (réglage d'interface global)

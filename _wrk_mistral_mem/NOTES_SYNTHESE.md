@@ -246,6 +246,23 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - Rebuild DEUX versions DANS L'ORDRE (build:vanilla -> cp bundle Animate_JS_PureVanilla -> build main) ; node --check OK ; marqueur minifié `selectedElementIds=t?[e.id]:[]` présent dans les 2 bundles.
 - Reste à faire : validation visuelle user. APK non régénéré (règle : sur demande explicite).
 
+### Session 34 - 09/11/2026 — 5 NOUVEAUX PATTERNS DE PINCEAU (crayon, marqueur, aérographe, pinceau sec, craie)
+
+- DEMANDE USER : 5 autres patterns de pinceaux dans la lignée Animate CC / Sketchbook de Autodesk.
+- src/util/brushGeom.js (géométrie pure, testable Node) : halfWidthAt gagne deux params optionnels (i, n = index du point dans le tracé) pour un grain DÉTERMINISTE — JAMAIS de Math.random (brushToPoly est rappelé à chaque aperçu : un random ferait différer l'aperçu du trait final). Nouveau helper grain(i, salt) = fract(sin(i*12.9898+salt*78.233)*43758.5453) et roughDisc(cx,cy,r,steps,salt) pour les dabs rugueux.
+  * pencil (Crayon) : half*(0.5+0.5*grain(i,1)) — bords rugueux 50..100 %
+  * marker (Marqueur) : half*(0.95+0.05*sin(t*π*6)) — quasi constant, légère ondulation, caps arrondis
+  * airbrush (Aérographe) : half*(0.3+0.7*w²), w=|sin(t*π*2.5+0.7)| — bouffées douces, caps arrondis
+  * drybrush (Pinceau sec) : half*(1-0.65t)*(0.45+0.55*grain(i,2)) — encre qui s'épuise + dentelure, caps droits
+  * chalk (Craie) : half*(0.65+0.35*grain(i,3)) — poudreux, borné à size/2 (1re version 75..110 % dépassait la borne, attrapé par le harnais)
+  * ROUND_CAPS = Set(['round','marker','airbrush']) : caps arrondis (capPts, 7 points/cap) uniquement pour ces 3 patterns ; les autres gardent des extrémités droites (2n points vs 2n+14).
+  * dabShape : dab adapté par pattern (roughDisc pour pencil/drybrush/chalk, ellipse pour marker/airbrush).
+- UI : PropertiesPanel.js — select « Motif » passé de 4 à 9 entrées (labels FR). state.js : commentaire des patterns à jour. Aucun changement CSS.
+- HARNESS _wrk_mistral_mem/repro_brush_patterns.mjs : 63 CONTRÔLES OK — polygone valide + bbox>0 pour les 9 patterns, DÉTERMINISME (2 appels -> JSON identique), halfWidthAt borné [0, size/2], spécificités (taper aminci aux bouts, drybrush décroît, calligraphy dépend de la direction — piège : comparer nib 45° vs nib+90°, pas 0 vs 90° qui sont symétriques ; pencil/chalk varient par index, marker quasi constant, airbrush très variable), dab valide, caps 2n+14 vs 2n, non-régression round (largeur constante + caps).
+- E2E _wrk_mistral_mem/repro_e2e_brush_patterns.mjs (puppeteer + chrome-headless-shell, vite preview :4180) : 20/20 — les 9 motifs proposés dans le select, pour chacun des 5 nouveaux + round : motif choisi via le vrai select du panneau, trait à la souris -> élément créé, transformer 0 nœud (pas de sélection, fix session 33 intact), 0 pageerror. Piège : les derniers traits du 1er run tombaient hors feuille (y > hauteur doc) -> aucun élément ; harnais corrigé pour rester dans la zone visible. Rejoué sur la VANILLA servie statique (:4185) : 20/20. Non-régression repro_e2e_brush_deselect 6/6.
+- Rebuild DEUX versions DANS L'ORDRE (build:vanilla -> cp dist/tweenjs-bundle.iife.js Animate_JS_PureVanilla/tweenjs-bundle.js -> build main) ; node --check OK ; marqueurs (pencil/marker x5, airbrush/drybrush/chalk x2) présents dans les 2 bundles.
+- Reste à faire : validation visuelle user ; APK non régénéré (règle : sur demande explicite) ; déploiement en ligne = user. Backlog restant pinceau : sensibilité pression (tablettes), texture bitmap, éclaboussures.
+
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
 - Compréhension architecture complète

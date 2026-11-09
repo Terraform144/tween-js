@@ -41,7 +41,8 @@
 
 ## ⚙️ Améliorations pinceau
 
-- [ ] Plus de patterns (éclaboussures, texture) · sensibilité pression (tablettes) · texture bitmap
+- [x] **5 nouveaux patterns de pinceau** — ✅ livré 09/11 : crayon, marqueur, aérographe, pinceau sec, craie (lignée Animate CC / Sketchbook), géométrie déterministe (grain par index, jamais Math.random). Harnais 63/63 + E2E 20/20 (dist + vanilla).
+- [ ] Sensibilité pression (tablettes) · texture bitmap · éclaboussures
 
 ---
 
