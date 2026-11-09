@@ -1,10 +1,16 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 
+// API « archives en ligne » (/api/archives, dossier ./Archives) servie par
+// dev-server.py à côté de Vite : on proxifie /api vers elle. Port de
+// dev-server.py : env TJS_API_PORT (défaut 8080).
+const API_TARGET = `http://localhost:${process.env.TJS_API_PORT || 8080}`;
+
 export default defineConfig({
   server: {
     port: 5174,
     open: false,
+    proxy: { '/api': API_TARGET },
   },
   build: {
     target: 'es2020',

@@ -205,6 +205,69 @@ html, body {
   color: white;
 }
 
+/* Archives EN LIGNE (dossier ./Archives) — section du menu Archives visible
+   uniquement avec la clé ?adm=4321 dans l'URL (voir util/adminMode.js). */
+.archives-remote-sep {
+  margin-top: 8px;
+  padding: 6px 10px 2px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.archives-remote-list {
+  margin-top: 4px;
+}
+
+.archive-remote-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.archive-remote-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.archive-remote-del {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--text);
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.archive-remote-del:hover {
+  background: var(--bg-3);
+  opacity: 1;
+  color: #dc322f;
+}
+
+.archive-remote-del svg {
+  width: 14px;
+  height: 14px;
+}
+
+.archives-remote-note {
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.7;
+  font-style: italic;
+}
+
 @media (pointer: coarse), (max-width: 1024px) {
   #menubar button { padding: 8px 12px; min-height: 40px; }
 }

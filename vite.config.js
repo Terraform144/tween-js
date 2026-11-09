@@ -5,10 +5,19 @@ import { fileURLToPath, URL } from 'node:url';
 // (juste un <a href> côté runtime) : Rollup ne le découvre donc jamais tout seul
 // et l'omettait du build de prod (page 404 en prod alors qu'elle marchait en dev,
 // où Vite sert tous les fichiers du disque sans passer par Rollup).
+// API « archives en ligne » (/api/archives, dossier ./Archives) servie par
+// dev-server.py à côté de Vite : on proxifie /api vers elle. Port de
+// dev-server.py : env TJS_API_PORT (défaut 8080).
+const API_TARGET = `http://localhost:${process.env.TJS_API_PORT || 8080}`;
+
 export default defineConfig({
   server: {
     port: 5173,
     open: false,
+    proxy: { '/api': API_TARGET },
+  },
+  preview: {
+    proxy: { '/api': API_TARGET },
   },
   build: {
     target: 'es2020',

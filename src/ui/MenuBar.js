@@ -11,6 +11,8 @@ import { parseSvg } from '../util/importSvg.js';
 import { enableDragScroll } from '../util/dragScroll.js';
 import { toggleFullscreen, fullscreenElement, onFullscreenChange } from '../util/fullscreen.js';
 import { getAllProjects, saveProject, loadProject, deleteProject, deleteAllProjects } from '../util/projects.js';
+import { isAdminMode } from '../util/adminMode.js';
+import { listRemoteArchives, saveRemoteArchive, loadRemoteArchive, deleteRemoteArchive } from '../util/remoteArchives.js';
 
 export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onAudioImport = () => {}, onProjectLoad = () => {}, onExportVideo = () => {}, onExportProject = () => {}, onOpenProjectFolder = () => {}, onToggleTheme = () => {} }) {
   container.innerHTML = '';
@@ -294,6 +296,100 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     });
     saveRow.appendChild(saveBtn);
     archivesMenuPanel.appendChild(saveRow);
+
+    // Section « archives en ligne » (dossier ./Archives du serveur) :
+    // visible UNIQUEMENT avec la clé ?adm=4321 dans l'URL.
+    if (isAdminMode()) renderRemoteArchivesSection();
+  }
+
+  // Sauvegardes EN LIGNE dans ./Archives (API /api/archives du serveur,
+  // clé adm requise) : bouton de sauvegarde + liste des fichiers avec
+  // ouvrir (nouvelle fenêtre-projet) et supprimer.
+  function renderRemoteArchivesSection() {
+    const sep = document.createElement('div');
+    sep.className = 'archives-remote-sep';
+    sep.textContent = 'En ligne — dossier ./Archives';
+    archivesMenuPanel.appendChild(sep);
+
+    const row = document.createElement('div');
+    row.className = 'archive-save-row archives-remote-save-row';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'archive-save-btn archive-remote-save-btn';
+    btn.innerHTML = ICONS.save + '<span>Sauvegarder en ligne</span>';
+    btn.title = 'Écrire le projet dans ./Archives sur le serveur (clé adm requise)';
+    btn.addEventListener('click', async () => {
+      closeArchivesMenu();
+      try {
+        const r = await saveRemoteArchive(state.doc.name, serializeDocument(state.doc));
+        if (r.ok) alert(`Projet « ${state.doc.name} » sauvegardé en ligne :\nArchives/${r.file}`);
+        else alert('API archives indisponible ici — le JSON a été téléchargé localement.\nPlace-le dans le dossier ./Archives du serveur.\n(' + (r.error && r.error.message ? r.error.message : r.error) + ')');
+      } catch (e) {
+        alert('Erreur lors de la sauvegarde en ligne : ' + e.message);
+      }
+    });
+    row.appendChild(btn);
+    archivesMenuPanel.appendChild(row);
+
+    const list = document.createElement('div');
+    list.className = 'archives-remote-list';
+    archivesMenuPanel.appendChild(list);
+    const loading = document.createElement('div');
+    loading.className = 'archives-empty';
+    loading.textContent = 'Chargement des sauvegardes en ligne…';
+    list.appendChild(loading);
+
+    listRemoteArchives().then((files) => {
+      list.innerHTML = '';
+      if (!files.length) {
+        const empty = document.createElement('div');
+        empty.className = 'archives-empty';
+        empty.textContent = 'Aucune sauvegarde en ligne';
+        list.appendChild(empty);
+        return;
+      }
+      for (const f of files) {
+        const item = document.createElement('div');
+        item.className = 'archive-remote-item';
+        const open = document.createElement('button');
+        open.type = 'button';
+        open.className = 'archive-item archive-remote-name';
+        open.title = `${f.name} — ${(f.size / 1024).toFixed(1)} Ko — ${new Date(f.mtime).toLocaleString()}`;
+        open.textContent = `${f.name} — ${new Date(f.mtime).toLocaleString()}`;
+        open.addEventListener('click', async () => {
+          closeArchivesMenu();
+          try {
+            const doc = deserializeDocument(await loadRemoteArchive(f.name));
+            onProjectLoad(doc); // nouvelle fenêtre-projet, comme les archives locales
+          } catch (e) {
+            alert('Erreur lors du chargement de la sauvegarde en ligne : ' + e.message);
+          }
+        });
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'archive-remote-del';
+        del.innerHTML = ICONS.trash;
+        del.title = 'Supprimer cette sauvegarde en ligne';
+        del.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!confirm(`Supprimer « ${f.name} » du dossier ./Archives ?`)) return;
+          try {
+            await deleteRemoteArchive(f.name);
+            refreshArchivesMenu();
+          } catch (err) {
+            alert('Erreur lors de la suppression : ' + err.message);
+          }
+        });
+        item.append(open, del);
+        list.appendChild(item);
+      }
+    }).catch(() => {
+      list.innerHTML = '';
+      const note = document.createElement('div');
+      note.className = 'archives-remote-note';
+      note.textContent = 'API archives indisponible sur ce serveur (statique ?) — le bouton ci-dessus fait un téléchargement local.';
+      list.appendChild(note);
+    });
   }
   
   function openArchivesMenu() {

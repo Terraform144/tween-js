@@ -43,6 +43,7 @@
 
 - [x] **5 nouveaux patterns de pinceau** — ✅ livré 09/11 : crayon, marqueur, aérographe, pinceau sec, craie (lignée Animate CC / Sketchbook), géométrie déterministe (grain par index, jamais Math.random). Harnais 63/63 + E2E 20/20 (dist + vanilla).
 - [x] **Sensibilité à la pression du stylet** — ✅ livré 09/11 : toggle « Pression (stylet) » + sensibilité 0–100 % dans le panneau Pinceau, lu via PointerEvent.pressure (listener pointer sur le conteneur, Konva 9 émettant un MouseEvent sans pressure). Harnais 19/19 + E2E 7/7 (dist + vanilla, touch CDP avec force).
+- [x] **Archives en ligne (./Archives, clé `?adm=4321`)** — ✅ livré 10/11 : section « En ligne » dans le menu Archives visible uniquement avec la clé (bouton « Sauvegarder en ligne » + liste/ouvrir/supprimer), endpoints `/api/archives` dans dev-server.py protégés par la clé (403 sinon, anti path-traversal), proxy Vite `/api` → dev-server.py, fallback téléchargement si hébergement statique. E2E 14/14 + curl (403/CRUD/traversal) + fallback vérifié.
 - [ ] Texture bitmap · éclaboussures
 
 ---

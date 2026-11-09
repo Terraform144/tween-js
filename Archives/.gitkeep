@@ -1,0 +1,4 @@
+# Sauvegardes en ligne des projets TweenJS.
+# Rempli par le serveur (dev-server.py, endpoints /api/archives) quand on appelle
+# « Sauvegarder en ligne » dans le menu Archives avec ?adm=4321 dans l'URL.
+# Ne pas supprimer ce dossier : le serveur le recrée de toute façon au démarrage.
