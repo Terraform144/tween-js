@@ -274,7 +274,8 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - HARNESS _wrk_mistral_mem/repro_brush_pressure.mjs : 19/19 (mapping pressureToScale, clamps, NaN->0.5, rétrocompat null, trait droit h = size*scale, dab modulé, déterminisme, les 9 patterns acceptent pressureScale).
 - E2E _wrk_mistral_mem/repro_e2e_brush_pressure.mjs (vite preview :4180 + vanilla :4185) : 7/7 — toggle coché + sensibilité 100 via le vrai panneau, traits en touch CDP force 1.0 vs 0.05 -> hauteurs 5.0 px vs 1.0 px (ratio 5.2 = attendu 1/0.1925), toggle OFF -> souris retombe à 5.0 px (non-régression), 0 pageerror. Non-régression : repro_brush_patterns 63/63, repro_e2e_brush_patterns 20/20, repro_e2e_brush_deselect 6/6 (dist ET vanilla).
 - Rebuild DEUX versions DANS L'ORDRE (build:vanilla -> cp -> build main), node --check OK, marqueur « Pression (stylet) » dans les 2 bundles.
-- Reste à faire : validation sur une vraie tablette/stylet (le CDP ne simule que touch force) ; APK non régénéré (règle : sur demande explicite) ; déploiement en ligne = user. Backlog pinceau restant : texture bitmap, éclaboussures.
+- Reste à faire : validation sur une vraie tablette/stylet (le CDP ne simule que touch force) ; déploiement en ligne = user. Backlog pinceau restant : texture bitmap, éclaboussures.
+- APK RÉGÉNÉRÉ (demande user explicite 09/11 soir) : public/app-debug.apk retiré avant build + résidu assets nettoyé -> build -> cap sync -> gradlew assembleDebug (JDK 21) BUILD SUCCESSFUL 6 s. APK 5 310 731 o (5,3 Mo), 0 APK niché, JS embarqué avec « Pression (stylet) » + brushPressureSens + les 5 motifs (pencil x5, marker x5, airbrush/drybrush/chalk x2). md5 234c2df3… identique aux 4 emplacements (build output, public/, dist/, PureVanilla). Commit local.
 
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
