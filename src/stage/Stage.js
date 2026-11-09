@@ -2216,7 +2216,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     });
     
     cancelDraw();
-    addElement(el);
+    addElement(el, false); // trait non sélectionné (demande user : on enchaîne sans être gêné)
     // Garder le pinceau actif pour enchaîner les traits sans recliquer
     notify(state);
   }
@@ -2362,9 +2362,11 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     createTextAtWithBounds({ x: p.x - 80, y: p.y - 15, width: 160, height: 30 });
   }
 
-  function addElement(el) {
+  function addElement(el, select = true) {
     commitToActiveKeyframe((kf) => kf.elements.push(el));
-    state.selectedElementIds = [el.id];
+    // select=false (pinceau) : le trait fini n'est PAS sélectionné, pour
+    // enchaîner les traits sans risquer de manipuler la forme précédente.
+    state.selectedElementIds = select ? [el.id] : [];
     notify(state);
   }
 

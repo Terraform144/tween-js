@@ -239,6 +239,13 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - HARNESS _wrk_mistral_mem/repro_theme.mjs 6/6 : bloc dark présent, dark couvre toutes les vars de :root, toutes les var() utilisées définies, palette OK, feuille blanche, vanilla sync. E2E _wrk_mistral_mem/repro_e2e_theme.mjs 11/11 : light par défaut (#fdf6e3), bascule menu -> data-theme=dark + body rgb(0,43,54) + texte rgb(131,148,150) + pref tweenjs:theme="dark" + reload conservé + feuille toujours blanche + 0 pageerror.
 - APK : gradle échoue avec le JRE système (java-27 sans javac) -> compile avec le JBR d'Android Studio : JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleDebug -Dorg.gradle.java.home=/opt/android-studio/jbr.
 
+### Session 33 - 01/11/2026 — PINCEAU : TRAIT NON SÉLECTIONNÉ APRÈS LE TRACÉ
+- DEMANDE USER : après un trait au pinceau, la forme ne doit PAS être sélectionnée (sinon les poignées de transformation gênent et on risque de manipuler la forme précédente en redessinant).
+- FIX additif (src/stage/Stage.js) : addElement(el, select = true) — paramètre optionnel, défaut true = comportement inchangé pour rect/ellipse/ligne/texte/plume/collage/bones ; finishBrush appelle addElement(el, false) -> state.selectedElementIds = [] ; le notify -> renderAll -> stage.render -> refreshSelectionVisuals vide le Transformer (nodes([])) et le panneau Propriétés se vide. Le pinceau reste actif (déjà le cas), on enchaîne les traits librement.
+- E2E _wrk_mistral_mem/repro_e2e_brush_deselect.mjs 6/6 (vite preview :4180, chrome-headless-shell, outil via raccourci B) : trait 1 ajouté (1 élément) + Transformer 0 nœud ; trait 2 enchaîné (2 éléments) + toujours 0 nœud ; non-régression rect (R) toujours sélectionné (1 nœud) ; 0 pageerror. Piège harnais : coordonnées écran = rect container + scène*scale (PAS de centrage), et l'outil s'active au clavier (page.keyboard.press('b')) avec vérification du bouton .active.
+- Rebuild DEUX versions DANS L'ORDRE (build:vanilla -> cp bundle Animate_JS_PureVanilla -> build main) ; node --check OK ; marqueur minifié `selectedElementIds=t?[e.id]:[]` présent dans les 2 bundles.
+- Reste à faire : validation visuelle user. APK non régénéré (règle : sur demande explicite).
+
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet
 - Compréhension architecture complète
