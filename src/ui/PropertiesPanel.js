@@ -404,6 +404,22 @@ export function mountPropertiesPanel(container, state) {
       ['drybrush', 'Pinceau sec'],
       ['chalk', 'Craie']
     ], (v) => { state.brushPattern = v; notify(state); });
+
+    // Sensibilité à la pression du stylet (PointerEvent.pressure, tablettes)
+    const prow = document.createElement('div');
+    prow.className = 'prop-row';
+    const pl = document.createElement('label');
+    pl.textContent = 'Pression (stylet)';
+    const pchk = document.createElement('input');
+    pchk.type = 'checkbox';
+    pchk.checked = !!state.brushPressure;
+    pchk.addEventListener('change', () => { state.brushPressure = pchk.checked; notify(state); });
+    linkLabelToField(pl, pchk);
+    prow.append(pl, pchk);
+    body.appendChild(prow);
+    if (state.brushPressure) {
+      numberRow('Sensibilité', state.brushPressureSens, (v) => { state.brushPressureSens = Math.max(0, Math.min(100, v)); notify(state); }, { step: 5, min: 0, max: 100 });
+    }
   }
 
   function render() {

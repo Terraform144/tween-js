@@ -96,6 +96,15 @@ function halfWidthAt(t, dirAngle, size, pattern, i = 0, n = 1) {
 // Patterns dont les extrémités de trait sont arrondies (les autres sont droites)
 const ROUND_CAPS = new Set(['round', 'marker', 'airbrush']);
 
+// Mappe une pression brute (PointerEvent.pressure, 0..1 ; souris = 0.5) vers un
+// facteur d'échelle de la demi-largeur. sens = sensibilité 0..1 (0 = off :
+// on rend 1, la taille réglée reste exacte). Pleine pression -> 1, pression
+// nulle -> 0.15 (le trait ne disparaît jamais complètement).
+export function pressureToScale(p, sens) {
+  const c = (typeof p === 'number' && !Number.isNaN(p)) ? Math.min(1, Math.max(0, p)) : 0.5;
+  return (1 - sens) + sens * (0.15 + 0.85 * c);
+}
+
 // Génère des points pour un demi-cercle (pour les extrémités arrondies)
 function capPts(E, d, r, steps) {
   const n = [-d[1], d[0]]; // vecteur normal
@@ -186,17 +195,20 @@ export function bboxOf(pts) {
 }
 
 /* rawPts: [[x,y],...] absolute stage coordinates (>= 1 point).
+   pressureScale (optionnel) : facteur de demi-largeur par point (0..1+),
+   typiquement produit par pressureToScale — null = taille fixe historique.
    Returns { points: outline (absolute), w, h, cx, cy } */
-export function brushToPoly(rawPts, size, pattern = 'round') {
+export function brushToPoly(rawPts, size, pattern = 'round', pressureScale = null) {
   pattern = pattern || 'round';
   size = Math.max(1, size);
-  
+  const ps = (i) => (pressureScale && pressureScale[i] != null) ? pressureScale[i] : 1;
+
   let pts = rawPts;
   if (pts.length > 2) pts = smoothPoints(pts, 2);
-  
+
   // Cas spécial : un seul point (dab)
   if (pts.length === 1 || (pts.length === 2 && dist(pts[0], pts[1]) < 2)) {
-    const d = dabShape(pts[0], size, pattern);
+    const d = dabShape(pts[0], size * ps(0), pattern);
     return Object.assign(d, bboxOf(d.points));
   }
 
@@ -207,7 +219,7 @@ export function brushToPoly(rawPts, size, pattern = 'round') {
   for (let i = 0; i < n; i++) {
     const prev = pts[Math.max(0, i - 1)], next = pts[Math.min(n - 1, i + 1)];
     const d = norm([next[0] - prev[0], next[1] - prev[1]]);
-    hw[i] = halfWidthAt(i / (n - 1), Math.atan2(d[1], d[0]), size, pattern, i, n);
+    hw[i] = halfWidthAt(i / (n - 1), Math.atan2(d[1], d[0]), size, pattern, i, n) * ps(i);
     const nv = [-d[1], d[0]]; // vecteur normal à gauche
     left.push([pts[i][0] + nv[0] * hw[i], pts[i][1] + nv[1] * hw[i]]);
     right.push([pts[i][0] - nv[0] * hw[i], pts[i][1] - nv[1] * hw[i]]);

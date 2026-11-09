@@ -12,7 +12,7 @@ import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
 import { fullscreenElement } from '../util/fullscreen.js';
 import { ICONS } from '../ui/icons.js';
-import { brushToPoly } from '../util/brushGeom.js';
+import { brushToPoly, pressureToScale } from '../util/brushGeom.js';
 
 const HANDLE_DRAG_THRESHOLD = 3; // px, avant qu'un clic-glissé plume ne devienne un point lisse
 const CLOSE_PATH_THRESHOLD = 8; // px, distance au premier point pour fermer le tracé au clic
@@ -1733,7 +1733,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     } else if (tool === 'pen') {
       startOrContinuePen(p);
     } else if (tool === 'brush') {
-      startOrContinueBrush(p);
+      startOrContinueBrush(p, eventPressure(e));
     } else if (tool === 'text') {
       // Mode texte : clic simple = texte avec dimensions par défaut
       // Clic + glisser = dessiner un rectangle pour définir le cadre du texte
@@ -1868,7 +1868,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       }
       drawState.previewNode.getLayer().batchDraw();
     } else if (drawState.tool === 'brush') {
-      startOrContinueBrush(p);
+      startOrContinueBrush(p, eventPressure(e));
     }
     overlayLayer.batchDraw();
   });
@@ -2128,12 +2128,39 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // BRUSH TOOL FUNCTIONS
   // =============================================================================
 
+  // Pression du stylet. Konva 9 émet 'mousedown' avec un MouseEvent (sans
+  // pressure) : on lit donc la pression sur les POINTER events DOM parallèles
+  // du conteneur (PointerEvent.pressure, 0..1 ; souris = 0.5 en drag, stylet /
+  // tactile = force réelle). null si jamais vu -> traité comme 0.5 plus bas.
+  let lastPointerPressure = null;
+  container.addEventListener('pointerdown', (e) => {
+    if (typeof e.pressure === 'number' && !Number.isNaN(e.pressure)) lastPointerPressure = e.pressure;
+  });
+  container.addEventListener('pointermove', (e) => {
+    if (e.buttons && typeof e.pressure === 'number' && !Number.isNaN(e.pressure)) lastPointerPressure = e.pressure;
+  });
+  container.addEventListener('pointerup', () => { lastPointerPressure = null; });
+  function eventPressure(e) {
+    const ev = e && e.evt;
+    if (ev && typeof ev.pressure === 'number' && !Number.isNaN(ev.pressure)) return ev.pressure;
+    if (ev && ev.touches && ev.touches[0] && typeof ev.touches[0].force === 'number') return ev.touches[0].force;
+    return lastPointerPressure;
+  }
+
+  // Facteur d'échelle de largeur par point du tracé courant, selon le réglage
+  // "Pression" du panneau (null = off, taille fixe historique).
+  function brushPressureScale() {
+    if (!state.brushPressure || !drawState || drawState.tool !== 'brush') return null;
+    const sens = Math.min(100, Math.max(0, state.brushPressureSens || 0)) / 100;
+    return drawState.points.map((p) => pressureToScale(p.pressure == null ? 0.5 : p.pressure, sens));
+  }
+
   // Démarrer ou continuer le trait de pinceau
-  function startOrContinueBrush(p) {
+  function startOrContinueBrush(p, pressure = null) {
     if (!drawState || drawState.tool !== 'brush') {
       drawState = {
         tool: 'brush',
-        points: [{ x: p.x, y: p.y }],
+        points: [{ x: p.x, y: p.y, pressure }],
         previewNode: null,
         previewOutline: null
       };
@@ -2144,7 +2171,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const last = points[points.length - 1];
       const dist = distance(p, last);
       if (dist < BRUSH_MIN_DISTANCE) return;
-      points.push({ x: p.x, y: p.y });
+      points.push({ x: p.x, y: p.y, pressure });
       updateBrushPreview();
     }
   }
@@ -2156,14 +2183,14 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     const pts = drawState.points.map(p => [p.x, p.y]);
     const brushSize = state.brushSize || 5;
     const pattern = state.brushPattern || 'round';
-    
+
     // Supprimer l'ancien aperçu
     if (drawState.previewOutline) {
       drawState.previewOutline.destroy();
     }
-    
-    // Générer le polygone de contour
-    const result = brushToPoly(pts, brushSize, pattern);
+
+    // Générer le polygone de contour (avec échelle de pression si réglée)
+    const result = brushToPoly(pts, brushSize, pattern, brushPressureScale());
     
     // Créer un shape Konva avec le polygone
     const previewNode = new Konva.Line({
@@ -2195,7 +2222,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     
     // Générer le polygone final avec les points finaux
     const pts = drawState.points.map(p => [p.x, p.y]);
-    const finalResult = brushToPoly(pts, brushSize, pattern);
+    const finalResult = brushToPoly(pts, brushSize, pattern, brushPressureScale());
     
     // Créer un shape path fermé avec le polygone
     // On utilise createShape mais on va stocker le polygone dans un format spécial

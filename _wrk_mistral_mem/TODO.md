@@ -42,7 +42,8 @@
 ## ⚙️ Améliorations pinceau
 
 - [x] **5 nouveaux patterns de pinceau** — ✅ livré 09/11 : crayon, marqueur, aérographe, pinceau sec, craie (lignée Animate CC / Sketchbook), géométrie déterministe (grain par index, jamais Math.random). Harnais 63/63 + E2E 20/20 (dist + vanilla).
-- [ ] Sensibilité pression (tablettes) · texture bitmap · éclaboussures
+- [x] **Sensibilité à la pression du stylet** — ✅ livré 09/11 : toggle « Pression (stylet) » + sensibilité 0–100 % dans le panneau Pinceau, lu via PointerEvent.pressure (listener pointer sur le conteneur, Konva 9 émettant un MouseEvent sans pressure). Harnais 19/19 + E2E 7/7 (dist + vanilla, touch CDP avec force).
+- [ ] Texture bitmap · éclaboussures
 
 ---
 

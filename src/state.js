@@ -20,6 +20,8 @@ export function createEditorState(doc) {
     strokeWidth: 2,
     brushSize: 5,
     brushPattern: 'round', // Patterns: round, flat, calligraphy, taper, pencil, marker, airbrush, drybrush, chalk
+    brushPressure: false,  // sensibilité à la pression du stylet (PointerEvent.pressure) — off par défaut (souris = 0.5)
+    brushPressureSens: 80, // sensibilité de la pression, 0..100 %
     zoom: 1,
     onionSkin: defaultOnionSkin(), // peau d'oignon : fantômes bleus (passé) / rouges (futur) — réglage d'interface global, persisté via prefs (voir main.js / Timeline.js)
     audioAssetId: null, // dernier asset audio importé/sélectionné pour la piste audio (réglage d'interface global)

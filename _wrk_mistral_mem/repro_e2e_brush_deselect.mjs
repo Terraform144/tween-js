@@ -8,7 +8,7 @@ import { createRequire } from 'module';
 const require = createRequire('/tmp/e2e/');
 const puppeteer = require('puppeteer-core');
 const CHROME = process.env.HOME + '/.local/chromium/chrome-headless-shell-linux64/chrome-headless-shell';
-const URL = 'http://127.0.0.1:4180/';
+const URL = process.env.TJS_URL || 'http://127.0.0.1:4180/';
 
 let pass = 0, fail = 0;
 const ok = (c, l) => { if (c) { pass++; console.log('  OK  ' + l); } else { fail++; console.log('  FAIL ' + l); } };
