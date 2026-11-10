@@ -152,6 +152,7 @@ html, body {
 .archives-menu-panel {
   max-height: 400px;
   overflow-y: auto;
+  max-width: min(92vw, 560px); /* pas de débordement hors écran (mobile) : le nom tronque avec ellipsis */
 }
 
 .archives-empty {
@@ -230,12 +231,16 @@ html, body {
 }
 
 .archive-remote-name {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
+  width: auto; /* neutralise le width:100% de .archive-item dans la ligne flex */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .archive-remote-del {
-  flex: none;
+  flex: 0 0 26px;
   width: 26px;
   height: 26px;
   display: inline-flex;

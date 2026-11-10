@@ -355,7 +355,7 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
         open.type = 'button';
         open.className = 'archive-item archive-remote-name';
         open.title = `${f.name} — ${(f.size / 1024).toFixed(1)} Ko — ${new Date(f.mtime).toLocaleString()}`;
-        open.textContent = `${f.name} — ${new Date(f.mtime).toLocaleString()}`;
+        open.textContent = f.name; // nom seul : la date/taille restent en info-bulle (title)
         open.addEventListener('click', async () => {
           closeArchivesMenu();
           try {
@@ -394,7 +394,11 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
   
   function openArchivesMenu() {
     const rect = archivesMenuBtn.getBoundingClientRect();
-    archivesMenuPanel.style.left = rect.left + 'px';
+    // Largeur finale possible du panneau (min-width inline vs max-width CSS min(92vw,560px))
+    const panelW = Math.max(Math.max(280, rect.width), Math.min(window.innerWidth * 0.92, 560));
+    let left = rect.left;
+    if (left + panelW > window.innerWidth - 8) left = Math.max(8, window.innerWidth - panelW - 8); // garder dans le viewport (mobile)
+    archivesMenuPanel.style.left = left + 'px';
     archivesMenuPanel.style.top = rect.bottom + 4 + 'px';
     archivesMenuPanel.style.minWidth = Math.max(280, rect.width) + 'px';
     menuPortal().appendChild(archivesMenuPanel);
