@@ -845,7 +845,10 @@ body.fs-css .fs-css-active {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 160px 1fr;
+  /* Colonne des noms de calques élargie : les 6 mini-boutons d'options
+     (œil, masque, masqué, guide, guidé, cadenas) prennent ~132px, il reste
+     ~88px pour le nom (160px avant = ~28px, illisible). */
+  grid-template-columns: 220px 1fr;
   grid-template-rows: 20px 1fr;
   overflow: hidden;
 }
@@ -1078,6 +1081,8 @@ button.icon-btn:disabled { opacity: 0.4; cursor: default; }
   .tl-layer-row .mini-btn { width: 26px; }
   .tl-layer-row, .tl-track-row { height: 34px; }
   .tl-header button { width: 30px; height: 30px; }
+  /* 6 mini-btn × 26px + gaps + padding ≈ 192px fixes : 250px laisse ~58px au nom */
+  .tl-body { grid-template-columns: 250px 1fr; }
   .prop-row input[type="number"], .prop-row input[type="text"], .prop-row select {
     padding: 8px;
     font-size: 13px;
@@ -1131,6 +1136,8 @@ button.icon-btn:disabled { opacity: 0.4; cursor: default; }
   .tl-layer-row, .tl-track-row { height: 38px; }
   .tl-frame-cell { width: 18px; }
   .tl-ruler .cell { width: 18px; }
+  /* Colonne des noms de calques : compromis écran étroit (mini-btn 26px si tactile) */
+  .tl-body { grid-template-columns: 240px 1fr; }
   
   /* Bouton plein écran de la scène */
   .stage-fullscreen-btn { 
