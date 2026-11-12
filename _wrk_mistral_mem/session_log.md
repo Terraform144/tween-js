@@ -1,6 +1,6 @@
 # 📜 Historique des sessions de travail avec Mistral Vibe
 
-*Dernière mise à jour : 24/07/2026*
+*Dernière mise à jour : 12/11/2026*
 *Projet : TweenJS (Éditeur d'animation vectorielle)*
 
 ---
@@ -395,3 +395,12 @@
 - Test : _wrk_mistral_mem/test_archives.mjs — 9 controles OK (coexistence homonymes, update en place, ids distincts, legacy sans _archiveId).
 - Harnais bundle UI headless (repro_bundle_ui.mjs) : WIP, bloque sur le stub DOM de CodeMirror 6 inlined — conserve pour reprise ulterieure.
 - Bundle vanilla regenere et copie ; servi sur http://127.0.0.1:8123/. Toujours NON COMMITTE (validation utilisateur en attente).
+
+## 📅 **Session 37 - 12/11/2026 — Scrollbars H/V + synchro/commit/push/APK**
+
+- Feature : scrollbars H/V natives quand la scène déborde de la zone de travail. #stage-container est devenu le scroller (overflow:auto, max 100% de #stage-wrap, centrage sûr margin:auto). Pan main = scroll natif (plus de transform CSS). Règles épinglées dans #stage-wrap, graduations re-tracées au scroll. Zoom ancré au curseur/centre.
+- Tests : repro_e2e_scrollbars.mjs 22/22 ; repro_e2e_touch_pan.mjs réécrit, tous OK (plein écran compris) ; régressions vertes (grid/theme/guides/onion/mask/projectopen/videoexport/camera_track/click). warp KO préexistant (confirmé sans les changements).
+- Harnais E2E rendu portable Linux (puppeteer-core dans /tmp/e2e + copie dans _wrk_mistral_mem/node_modules, chemins Windows -> fileURLToPath).
+- Synchro PureVanilla (bundle + style.css ; PAS index.html) + APK régénéré non niché : 5 706 226 o, 0 .apk embarqué, md5 0b826fc8… aux 4 emplacements.
+- Commits d27461f / cc724e1 / 8373a8c, push origin TweenJS_workflow.V.0.1 (9c41c86..8373a8c).
+- Suite : mode XP adopté ; backlog caméra pris par l'assistant ; prochain sujet user = son jeu IIB v3.0.
