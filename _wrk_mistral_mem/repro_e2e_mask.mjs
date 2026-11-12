@@ -105,7 +105,7 @@ await new Promise(r => setTimeout(r, 200));
 // (re-querie des lignes au moment du clic : la timeline se re-rend à chaque notify)
 const clickMaskedBtn = async (rowIndex) => {
   await page.evaluate((rowIndex) => {
-    const rows = document.querySelectorAll('.tl-layer-row');
+    const rows = document.querySelectorAll('.tl-layer-row:not(.tl-camera-row):not(.tl-audio-row)');
     const btns = rows[rowIndex].querySelectorAll('.mini-btn'); // [eye, mask, masked, lock]
     btns[2].click();
   }, rowIndex);
@@ -118,11 +118,11 @@ await clickMaskedBtn(1); // remettre
 await new Promise(r => setTimeout(r, 300));
 
 // 4) sélectionner le calque masque -> rendu en édition (masque visible, interactif)
-await page.evaluate(() => { document.querySelectorAll('.tl-layer-row')[0].click(); });
+await page.evaluate(() => { document.querySelectorAll('.tl-layer-row:not(.tl-camera-row):not(.tl-audio-row)')[0].click(); });
 await new Promise(r => setTimeout(r, 300));
 const pEdit = await pxEval(275, 200);
 ok(isBlack(pEdit), `calque masque sélectionné -> masque visible, centre = noir ${JSON.stringify(pEdit)}`);
-await page.evaluate(() => { document.querySelectorAll('.tl-layer-row')[1].click(); }); // resélectionner le fond
+await page.evaluate(() => { document.querySelectorAll('.tl-layer-row:not(.tl-camera-row):not(.tl-audio-row)')[1].click(); }); // resélectionner le fond
 await new Promise(r => setTimeout(r, 300));
 
 // 5) export HTML depuis l'app -> fichier -> pixels identiques dans l'export

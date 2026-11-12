@@ -6,8 +6,8 @@ import {
 import { notify } from '../state.js';
 import { getPref, setPref, hasPref } from '../util/prefs.js';
 import {
-  hasCamera, getCameraKeyframeAt, upsertCameraKeyframe, moveCameraKeyframe,
-  nextCameraEasing, CAMERA_EASING_LABELS,
+  getCameraKeyframeAt, upsertCameraKeyframe, moveCameraKeyframe, removeCameraKeyframeAt,
+  resolveCameraAtFrame, nextCameraEasing, CAMERA_EASING_LABELS,
 } from '../core/camera.js';
 import { audioAssets, upsertAudioEvent, removeAudioEventAt } from '../core/audio.js';
 import { ICONS } from './icons.js';
@@ -214,13 +214,15 @@ export function mountTimeline(container, state) {
 
   // ------------------------------------------ piste caméra (dédiée, plus foncée)
   // La caméra est une notion de DOCUMENT (pas de calque) : sa piste vit au-
-  // dessus des calques de la scène racine uniquement. Les clés caméra y sont
-  // visibles, glissables le long de la piste (mêmes contraintes de voisines
-  // que les calques), un double-clic sur une image vide y pose une clé
-  // (depuis l'état résolu courant — la caméra ne saute jamais), un clic
-  // droit sur une clé fait tourner l'easing du tween qui la quitte.
+  // dessus des calques de la scène racine. TOUJOURS visible à la racine, même
+  // sans aucune clé : c'est depuis elle qu'on pose la PREMIÈRE clé (bouton +
+  // ou double-clic sur une image vide). Dans un symbole : masquée. Les clés y
+  // sont visibles, glissables le long de la piste (mêmes contraintes de
+  // voisines que les calques), supprimables par double-clic, et un clic droit
+  // sur une clé fait tourner l'easing du tween qui la quitte (pastille de
+  // couleur = easing, voir style.css).
   function cameraTrackVisible() {
-    return !state.editPath.length && hasCamera(state.doc);
+    return !state.editPath.length;
   }
 
   // Piste audio : visible en scène racine dès qu'un asset audio existe.
@@ -368,18 +370,41 @@ export function mountTimeline(container, state) {
   // (notify -> innerHTML), l'événement dblclick natif ne peut donc jamais
   // partir sur la même cellule — la mémoire du dernier clic vit en closure.
   let lastCamCellClick = { index: -1, time: 0 };
+  let lastCamKeyCellClick = { index: -1, time: 0 }; // idem, cellules AVEC clé (double-clic = supprimer)
 
   function buildCameraTrack() {
     const camRow = document.createElement('div');
     camRow.className = 'tl-layer-row tl-camera-row';
-    camRow.title = "Piste caméra — clic : activer l'outil Caméra (C) ; les clés se posent avec l'outil, glissables ici";
+    camRow.title = "Piste caméra — clic : activer l'outil Caméra (C) ; bouton + : poser une clé à l'image courante ; double-clic sur une image vide : poser une clé ici ; double-clic sur une clé : la supprimer ; clic droit sur une clé : easing suivant ; les clés se glissent le long de la piste";
     const icon = document.createElement('span');
     icon.className = 'mini-btn cam-icon';
     icon.innerHTML = ICONS.camera;
     const name = document.createElement('span');
     name.className = 'layer-name';
     name.textContent = 'Caméra';
-    camRow.append(icon, name);
+    // Lecture de l'état caméra résolu à l'image courante (zoom affiché en %).
+    const camState = document.createElement('span');
+    camState.className = 'cam-state';
+    const camNow = resolveCameraAtFrame(state.doc, state.currentFrame);
+    if (camNow) {
+      camState.textContent = '×' + Math.round(camNow.zoom * 100) + '%';
+      camState.title = 'Caméra à l\'image ' + (state.currentFrame + 1) + ' : x=' + Math.round(camNow.x)
+        + ', y=' + Math.round(camNow.y) + ', zoom=' + Math.round(camNow.zoom * 100) + '%'
+        + ', rotation=' + Math.round(camNow.rotation) + '°';
+    } else {
+      camState.textContent = '—';
+      camState.title = 'Aucune clé caméra (identité = rendu historique) — bouton + ou double-clic sur une image pour en poser une';
+    }
+    const addBtn = document.createElement('span');
+    addBtn.className = 'mini-btn cam-add';
+    addBtn.innerHTML = ICONS.plus;
+    addBtn.title = "Poser une clé caméra à l'image courante (depuis l'état résolu courant — la caméra ne saute jamais)";
+    addBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      upsertCameraKeyframe(state.doc, state.currentFrame);
+      notify(state);
+    });
+    camRow.append(icon, name, camState, addBtn);
     camRow.addEventListener('click', () => { state.currentTool = 'camera'; notify(state); });
     layersCol.appendChild(camRow);
 
@@ -396,15 +421,29 @@ export function mountTimeline(container, state) {
       if (kf) {
         cell.classList.add('camera-key', 'draggable-key');
         const easing = kf.easing || 'linear';
+        if (easing !== 'linear') cell.classList.add('easing-' + easing); // pastille colorée (style.css)
         cell.title = 'Clé caméra — image ' + (i + 1) + '\nEasing vers la clé suivante : ' + (CAMERA_EASING_LABELS[easing] || easing)
-          + '\nClic droit : easing suivant — Glisser : déplacer — Suppr (outil caméra) : supprimer';
+          + '\nClic droit : easing suivant — Glisser : déplacer — Double-clic : supprimer — Suppr (outil caméra) : supprimer';
         cell.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           e.stopPropagation();
           nextCameraEasing(kf);
           notify(state);
         });
-        cell.addEventListener('pointerdown', (e) => startCamKeyDrag(e, kf, i, cell));
+        cell.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0) return;
+          // Double-clic manuel (même raison que les cellules vides : un geste
+          // peut déclencher notify -> rebuild entre les deux clics).
+          const now = Date.now();
+          if (lastCamKeyCellClick.index === i && now - lastCamKeyCellClick.time < 400) {
+            lastCamKeyCellClick = { index: -1, time: 0 };
+            removeCameraKeyframeAt(state.doc, i);
+            notify(state);
+            return;
+          }
+          lastCamKeyCellClick = { index: i, time: now };
+          startCamKeyDrag(e, kf, i, cell);
+        });
       } else {
         cell.title = 'Image ' + (i + 1) + ' — double-clic : poser une clé caméra ici';
         cell.addEventListener('pointerdown', (e) => {
