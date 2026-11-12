@@ -407,27 +407,40 @@ html, body {
 #stage-wrap {
   background: #e9dfc2;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
 }
 #stage-container {
+  /* La feuille EST le scroller : scrollbars H/V natives dès que le canvas
+     dépasse de la zone de travail (zoom ou fenêtre étroite) — et ça marche
+     aussi en plein écran, où #stage-container couvre l'écran. Centrage « sûr »
+     par margin:auto (et non justify-content:center sur le parent) : quand la
+     feuille déborde, les marges tombent à 0 et TOUTE la feuille reste
+     atteignable au scroll — avec justify-content:center, le débordement côté
+     haut/gauche serait coupé et inatteignable. max-width/height la cantonnent
+     à la zone (c'est alors le scroll INTERNE qui déborde), flex:none empêche
+     le rétrécissement. */
+  margin: auto;
+  flex: none;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  display: flex;
+  scrollbar-width: thin;
   background: #ffffff;
   box-shadow: 0 0 0 1px var(--text), 0 8px 24px var(--stage-shadow);
-  /* Un doigt qui dessine ne doit jamais faire défiler/zoomer la page — tout
-     le geste tactile revient à Konva (mousedown/touchstart déjà gérés dans
-     Stage.js). */
-  touch-action: none;
   position: relative;
 }
-/* Ne porte le translate du pan (outil main) qu'EN PLEIN ÉCRAN : la feuille
-   UA impose transform:none !important à l'élément fullscreen — le déplacement
-   s'applique alors à ce wrapper interne (voir Stage.js applyPanTransform).
-   Hors plein écran, c'est #stage-container (la page entière) qui est
-   translaté et ce wrapper reste à l'identité. */
+/* Wrapper du canvas Konva dans #stage-container (élément flex centré par
+   margin:auto dans le scroller). Le pan (outil main) ne transforme plus rien :
+   il scroll #stage-container (voir Stage.js). Un doigt qui dessine ne doit
+   jamais faire défiler/zoomer la page — tout le geste tactile revient à Konva
+   (mousedown/touchstart déjà gérés dans Stage.js). */
 .stage-pan-layer {
   position: relative;
+  margin: auto;
+  flex: none;
+  touch-action: none;
 }
 /* Bouton carré de plein écran posé sur la feuille, en haut à droite. */
 .stage-fullscreen-btn {
