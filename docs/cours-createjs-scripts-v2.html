@@ -245,6 +245,7 @@ Options.on(<span class="s">"click"</span>, <span class="k">function</span> () { 
     <tr><td><code>Scene.onClick(cb)</code> / <code>Scene.onClick('nom', cb)</code></td><td>oui</td><td>oui</td><td>Pendant la lecture ; (x, y) en coordonnées scène</td></tr>
     <tr><td><code>Scene.on/off/dispatchEvent</code> + <code>stagemouse*</code> / <code>stageclick</code> / <code>tick</code></td><td>oui</td><td>oui</td><td>Portée EaselJS ; tick à chaque image de lecture</td></tr>
     <tr><td><code>Scene.addShape/addInstance</code></td><td>oui</td><td>oui</td><td>Sur le calque actif non verrouillé</td></tr>
+    <tr><td><code>Scene.camera</code> — <code>x</code>/<code>y</code>/<code>zoom</code>/<code>rotation</code> en lecture, <code>camera.set({...})</code>, <code>camera.remove()</code>, <code>camera.hasKeyframes</code></td><td>oui</td><td>oui</td><td>Caméra de scène (notion de document, racine uniquement) : set() pose une clé caméra à l'image courante</td></tr>
     <tr><td><code>nom.on/off/…/dispatchEvent</code></td><td>oui</td><td>oui</td><td>click, mousedown, mouseup, pressmove, pressup, dblclick, mouseover/out, rollover/out, tick</td></tr>
     <tr><td><code>nom.play/stop/gotoAndX</code> (instance movieclip)</td><td>—</td><td>oui</td><td>Export uniquement : le Proxy délègue au MovieClip enfant. Dans l'éditeur, pilote le clip via un script posé DANS le symbole</td></tr>
     <tr><td><code>createjs.*</code> (Tween, Ticker, Sound, LoadQueue, Ease…)</td><td>oui</td><td>si utilisé</td><td>Injecté en paramètre ; inliné à l'export si mentionné</td></tr>

@@ -3,13 +3,22 @@
 // (3) ouvre le fichier exporte (file://) et clique le bouton "But" :
 // attend CLIQUE_OK_F2 — parite editoriale complete.
 import puppeteer from 'puppeteer-core';
-import { readdirSync, existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
+import { readdirSync, existsSync, mkdirSync, writeFileSync, statSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const CHROME = process.env.HOME + '/.local/chromium/chrome-headless-shell-linux64/chrome-headless-shell';
 const BASE = 'http://localhost:4173/';
-const APP_DOC = 'C:/_APP/PortableGit/tmp/e2e/iib-v3-e2e.json';
-const DL_DIR = 'C:/_APP/PortableGit/tmp/e2e/dl';
+// Copie E2E du doc IIB_v3 : alert() -> marqueur document.title (les dialogues
+// bloquent le renderer headless -> Target closed)
+const APP_DOC = '/tmp/e2e/iib-v3-e2e.json';
+{
+  const raw = JSON.parse(readFileSync(new URL('./IIB_v3.test.json', import.meta.url), 'utf8'));
+  for (const s of raw.scripts) s.code = s.code
+    .replace(/alert\(\s*"clicked"\s*\)\s*;?/, '')
+    .replace('Scene.gotoAndStop("Start");', 'Scene.gotoAndStop("Start"); document.title = "CLIQUE_OK_F" + Scene.currentFrame;');
+  writeFileSync(APP_DOC, JSON.stringify(raw));
+}
+const DL_DIR = '/tmp/e2e/dl';
 
 if (existsSync(DL_DIR)) for (const f of readdirSync(DL_DIR)) console.log('ANCIEN FICHIER: ' + f);
 mkdirSync(DL_DIR, { recursive: true });

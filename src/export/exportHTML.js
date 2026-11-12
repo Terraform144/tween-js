@@ -133,6 +133,39 @@ function buildBootstrapScript(dataJson, scriptsJson) {
     onKeyDown: function (cb) { if (typeof cb === 'function') keyDownCbs.push(cb); },
     onKeyUp: function (cb) { if (typeof cb === 'function') keyUpCbs.push(cb); },
     get keys() { return keys; },
+    // Caméra de scène (notion de document) : lecture = état résolu à
+    // l'image courante (identité si aucune clé) ; set({ x, y, zoom,
+    // rotation }) pose/met à jour une clé caméra à l'image courante dans
+    // DATA.camera — le rendu la prend en compte dès la frame suivante
+    // (resolveCameraAtFrame/applyCameraToContext, runtime concaténé).
+    get camera() {
+      function read() {
+        return resolveCameraAtFrame(DATA.camera, root.currentFrame, DATA.width, DATA.height)
+          || { x: DATA.width / 2, y: DATA.height / 2, zoom: 1, rotation: 0 };
+      }
+      return {
+        get x() { return read().x; },
+        get y() { return read().y; },
+        get zoom() { return read().zoom; },
+        get rotation() { return read().rotation; },
+        get hasKeyframes() { return !!(DATA.camera && DATA.camera.keyframes && DATA.camera.keyframes.length); },
+        set: function (patch) {
+          DATA.camera = DATA.camera || { keyframes: [] };
+          var kfs = DATA.camera.keyframes;
+          var ex = null;
+          for (var i = 0; i < kfs.length; i++) { if (kfs[i].index === root.currentFrame) { ex = kfs[i]; break; } }
+          var kf = Object.assign({}, read(), patch || {}, { index: root.currentFrame });
+          if (ex) Object.assign(ex, kf);
+          else { kfs.push(kf); kfs.sort(function (a, b) { return a.index - b.index; }); }
+        },
+        remove: function () {
+          if (!DATA.camera) return;
+          var kfs = DATA.camera.keyframes;
+          for (var i = 0; i < kfs.length; i++) { if (kfs[i].index === root.currentFrame) { kfs.splice(i, 1); break; } }
+          if (!kfs.length) DATA.camera = null;
+        },
+      };
+    },
     random: function (n) { return Math.floor(Math.random() * (n || 1)); },
     log: function () { console.log.apply(console, arguments); },
     // Joue un son (asset audio du doc par id/nom, ou URL/dataUrl directe).

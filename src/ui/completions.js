@@ -25,6 +25,8 @@ export const SCENE_ROOT_COMPLETIONS = [
   // boucle de jeu / entrées / clic
   'onEnterFrame', 'onKeyDown', 'onKeyUp', 'onClick',
   'keys',
+  // caméra de scène (x/y/zoom/rotation + set/remove)
+  'camera',
   // divers
   'random', 'log', 'playSound',
   ...EVENT_API,

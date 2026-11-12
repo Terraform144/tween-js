@@ -4,6 +4,7 @@
 // utilisateur exécuté avec `run()`.
 import { createShape, createInstance, insertKeyframe, getContextLayers, getContextFrameCount, setContextFrameCount, getNamedElements, getKeyframeAt, getFrameLabels, invertFrameLabels } from '../core/model.js';
 import { pivotHitShift } from '../core/pivot.js';
+import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt } from '../core/camera.js';
 import { notify } from '../state.js';
 
 // Bibliothèques tierces injectées dans les scripts comme variables directes.
@@ -489,6 +490,27 @@ export function createSceneRuntime({ state, onResize = () => {}, stageContainer 
       clickCbs.set(name ? 'name:' + name : fn, { name, cb: fn });
     },
     get keys() { return keys; },
+
+    // --- Caméra de scène (notion de DOCUMENT, scène racine uniquement) ---
+    // Lecture : état caméra résolu à l'image courante (identité si aucune
+    // clé). Écriture : Scene.camera.set({ x, y, zoom, rotation }) pose ou
+    // met à jour une clé caméra à l'image courante (équivalent du F6 de
+    // l'outil caméra — la caméra ne saute jamais) ; remove() supprime la
+    // clé de l'image courante. Le rendu éditeur suit (notify -> render ->
+    // applyCameraTransform en lecture).
+    get camera() {
+      const doc = state.doc;
+      const read = () => resolveCameraAtFrame(doc, state.currentFrame) || defaultCamera(doc);
+      return {
+        get x() { return read().x; },
+        get y() { return read().y; },
+        get zoom() { return read().zoom; },
+        get rotation() { return read().rotation; },
+        get hasKeyframes() { return hasCamera(doc); },
+        set(patch) { upsertCameraKeyframe(doc, state.currentFrame, patch || {}); notify(state); },
+        remove() { removeCameraKeyframeAt(doc, state.currentFrame); notify(state); },
+      };
+    },
 
     // --- Divers ---
     random(n) { return Math.floor(Math.random() * (n || 1)); },
