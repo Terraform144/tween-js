@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 // Harnais E2E : PWA HORS Ligne. Scénario réaliste par version (dist/main via
 // vite preview 4174, vanilla via serveur statique 4175) :
 //   1. chargement EN LIGNE -> service worker actif + cache rempli (message
@@ -10,8 +11,8 @@
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
 
-const CHROME = 'C:/Users/jl_be/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
-const REPO = 'F:/_SRC/__Debrouillard/Animate_JS_PRJ';
+const CHROME = process.env.HOME + '/.local/chromium/chrome-headless-shell-linux64/chrome-headless-shell';
+const REPO = fileURLToPath(new URL('..', import.meta.url));
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new' });
 let failed = 0;

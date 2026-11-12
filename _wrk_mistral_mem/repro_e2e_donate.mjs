@@ -4,7 +4,7 @@
 // Run : copier dans /tmp/e2e puis `node donate-test.mjs` (serveur 4175).
 import puppeteer from 'puppeteer-core';
 
-const CHROME = 'C:/Users/jl_be/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
+const CHROME = process.env.HOME + '/.local/chromium/chrome-headless-shell-linux64/chrome-headless-shell';
 const BASE = 'http://localhost:4175/';
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new' });

@@ -2,11 +2,11 @@
 // via le vrai flux "Ouvrir...", puis Exécuter, puis clic sur le rect.
 import puppeteer from 'puppeteer-core';
 import { writeFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
-const CHROME = 'C:/Users/jl_be/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
+const CHROME = process.env.HOME + '/.local/chromium/chrome-headless-shell-linux64/chrome-headless-shell';
 const BASE = 'http://localhost:4173/';
-const DOC_JSON = new URL('./doc-e2e.json', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const DOC_JSON = fileURLToPath(new URL('./doc-e2e.json', import.meta.url)).replace(/^\/([A-Za-z]:)/, '$1');
 
 const CODE = [
   'Scene.log("createjs :", typeof createjs);',
@@ -19,7 +19,7 @@ const CODE = [
 ].join('\n');
 
 // 1. Document fabrique avec le VRAI modele du projet (format garanti)
-const model = await import(pathToFileURL('F:/_SRC/__Debrouillard/Animate_JS_PRJ/src/core/model.js').href);
+const model = await import(new URL('../src/core/model.js', import.meta.url).href);
 const doc = model.createDocument({ name: 'E2E-But', width: 550, height: 400 });
 const sym = model.createSymbol('Bouton', 'movieclip'); doc.symbols[sym.id] = sym; sym.layers[0].keyframes[0].elements.push(model.createShape('rect', { x: 0, y: 0, width: 120, height: 90, fill: '#2196f3' })); const rect = model.createInstance(sym.id, { x: 275, y: 200 });
 rect.name = 'But';

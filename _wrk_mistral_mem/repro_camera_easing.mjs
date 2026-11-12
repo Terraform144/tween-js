@@ -2,8 +2,8 @@
 // moveCameraKeyframe. Run : node _wrk_mistral_mem/repro_camera_easing.mjs
 import { pathToFileURL } from 'node:url';
 
-const cam = await import(pathToFileURL('F:/_SRC/__Debrouillard/Animate_JS_PRJ/src/core/camera.js').href);
-const model = await import(pathToFileURL('F:/_SRC/__Debrouillard/Animate_JS_PRJ/src/core/model.js').href);
+const cam = await import(pathToFileURL(fileURLToPath(new URL('../src/core/camera.js', import.meta.url))).href);
+const model = await import(pathToFileURL(fileURLToPath(new URL('../src/core/model.js', import.meta.url))).href);
 
 let failed = 0;
 function check(label, cond) {

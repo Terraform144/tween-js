@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 // Harnais E2E de la piste caméra dans la Timeline :
 //   1. doc avec 2 clés caméra (0 et 10, zoom 1 -> 2) charge via « Ouvrir... »
 //   2. la piste caméra existe, est PLUS FONCÉE que les pistes de calques,
@@ -11,10 +12,10 @@ import puppeteer from 'puppeteer-core';
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-const CHROME = 'C:/Users/jl_be/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
+const CHROME = process.env.HOME + '/.local/chromium/chrome-headless-shell-linux64/chrome-headless-shell';
 const BASE = 'http://localhost:4173/';
-const REPO = 'F:/_SRC/__Debrouillard/Animate_JS_PRJ';
-const DOC_JSON = new URL('./doc-camera-e2e.json', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const REPO = fileURLToPath(new URL('..', import.meta.url));
+const DOC_JSON = fileURLToPath(new URL('./doc-camera-e2e.json', import.meta.url)).replace(/^\/([A-Za-z]:)/, '$1');
 
 const model = await import(pathToFileURL(REPO + '/src/core/model.js').href);
 const cam = await import(pathToFileURL(REPO + '/src/core/camera.js').href);

@@ -16,11 +16,11 @@
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
 import { writeFileSync, statSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 
-const CHROME = 'C:/Users/jl_be/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
-const SERVER = 'F:/_SRC/__Debrouillard/Animate_JS_PRJ/_wrk_mistral_mem/vanilla_server.mjs';
-const OUT = 'F:/_SRC/__Debrouillard/Animate_JS_PRJ/_wrk_mistral_mem/camera-e2e-export.html';
+const CHROME = process.env.HOME + '/.local/chromium/chrome-headless-shell-linux64/chrome-headless-shell';
+const SERVER = fileURLToPath(new URL('../_wrk_mistral_mem/vanilla_server.mjs', import.meta.url));
+const OUT = fileURLToPath(new URL('../_wrk_mistral_mem/camera-e2e-export.html', import.meta.url));
 const BASE = 'http://localhost:4175/';
 
 let passed = 0, failed = 0;
