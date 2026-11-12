@@ -197,8 +197,8 @@ stageFullscreenBtn.addEventListener('click', (e) => {
 // Synchronise l'UI au plein écran de la feuille. Les boutons flottants
 // (contrôle de zoom + bouton plein écran) changent de parent selon le mode :
 // hors plein écran ils vivent dans #stage-wrap — ancrés au viewport de la
-// zone scène, ils restent visibles quand le pan déplace la page entière
-// (voir Stage.js applyPanTransform) ; en plein écran ils retournent dans
+// zone scène, ils restent visibles quand le pan scrolle la feuille
+// (voir Stage.js) ; en plein écran ils retournent dans
 // #stage-container car l'API native ne rend QUE le sous-arbre de l'élément
 // fullscreen (body.sheet-fullscreen fixe déjà le contrôle de zoom en haut
 // à gauche). NB : référencé après la création de btnHand/zoomControls (plus

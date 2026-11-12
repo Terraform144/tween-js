@@ -36,7 +36,7 @@
 
 ## 📝 Backlog v2 (noté en session 18)
 
-- [ ] Piste caméra dans la Timeline · easing du tween caméra · `Scene.camera` dans l'API scripts · parallaxe par calque · édition à travers la caméra · lien vivant (FSA) sur les scripts d'image · watch par polling hors Chromium
+- [ ] Piste caméra dans la Timeline · easing du tween caméra · `Scene.camera` dans l'API scripts · parallaxe par calque · édition à travers la caméra · lien vivant (FSA) sur les scripts d'image · watch par polling hors Chromium — **pris en charge par l'assistant (12/11), l'utilisateur passe au jeu IIB en XP**
 - [ ] v2 masque : masques imbriqués, masque animé (tween sur le calque masque) · v2 guide : orientation selon la tangente, plusieurs objets par guide
 
 ## ⚙️ Améliorations pinceau
@@ -45,6 +45,10 @@
 - [x] **Sensibilité à la pression du stylet** — ✅ livré 09/11 : toggle « Pression (stylet) » + sensibilité 0–100 % dans le panneau Pinceau, lu via PointerEvent.pressure (listener pointer sur le conteneur, Konva 9 émettant un MouseEvent sans pressure). Harnais 19/19 + E2E 7/7 (dist + vanilla, touch CDP avec force).
 - [x] **Archives en ligne (./Archives, clé `?adm=4321`)** — ✅ livré 10/11 : section « En ligne » dans le menu Archives visible uniquement avec la clé (bouton « Sauvegarder en ligne » + liste/ouvrir/supprimer), endpoints `/api/archives` dans dev-server.py protégés par la clé (403 sinon, anti path-traversal), proxy Vite `/api` → dev-server.py, fallback téléchargement si hébergement statique. E2E 14/14 + curl (403/CRUD/traversal) + fallback vérifié.
 - [ ] Texture bitmap · éclaboussures
+
+## 🖱️ Zone de travail
+
+- [x] **Scrollbars H/V quand la scène déborde** — ✅ livré 12/11 : `#stage-container` est lui-même le scroller (`overflow:auto`, `max-width/height:100%` dans `#stage-wrap`, centrage « sûr » par `margin:auto` — avec l'ancien `justify-content:center`, le débordement haut/gauche était coupé et inatteignable). Scrollbars natives dès que la feuille dépasse (zoom ou fenêtre étroite), plein écran compris (natif + repli CSS). Le pan (outil main) passe par le scroll natif (plus de transform CSS) : les scrollbars reflètent toujours la vue. Règles épinglées dans `#stage-wrap` (hors du scroller), graduations re-tracées à chaque scroll. Zoom (molette Ctrl / boutons) ancré au curseur / au centre via `applyZoom(anchor)`. E2E 22/22 (`repro_e2e_scrollbars.mjs`) + `repro_e2e_touch_pan.mjs` TOUS OK (pan tactile+souris, hors plein écran et en plein écran CSS) ; régressions grid/theme/guidesnap/onion/mask/projectopen/videoexport/camera_track/click OK. NB : repro_e2e_warp échoue P2/P3/P4 AUSSI sans ces changements (préexistant sur ce poste Linux).
 
 ---
 
