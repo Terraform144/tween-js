@@ -1029,6 +1029,14 @@ body.fs-css .fs-css-active {
   background: var(--accent);
   box-shadow: 0 0 0 1px rgba(253, 246, 227, 0.45);
 }
+/* Pastille de la clé caméra = easing du tween qui la quitte : orange = linéaire
+   (défaut), puis une couleur Solarized par easing (voir nextCameraEasing). */
+.tl-frame-cell.tl-camera-cell.camera-key.easing-easeIn::after { background: #b58900; }
+.tl-frame-cell.tl-camera-cell.camera-key.easing-easeOut::after { background: #2aa198; }
+.tl-frame-cell.tl-camera-cell.camera-key.easing-easeInOut::after { background: #6c71c4; }
+/* Lecture de l'état caméra courant (zoom) + bouton "+" dans la ligne caméra */
+.tl-camera-row .cam-state { margin-left: auto; font-size: 11px; color: #93a1a1; padding: 0 4px; user-select: none; }
+.tl-camera-row .cam-add { color: var(--accent); }
 
 .frame-script-badge {
   position: absolute;
