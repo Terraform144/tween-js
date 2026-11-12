@@ -1,5 +1,5 @@
 # TODO — Idées et prochaines étapes TweenJS
-*Mis à jour le 29/10/2026 (soir) — 4 features livrées et pushées sur origin/TweenJS_workflow.V.0.1*
+*Mis à jour le 12/11/2026 (soir) — scrollbars + piste caméra timeline v2 + Scene.camera livrées et pushées sur origin/TweenJS_workflow.V.0.1*
 
 ---
 
@@ -36,7 +36,9 @@
 
 ## 📝 Backlog v2 (noté en session 18)
 
-- [ ] Piste caméra dans la Timeline · easing du tween caméra · `Scene.camera` dans l'API scripts · parallaxe par calque · édition à travers la caméra · lien vivant (FSA) sur les scripts d'image · watch par polling hors Chromium — **pris en charge par l'assistant (12/11), l'utilisateur passe au jeu IIB en XP**
+- [x] **Piste caméra dans la Timeline** — ✅ livré 12/11 : piste TOUJOURS visible en scène racine (même sans clé — c'est elle qui pose la 1re clé), bouton + = clé à l'image courante, double-clic image vide = poser / double-clic sur clé = supprimer, glisser = déplacer (contraintes de voisines), clic droit = cycle d'easing avec pastille colorée (easing-easeIn/Out/InOut), readout du zoom résolu à l'image courante dans la ligne. E2E `repro_e2e_camera_track.mjs` (v1, doc avec clés) toujours vert + `repro_e2e_camera_track2.mjs` 12/12 (doc SANS caméra) ; régressions mask 14/14 (sélecteurs positionnels corrigés), grid/onion/theme/guidesnap/scrollbars/touch_pan/projectopen/videoexport/guide OK.
+- [x] **`Scene.camera` dans l'API scripts** — ✅ livré 12/11 : `Scene.camera` (x/y/zoom/rotation en lecture = état résolu à l'image courante, `hasKeyframes`, `set({...})` = pose une clé caméra à l'image courante, `remove()`) dans le runtime éditeur (sceneRuntime.js, scène racine) ET dans le bootstrap exporté (exportHTML.js, écrit DATA.camera, rendu via resolveCameraAtFrame/applyCameraToContext). Autocomplétion CodeMirror + référentiel docs v2 à jour. E2E `repro_e2e_scene_camera.mjs` 12/12 (éditeur : lecture f0/f10, set+read-after-write, remove, rendu scaleX=zoom en lecture ; export HTML : set+read EXPCAM2.5, 0 pageerror).
+- [ ] Reste caméra : parallaxe par calque · édition à travers la caméra · lien vivant (FSA) sur les scripts d'image · watch par polling hors Chromium
 - [ ] v2 masque : masques imbriqués, masque animé (tween sur le calque masque) · v2 guide : orientation selon la tangente, plusieurs objets par guide
 
 ## ⚙️ Améliorations pinceau

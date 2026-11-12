@@ -1,8 +1,8 @@
 # NOTES SYNTHESE - Projet TweenJS
 - NOTE USER 29/10 soir : l utilisateur veut DEVELOPPER AVEC MOI et compte sur moi pour l aider a implementer les prochaines todo (voir _wrk_mistral_mem/TODO.md : export WebM, shape hints, theme sombre, autocompletion CodeMirror, export dossier...). Session collaborative reguliere, a ce soir.
 
-*Mise à jour : 12/11/2026*
-*Dernière session : 12/11/2026 — scrollbars H/V de la zone de travail livrées (commit+push origin TweenJS_workflow.V.0.1 + APK 0 niché 5,7 Mo) ; mode XP adopté (assistant = senior, user apprend) ; prochaine piste : le jeu IIB v3.0 en XP*
+*Mise à jour : 12/11/2026 (soir)*
+*Dernière session : 12/11/2026 soir — piste caméra timeline v2 + Scene.camera API scripts livrées (commit+push + APK 0 niché) ; puis 2 pomodoros prévus sur le jeu IIB v3.0*
 *VALIDATION USER 29/10/2026 : pivot+rotation (rotPin), outil Caméra (C), script de symbole + workflow VS Code (lien vivant Chrome), retour arrière doc dans l'APK Android — TOUS VALIDÉS. Liste des idées/prochaines étapes : _wrk_mistral_mem/TODO.md (onion skinning en top priorité).*
 
 ---
@@ -305,6 +305,15 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - APK (demande explicite) : flux canonique — public/app-debug.apk retiré AVANT build + résidu assets/public/app-debug.apk nettoyé -> npm run build -> npx cap sync android -> JAVA_HOME=~/.local/jdks/jdk-21.0.13+9 GRADLE_USER_HOME=<repo>/.gradle-user-home ./gradlew assembleDebug (BUILD SUCCESSFUL 3m22s ; chemins avec espace à QUOTER). APK 5 706 226 o (5,7 Mo), 0 entrée .apk embarquée, JS embarqué avec scrollLeft x4 + CSS max-width:100%. md5 0b826fc85fe799cf8ad1c75261924d0d identique aux 4 emplacements (build output, public/, dist/, PureVanilla).
 - COMMITS + PUSH origin TweenJS_workflow.V.0.1 (9c41c86..8373a8c) : d27461f feat scrollbars (+ TODO.md + 2 tests), cc724e1 chore harnais portables, 8373a8c chore sync PureVanilla + APK.
 - TODO.md : scrollbars cochées « livrées 12/11 » ; backlog caméra marqué « pris en charge par l'assistant ». Prochaine piste user : le jeu IIB v3.0 en XP (doc 400x700 portrait, 12 fps, symboles sym16/19/24, script Scene API, instance nommée But -> gotoAndStop("Start"), boucle onEnterFrame).
+
+### Session 38 - 12/11/2026 (soir) — PISTE CAMÉRA TIMELINE v2 + SCENE.CAMERA DANS L'API SCRIPTS
+
+- PISTE CAMÉRA TIMELINE v2 (src/ui/Timeline.js + style.css) : la piste caméra est TOUJOURS visible en scène racine (avant : seulement si une clé existait -> on ne pouvait pas poser la 1re clé depuis la timeline). Bouton « + » = clé à l'image courante ; double-clic image vide = poser ; double-clic sur une clé = supprimer (removeCameraKeyframeAt, détection manuelle du dblclick comme les cellules vides) ; glisser = déplacer (existant) ; clic droit = cycle d'easing + PASTILLE COLORÉE par easing (classes easing-easeIn/Out/InOut, couleurs Solarized) ; readout du zoom résolu à l'image courante dans la ligne (.cam-state, « — » si aucune clé). cameraTrackVisible() = !editPath.length. E2E : repro_e2e_camera_track.mjs (v1) toujours vert + repro_e2e_camera_track2.mjs 12/12 (doc SANS caméra).
+- SCENE.CAMERA API SCRIPTS : `Scene.camera` exposé en scène racine, éditeur (src/runtime/sceneRuntime.js) ET export HTML (bootstrap exportHTML.js) — lecture x/y/zoom/rotation = état résolu à l'image courante (identité si pas de clé), hasKeyframes, set({...}) pose/met à jour une clé caméra à l'image courante (écrit DATA.camera côté export, rendu via resolveCameraAtFrame/applyCameraToContext), remove(). Autocomplétion CodeMirror ('camera' dans SCENE_ROOT_COMPLETIONS) + ligne ajoutée au référentiel docs/cours-createjs-scripts-v2.html. E2E repro_e2e_scene_camera.mjs 12/12 : éditeur (zoom lu f0=1/f10=2, set({zoom:3}) + read-after-write=3, remove en f10 -> retombe à 3, contentLayer.scaleX=3 en lecture) + export HTML (set 2.5 -> titre EXPCAM2.5, 0 pageerror).
+- Harnais : repro_e2e_mask.mjs — sélecteurs de lignes rendus robustes (.tl-layer-row:not(.tl-camera-row):not(.tl-audio-row)) car la ligne caméra toujours visible décale les index positionnels ; 14/14 OK. repro_e2e_export.mjs — chemins Windows -> /tmp/e2e + copie IIB_v3 avec alert() remplacé par marqueur title (les dialogues plantent le renderer headless) -> SUCCES CLIQUE_OK_F2.
+- Régressions vertes : grid 7/7, onion 17/17, theme 11/11, guidesnap 2/2, scrollbars 22/22, touch_pan OK, projectopen 7/7, videoexport 8/8, guide 8/8, click OK, camera_track v1/v2 OK.
+- Sync PureVanilla : build:vanilla -> cp bundle + style.css (PAS index.html, PAS docs non suivis). APK (demande explicite) : flux canonique (public/app-debug.apk retiré avant build + résidu nettoyé -> build -> cap sync -> gradlew assembleDebug JDK 21, chemins quotés) -> 0 .apk embarqué, md5 identique aux 4 emplacements.
+- Suite : 2 pomodoros sur le jeu IIB v3.0 (doc 400x700 portrait, labels Logo f0 / Start f2, symboles Logo/Labyrinth/bouton 24f, bouton But -> gotoAndStop("Start")).
 
 ### Session 1 - 24/07/2026
 - Exploration initiale du projet

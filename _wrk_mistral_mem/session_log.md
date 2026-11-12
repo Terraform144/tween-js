@@ -1,6 +1,6 @@
 # 📜 Historique des sessions de travail avec Mistral Vibe
 
-*Dernière mise à jour : 12/11/2026*
+*Dernière mise à jour : 12/11/2026 (soir)*
 *Projet : TweenJS (Éditeur d'animation vectorielle)*
 
 ---
@@ -404,3 +404,11 @@
 - Synchro PureVanilla (bundle + style.css ; PAS index.html) + APK régénéré non niché : 5 706 226 o, 0 .apk embarqué, md5 0b826fc8… aux 4 emplacements.
 - Commits d27461f / cc724e1 / 8373a8c, push origin TweenJS_workflow.V.0.1 (9c41c86..8373a8c).
 - Suite : mode XP adopté ; backlog caméra pris par l'assistant ; prochain sujet user = son jeu IIB v3.0.
+
+## 📅 **Session 38 - 12/11/2026 (soir) — Piste caméra timeline v2 + Scene.camera API + commit/push/APK**
+
+- Timeline : piste caméra toujours visible en racine, bouton + pose une clé à l'image courante, double-clic pose/supprime, pastille colorée par easing, readout zoom courant. E2E camera_track v1 OK + camera_track2 12/12.
+- API scripts : Scene.camera (x/y/zoom/rotation, hasKeyframes, set, remove) éditeur + export HTML + autocomplétion + doc v2. E2E scene_camera 12/12 (éditeur + export EXPCAM2.5).
+- Régressions vertes (mask 14/14 après fix sélecteurs, export IIB CLIQUE_OK_F2, scrollbars 22/22, onion 17/17, etc.).
+- Sync PureVanilla + APK 0 niché (flux canonique, md5 4 emplacements) + commits + push origin TweenJS_workflow.V.0.1.
+- Suite : 2 pomodoros sur le jeu IIB v3.0 (rappels cron calés à 15:39 et 16:04).
