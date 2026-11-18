@@ -69,6 +69,7 @@ export const ICONS = {
   zoomIn: svg('<circle cx="12" cy="12" r="5"/><path d="M16.3 16.3L20 20"/><path d="M12 9v6M9 12h6"/>'),
   zoomOut: svg('<circle cx="12" cy="12" r="5"/><path d="M16.3 16.3L20 20"/><path d="M9 12h6"/>'),
   hand: svg('<path d="M18 12V8a2 2 0 0 0-4 0v3M14 11V6a2 2 0 0 0-4 0v6M10 11V7a2 2 0 0 0-4 0v7c0 4 3 6 6 6h1a4 4 0 0 0 4-4v-3a2 2 0 0 0-4 0"/>'),
+  panelLeft: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M9.5 4.5v15"/><path d="M5.5 7.5h2M5.5 10.5h2M5.5 13.5h2"/>'),
 };
 
 // Injecte l'icône dans un bouton/élément existant, avant tout texte déjà

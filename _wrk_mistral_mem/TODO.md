@@ -1,5 +1,5 @@
 # TODO — Idées et prochaines étapes TweenJS
-*Mis à jour le 12/11/2026 (soir) — scrollbars + piste caméra timeline v2 + Scene.camera livrées et pushées sur origin/TweenJS_workflow.V.0.1*
+*Mis à jour le 18/11/2026 — colonne des calques escamotable + infobulle nom de calque livrées (session 39, non committée) ; avant : scrollbars + piste caméra timeline v2 + Scene.camera pushées sur origin/TweenJS_workflow.V.0.1*
 
 ---
 
@@ -30,6 +30,10 @@
 - [x] **Export "projet vers dossier"** — ✅ livré 31/10 : `src/export/projectExport.js`, menu Fichier > « Exporter projet vers dossier… ». Arborescence `projet.json` (tjsFormat=folder-project v1, metas scriptFile retirées, assets en `src: "assets/<fichier>"` sans dataUrl) + `assets/*` (binaires décodés, extensions depuis le type MIME, collisions gérées) + `scripts/*.js` (scripts nommés, `<sym>_class.js`, `<sym>_f<n>_<calque>.js`, `scene_f<n>_*.js`). Dossier FSA via showDirectoryPicker (Chromium), ZIP via makeZip en fallback. Harnais 18/18 + E2E navigateur 9/9 (faux handle FSA, arborescence vérifiée octet par octet).
 - [x] **v2 « Ouvrir un dossier… »** — ✅ livré 31/10 : `loadProjectFromDirectory()` (readDirRecursive via handle.entries(), projet.json + assets relus en dataUrl + scripts/*.js réinjectés par `applyScriptFiles` — le .js écrase le code inline, match par convention de nommage de l'export ; fallback : code inline du JSON si .js absent). Ouvert dans une nouvelle fenêtre-projet. Harnais round-trip 9/9 + E2E 7/7 (export → modif .js « VS Code » → réouverture → v2 prioritaire, asset = octets exacts).
 
+## 📖 PoC livre interactif
+
+- [x] **Livre dont tu es le héros — la PoC** (12/11 soir) : `_wrk_mistral_mem/LIVRE_POC.test.json` (générateur : `gen_livre_poc.mjs`) — 7 pages labellisées p1..p7, boutons nommés cliquables (`Scene.onClick` + `gotoAndPlay`), 4 pages illustrées en vectoriel, page p4 avec `Scene.camera.set({zoom:1.25})`. Navigation épinglée via `onEnterFrame` (la timeline boucle en lecture). E2E `repro_e2e_livre_poc.mjs` 16/16 : éditeur (2 chemins complets, illustrations, zoom caméra 1.25 puis reset) + export HTML autonome (navigation OK, 0 pageerror). Chargeable via Ouvrir... dans l'app.
+
 ## 📋 Validations côté utilisateur — ✅ TOUTES VALIDÉES le 29/10/2026
 
 - [x] Pivot déplaçable + Rotation (Q) + rotPin · Caméra (C) · script symbole + VS Code · retour arrière doc APK
@@ -49,6 +53,8 @@
 - [ ] Texture bitmap · éclaboussures
 
 ## 🖱️ Zone de travail
+
+- [x] **Colonne des calques escamotable + infobulle du nom** — ✅ livré 18/11 (session 39) : bouton `panelLeft` en tête de la toolbar timeline → classe `layers-hidden` sur `#timeline` (header + options masqués, `.tl-body` en `0px 1fr`, pistes pleine largeur), pref `timelineLayersHidden` persistée (repliée par défaut sur téléphone) ; `title` du `.layer-name` = nom complet + « double-clic pour renommer ». E2E `repro_e2e_layers_col.mjs` 15/15 ; régressions scrollbars 22/22, mask 14/14, camera_track2 OK.
 
 - [x] **Scrollbars H/V quand la scène déborde** — ✅ livré 12/11 : `#stage-container` est lui-même le scroller (`overflow:auto`, `max-width/height:100%` dans `#stage-wrap`, centrage « sûr » par `margin:auto` — avec l'ancien `justify-content:center`, le débordement haut/gauche était coupé et inatteignable). Scrollbars natives dès que la feuille dépasse (zoom ou fenêtre étroite), plein écran compris (natif + repli CSS). Le pan (outil main) passe par le scroll natif (plus de transform CSS) : les scrollbars reflètent toujours la vue. Règles épinglées dans `#stage-wrap` (hors du scroller), graduations re-tracées à chaque scroll. Zoom (molette Ctrl / boutons) ancré au curseur / au centre via `applyZoom(anchor)`. E2E 22/22 (`repro_e2e_scrollbars.mjs`) + `repro_e2e_touch_pan.mjs` TOUS OK (pan tactile+souris, hors plein écran et en plein écran CSS) ; régressions grid/theme/guidesnap/onion/mask/projectopen/videoexport/camera_track/click OK. NB : repro_e2e_warp échoue P2/P3/P4 AUSSI sans ces changements (préexistant sur ce poste Linux).
 

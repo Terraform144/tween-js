@@ -829,6 +829,12 @@ body.fs-css .fs-css-active {
 }
 #timeline.collapsed { height: auto; }
 #timeline.collapsed .tl-body { display: none; }
+/* Colonne des calques escamotée (bouton panelLeft de la toolbar) : header +
+   options masqués, les pistes prennent toute la largeur. Sélecteur avec id =
+   prioritaire sur les grid-template-columns des media queries. */
+#timeline.layers-hidden .tl-header,
+#timeline.layers-hidden .tl-layers { display: none; }
+#timeline.layers-hidden .tl-body { grid-template-columns: 0 1fr; }
 .tl-toolbar {
   flex: none;
   display: flex;

@@ -109,6 +109,23 @@ export function mountTimeline(container, state) {
   const frameInfo = document.createElement('span');
   frameInfo.className = 'frame-info';
 
+  // Colonne des calques escamotable : masque le panneau de gauche (header +
+  // options des calques) pour donner toute la largeur aux pistes. Persisté
+  // (pref 'timelineLayersHidden'), repliée par défaut sur téléphone comme la
+  // timeline elle-même.
+  const btnLayersCol = svgButton('panelLeft', 'Afficher / masquer la colonne des calques (options des calques)');
+  let layersHidden = hasPref('timelineLayersHidden') ? getPref('timelineLayersHidden', false) : isPhoneSize();
+  function applyLayersHidden() {
+    container.classList.toggle('layers-hidden', layersHidden);
+    btnLayersCol.classList.toggle('active', layersHidden);
+  }
+  btnLayersCol.addEventListener('click', () => {
+    layersHidden = !layersHidden;
+    setPref('timelineLayersHidden', layersHidden);
+    applyLayersHidden();
+  });
+  applyLayersHidden();
+
   const btnCollapse = svgButton('chevronDown', 'Réduire / agrandir la timeline');
   // Premier chargement (aucune préférence enregistrée) : repliée par défaut
   // sur téléphone pour laisser un maximum de place à la scène.
@@ -124,7 +141,7 @@ export function mountTimeline(container, state) {
   });
   applyCollapsed();
 
-  toolbar.append(btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, btnStop, sep(), btnOnion, pastInput, futureInput, sep(), btnGrid, spacingInput, btnSnap, btnRulers, frameInfo, btnCollapse);
+  toolbar.append(btnLayersCol, btnAddLayer, btnDelLayer, sep(), btnKeyframe, btnBlank, btnTween, btnRemoveKf, sep(), labelInput, sep(), btnPlay, btnStop, sep(), btnOnion, pastInput, futureInput, sep(), btnGrid, spacingInput, btnSnap, btnRulers, frameInfo, btnCollapse);
   enableDragScroll(toolbar);
 
   const body = document.createElement('div');
@@ -728,7 +745,9 @@ export function mountTimeline(container, state) {
       const name = document.createElement('span');
       name.className = 'layer-name';
       name.textContent = layer.name;
-      name.title = 'Double-clic pour renommer';
+      // Infobulle = nom COMPLET du calque (le texte affiché est tronqué en
+      // ellipsis quand la colonne est étroite) + rappel du double-clic.
+      name.title = layer.name + ' — double-clic pour renommer';
       name.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         const next = prompt('Nom du calque :', layer.name);

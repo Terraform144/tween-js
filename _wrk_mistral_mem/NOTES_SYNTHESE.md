@@ -1,8 +1,8 @@
 # NOTES SYNTHESE - Projet TweenJS
 - NOTE USER 29/10 soir : l utilisateur veut DEVELOPPER AVEC MOI et compte sur moi pour l aider a implementer les prochaines todo (voir _wrk_mistral_mem/TODO.md : export WebM, shape hints, theme sombre, autocompletion CodeMirror, export dossier...). Session collaborative reguliere, a ce soir.
 
-*Mise à jour : 12/11/2026 (soir)*
-*Dernière session : 12/11/2026 soir — piste caméra timeline v2 + Scene.camera API scripts livrées (commit+push + APK 0 niché) ; puis 2 pomodoros prévus sur le jeu IIB v3.0*
+*Mise à jour : 18/11/2026 (nuit)*
+*Dernière session : 18/11/2026 — colonne des calques de la timeline escamotable + infobulle du nom complet (session 39, non committée) ; session 38 (12/11 soir) : piste caméra timeline v2 + Scene.camera API scripts livrées (commit+push + APK 0 niché) ; pomodoros IIB v3.0 toujours prévus pour plus tard*
 *VALIDATION USER 29/10/2026 : pivot+rotation (rotPin), outil Caméra (C), script de symbole + workflow VS Code (lien vivant Chrome), retour arrière doc dans l'APK Android — TOUS VALIDÉS. Liste des idées/prochaines étapes : _wrk_mistral_mem/TODO.md (onion skinning en top priorité).*
 
 ---
@@ -305,6 +305,15 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - APK (demande explicite) : flux canonique — public/app-debug.apk retiré AVANT build + résidu assets/public/app-debug.apk nettoyé -> npm run build -> npx cap sync android -> JAVA_HOME=~/.local/jdks/jdk-21.0.13+9 GRADLE_USER_HOME=<repo>/.gradle-user-home ./gradlew assembleDebug (BUILD SUCCESSFUL 3m22s ; chemins avec espace à QUOTER). APK 5 706 226 o (5,7 Mo), 0 entrée .apk embarquée, JS embarqué avec scrollLeft x4 + CSS max-width:100%. md5 0b826fc85fe799cf8ad1c75261924d0d identique aux 4 emplacements (build output, public/, dist/, PureVanilla).
 - COMMITS + PUSH origin TweenJS_workflow.V.0.1 (9c41c86..8373a8c) : d27461f feat scrollbars (+ TODO.md + 2 tests), cc724e1 chore harnais portables, 8373a8c chore sync PureVanilla + APK.
 - TODO.md : scrollbars cochées « livrées 12/11 » ; backlog caméra marqué « pris en charge par l'assistant ». Prochaine piste user : le jeu IIB v3.0 en XP (doc 400x700 portrait, 12 fps, symboles sym16/19/24, script Scene API, instance nommée But -> gotoAndStop("Start"), boucle onEnterFrame).
+
+### Session 39 - 18/11/2026 — COLONNE DES CALQUES ESCAMOTABLE + INFOBULLE DU NOM DE CALQUE
+
+- DEMANDE USER : (1) la partie gauche de la timeline (options des calques) doit pouvoir être masquée pour donner toute la largeur aux pistes ; (2) au survol du nom d'un calque, une infobulle doit permettre de lire l'entièreté du nom quand il est tronqué (ellipsis).
+- (1) BOUTON panelLeft EN TÊTE DE LA TOOLBAR TIMELINE (nouvelle icône icons.js : cadre + séparation verticale + tirets dans le panneau gauche) : pose la classe `layers-hidden` sur #timeline + .active sur le bouton ; CSS `#timeline.layers-hidden .tl-header/.tl-layers { display:none }` et `.tl-body { grid-template-columns: 0 1fr }` (sélecteur avec id = prioritaire sur les media queries 250px/240px). Persisté pref `timelineLayersHidden`, défaut = isPhoneSize() (comme timelineCollapsed). La synchro de scroll layersCol/tracksScroll reste inerte quand la colonne est masquée. Les pistes passent de 1060 à 1280 px en test (viewport 1280).
+- (2) `name.title = layer.name + ' — double-clic pour renommer'` sur le .layer-name (le texte affiché reste tronqué en ellipsis, le title donne le nom complet au survol).
+- E2E _wrk_mistral_mem/repro_e2e_layers_col.mjs 15/15 (doc avec nom de calque très long chargé via Ouvrir...) : colonne visible par défaut en desktop (220px 1fr), title = nom complet + texte bien tronqué, clic -> layers-hidden + display:none + 0px 1fr + pistes élargies + pref true + bouton actif, re-clic -> retour, reload -> pref conservée, 0 pageerror. Piège : le sélecteur `.tl-layer-row .layer-name` attrape la piste caméra (son .layer-name n'a pas de title) -> `:not(.tl-camera-row):not(.tl-audio-row)` (même leçon que session 38).
+- Non-régression : repro_e2e_scrollbars 22/22, repro_e2e_mask 14/14, repro_e2e_camera_track2 TOUT PASSE. Rebuild DEUX versions DANS L'ORDRE (build:vanilla -> cp bundle + style.css -> build main) ; node --check OK ; marqueurs layers-hidden/panelLeft présents dans les 2 bundles + CSS.
+- Non fait (règles) : pas de commit/push ni d'APK (demande explicite requise). A faire : validation visuelle user.
 
 ### Session 38 - 12/11/2026 (soir) — PISTE CAMÉRA TIMELINE v2 + SCENE.CAMERA DANS L'API SCRIPTS
 
