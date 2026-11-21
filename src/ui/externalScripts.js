@@ -11,6 +11,7 @@
 //   en IndexedDB et le contenu est RELU automatiquement au focus de la
 //   fenêtre — sauvegarde dans VS Code, retour dans l'app, c'est à jour.
 import { downloadTextFile } from '../util/download.js';
+import { promptText } from '../util/promptText.js';
 
 // ---------------------------------------------------------------------------
 // Noms de fichiers
@@ -65,10 +66,10 @@ export function setVscodeFolder(path) {
 // Ouvre VS Code sur <dossier configuré>/<fileName>. Le dossier est demandé
 // une seule fois (localStorage) — l'utilisateur pointe vers l'endroit où il
 // range ses scripts .js sur son poste de travail.
-export function openInVsCode(fileName) {
+export async function openInVsCode(fileName) {
   let folder = getVscodeFolder();
   if (!folder) {
-    folder = prompt(
+    folder = await promptText(
       'Dossier des scripts sur ce poste (une seule fois), ex :\n' +
       'Windows : C:\\projets\\tweenjs\\scripts\n' +
       'Linux : /home/user/projets/scripts',

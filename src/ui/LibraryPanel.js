@@ -3,6 +3,7 @@ import {
   symbolUsesSymbol, cloneElement, nextId, getSymbolContentBounds,
 } from '../core/model.js';
 import { notify } from '../state.js';
+import { promptText } from '../util/promptText.js';
 import { downloadSymbolAsGameObject } from '../export/exportSymbol.js';
 import { createPanel } from './Panel.js';
 import { ICONS } from './icons.js';
@@ -30,9 +31,9 @@ export function mountLibraryPanel(container, state, { addInstanceAt }) {
   // (scène vierge dédiée), façon "Nouveau symbole" (Ctrl+F8) des éditeurs
   // d'animation professionnels. Le bandeau en haut de la scène permet de
   // revenir à la scène principale.
-  function createNewSymbol() {
+  async function createNewSymbol() {
     const asMovieClip = confirm('Créer un clip animé (MovieClip) avec sa propre timeline ?\nAnnuler = symbole Graphic (synchronisé sur la scène).');
-    const name = prompt('Nom du symbole :', 'Symbole ' + (Object.keys(state.doc.symbols).length + 1));
+    const name = await promptText('Nom du symbole :', 'Symbole ' + (Object.keys(state.doc.symbols).length + 1));
     if (!name) return;
     const symbol = createSymbol(name, asMovieClip ? 'movieclip' : 'graphic');
     state.doc.symbols[symbol.id] = symbol;
@@ -47,7 +48,7 @@ export function mountLibraryPanel(container, state, { addInstanceAt }) {
     notify(state);
   }
 
-  function convertSelectionToSymbol() {
+  async function convertSelectionToSymbol() {
     if (!state.selectedElementIds.length) return;
     const layers = getContextLayers(state.doc, state.editPath);
     const layer = layers.find((l) => l.id === state.selectedLayerId);
@@ -62,7 +63,7 @@ export function mountLibraryPanel(container, state, { addInstanceAt }) {
     if (!selected.length) return;
 
     const asMovieClip = confirm('Créer un clip animé (MovieClip) avec sa propre timeline ?\nAnnuler = symbole Graphic (synchronisé sur la scène).');
-    const symbol = createSymbol(prompt('Nom du symbole :', 'Symbole ' + (Object.keys(state.doc.symbols).length + 1)) || 'Symbole', asMovieClip ? 'movieclip' : 'graphic');
+    const symbol = createSymbol(await promptText('Nom du symbole :', 'Symbole ' + (Object.keys(state.doc.symbols).length + 1)) || 'Symbole', asMovieClip ? 'movieclip' : 'graphic');
     symbol.layers[0].keyframes[0].elements = selected.map((el) => cloneElement(el, false));
     state.doc.symbols[symbol.id] = symbol;
 
@@ -132,9 +133,9 @@ export function mountLibraryPanel(container, state, { addInstanceAt }) {
       });
 
       const renameBtn = iconBtn('pencil', 'Renommer');
-      renameBtn.addEventListener('click', (e) => {
+      renameBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const next = prompt('Nom du symbole :', symbol.name);
+        const next = await promptText('Nom du symbole :', symbol.name);
         if (next) { symbol.name = next; notify(state); }
       });
 

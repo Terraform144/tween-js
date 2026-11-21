@@ -5,6 +5,7 @@ import { EditorView, basicSetup } from 'codemirror';
 import { javascript, javascriptLanguage } from '@codemirror/lang-javascript';
 import { createScript, getContextLayers, getKeyframeAt } from '../core/model.js';
 import { notify } from '../state.js';
+import { promptText } from '../util/promptText.js';
 import { createPanel } from './Panel.js';
 import { ICONS } from './icons.js';
 import {
@@ -339,8 +340,8 @@ export function mountScriptsPanel(container, state, { runtime }) {
     }
   };
 
-  function addScript() {
-    const name = prompt('Nom du script :', 'Script ' + (state.doc.scripts.length + 1));
+  async function addScript() {
+    const name = await promptText('Nom du script :', 'Script ' + (state.doc.scripts.length + 1));
     if (!name) return;
     const sc = createScript(name, '// ' + name + '\n');
     state.doc.scripts.push(sc);
@@ -418,8 +419,8 @@ export function mountScriptsPanel(container, state, { runtime }) {
       const name = document.createElement('span');
       name.className = 'name';
       name.textContent = sc.name;
-      name.addEventListener('dblclick', () => {
-        const next = prompt('Nom du script :', sc.name);
+      name.addEventListener('dblclick', async () => {
+        const next = await promptText('Nom du script :', sc.name);
         if (next) { sc.name = next; notify(state); }
       });
       const del = document.createElement('button');

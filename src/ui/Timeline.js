@@ -12,6 +12,7 @@ import {
 import { audioAssets, upsertAudioEvent, removeAudioEventAt } from '../core/audio.js';
 import { ICONS } from './icons.js';
 import { isTouchLike, isPhoneSize } from '../util/responsive.js';
+import { promptText } from '../util/promptText.js';
 import { enableDragScroll } from '../util/dragScroll.js';
 
 const CELL_W = 16;
@@ -773,12 +774,12 @@ export function mountTimeline(container, state) {
       // Infobulle = nom COMPLET du calque (le texte affiché est tronqué en
       // ellipsis quand la colonne est étroite) + rappel du double-clic.
       name.title = layer.name + ' — double-clic pour renommer';
-      name.addEventListener('click', (e) => {
+      name.addEventListener('click', async (e) => {
         const now = Date.now();
         if (lastNameClick.layerId === layer.id && now - lastNameClick.time < 450) {
           lastNameClick = { layerId: null, time: 0 };
           e.stopPropagation();
-          const next = prompt('Nom du calque :', layer.name);
+          const next = await promptText('Nom du calque :', layer.name);
           if (next) { layer.name = next; notify(state); }
         } else {
           lastNameClick = { layerId: layer.id, time: now };
