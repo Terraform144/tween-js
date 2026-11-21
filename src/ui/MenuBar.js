@@ -542,8 +542,9 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     bgLabel, bgInput,
   );
   // Bouton palette à côté du sélecteur de fond (en haut à droite de la barre) :
-  // le nuancier natif affiche son champ hex en vertical sur mobile, le panneau
-  // custom propose des swatches (classiques/pastels/pantone) + hex éditable.
+  // le clic sur la case ouvre le panneau custom (swatches classiques/
+  // clair-obscur/pantone + hex horizontal en dessous), jamais le nuancier
+  // natif mobile dont le champ « personnalisé » est vertical.
   attachColorPalette(container, bgInput, { allowTransparent: false });
   enableDragScroll(container);
 

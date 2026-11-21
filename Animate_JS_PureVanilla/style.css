@@ -416,9 +416,10 @@ html, body {
 .no-color-btn svg { width: 14px; height: 14px; }
 
 /* ---------- Panneau palette de couleurs (src/ui/colorPalette.js) ----------
-   Alternative au nuancier natif <input type=color> dont le champ hex
+   Remplace le nuancier natif <input type=color> dont le champ hex
    « personnalisé » s'affiche en vertical sur mobile. Swatches carrés organisés
-   (classiques / pastels / pantone) + champ hex éditable + nuancier système. */
+   (classiques / clair-obscur gris soulagés / pantone) + champ hex éditable
+   en horizontal en dessous + nuancier système. */
 .palette-btn { flex: none; }
 .color-panel {
   position: fixed;
@@ -447,7 +448,7 @@ html, body {
 }
 .cp-swatch:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
 .cp-swatch.current { outline: 2px solid var(--accent); outline-offset: 1px; box-shadow: inset 0 0 0 2px var(--bg-1); }
-.cp-actions { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
+.cp-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
 .cp-hex {
   width: 84px;
   flex: none;
@@ -475,6 +476,11 @@ html, body {
   .cp-swatch { width: 34px; height: 34px; }
   .tool-color-row input[type="color"] { width: 36px; height: 36px; }
   #menubar input[type="color"] { width: 40px; height: 40px; }
+  /* Mobile : le champ hex « personnalisé » passe en dessous, en horizontal,
+     jamais en vertical caractère par caractère */
+  .cp-actions { flex-direction: row; flex-wrap: wrap; }
+  .cp-hex { flex: 1 1 100%; width: auto; font-size: 14px; padding: 6px 8px; }
+  .cp-sys-btn { flex: 1 1 auto; font-size: 12px; padding: 6px 10px; }
 }
 .tool-color-row input[type="range"] { width: 100px; cursor: pointer; }
 .tool-color-row select { padding: 2px 4px; border: 1px solid var(--border); background: var(--bg-1); color: var(--text); cursor: pointer; }

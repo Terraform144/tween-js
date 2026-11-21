@@ -1,8 +1,9 @@
 # NOTES SYNTHESE - Projet TweenJS
 - NOTE USER 29/10 soir : l utilisateur veut DEVELOPPER AVEC MOI et compte sur moi pour l aider a implementer les prochaines todo (voir _wrk_mistral_mem/TODO.md : export WebM, shape hints, theme sombre, autocompletion CodeMirror, export dossier...). Session collaborative reguliere, a ce soir.
 
-*Mise à jour : 21/11/2026 (session 43)*
-*Dernière session : 18/11/2026 — FIX pan (outil main) : le CADRE entier de la scène est à nouveau draggable hors plein écran (session 40) ; session 39 : colonne des calques escamotable + infobulle du nom (commit+push+APK faits) ; pomodoros IIB v3.0 toujours prévus pour plus tard*
+*Mise à jour : 21/11/2026 (session 44)*
+*Dernière session : 21/11/2026 — Panneau couleur mobile : le clic sur la case couleur ouvre le panneau custom (champ hex « personnalisé » en horizontal en dessous, jamais vertical) au lieu du nuancier natif ; groupe « Pastels » remplacé par « Clair-obscur (gris soulagés) » ; Pantone conservé dans le même panneau. F7 confirmé = clé vide (pas de F5 ajouté). Synchro PureVanilla + commit + push + APK 0 niché (flux canonique, md5 5dbef2b7… aux emplacements suivis). Note build : JDK 21 requis (Capacitor 8, source release 21) installé dans ~/jdk21, lancer avec JAVA_HOME=/home/zulup/jdk21.*
+*Session 43 : 18/11/2026 — FIX pan (outil main) : le CADRE entier de la scène est à nouveau draggable hors plein écran (session 40) ; session 39 : colonne des calques escamotable + infobulle du nom (commit+push+APK faits) ; pomodoros IIB v3.0 toujours prévus pour plus tard*
 *VALIDATION USER 29/10/2026 : pivot+rotation (rotPin), outil Caméra (C), script de symbole + workflow VS Code (lien vivant Chrome), retour arrière doc dans l'APK Android — TOUS VALIDÉS. Liste des idées/prochaines étapes : _wrk_mistral_mem/TODO.md (onion skinning en top priorité).*
 
 ---
@@ -315,7 +316,8 @@ API CreateJS-like avec MovieClip, play/stop, gotoAndPlay, événements loop/comp
 - CSS : `#menubar input[type=color]` flex:none + 30x30 aspect-ratio:1 (+40px media coarse/1024, +44px <640px) ; `.prop-row input[type=color]` 32x32 carré (+40px, +44px) ; `.tool-color-row` passé en row wrap, swatches 30x30 (+36px tactile) ; nouveaux styles .color-panel/.cp-grid/.cp-swatch(30px, 34px tactile)/.cp-hex/.cp-sys-btn/.palette-btn. Tous les swatches sont désormais CARRÉS (aspect-ratio:1) et jamais écrasés.
 - HARNESS _wrk_mistral_mem/repro_e2e_color_panel.mjs (puppeteer + chrome-headless-shell, desktop 1280 + mobile 390x844 tactile) : 26/26 — swatch menubar 30x30 flex-shrink 0, palette à côté, panneau 3 groupes/39 swatches/current/hex/sys-btn/pas-de-∅, clic pastel #ffd1dc propagé au modèle, hex #12ab34 appliqué, Échap + clic dehors ferment, propriétés : rect dessiné -> swatch 32x32 carré + palette + ∅, pantone #ff6f61 appliqué ; mobile : swatch 44x44, panneau centré, swatches 34x34, sélection #98ff98, 0 pageerror x2. Rejoué sur VANILLA (:4185) : ALL OK.
 - Non-régression : repro_e2e_timeline_wheel ALL OK, repro_e2e_layers_col 15/15. Rebuild DEUX versions DANS L'ORDRE (build:vanilla -> cp bundle + style.css -> build main) ; node --check OK ; marqueurs cp-swatch/color-panel présents dans les 2 bundles.
-- APK non régénéré (règle : sur demande explicite). Pas de commit (idem).
+- COMMIT+PUSH (demande explicite 21/11 soir) : 8157463 (26 fichiers : sessions 40-43 dont fix pan + sidebar basculable non committés + sessions 42-43 + harnais) pushé origin TweenJS_workflow.V.0.1 (f73679b..8157463). APK RÉGÉNÉRÉ (demande explicite, flux canonique : public/dist APK retirés avant build + résidu assets nettoyé -> build -> cap sync -> gradlew assembleDebug JDK 21, BUILD SUCCESSFUL 1m52s) : 6 524 191 o, 0 APK niché, marqueurs cp-swatch + deltaMode dans le JS embarqué main-CguJQKyU.js, md5 001ab150… identique aux 4 emplacements. Commit APK 4d4f3cd (local uniquement — règle : un seul push par branche/session, déjà consommé). Prod = user.
+- NOTE : le bouton ‹ | › du panneau latéral est masqué en mode overlay (#sidebar.overlay-mode #sidebar-header {display:none}, choix session 41) -> invisible sur mobile/web mobile/APK et TV (≤1024px ou pointer coarse), visible sur desktop/TV large pointer fine.
 
 ### Session 42 - 21/11/2026 — TIMELINE SCROLLABLE HORIZONTALEMENT À LA SOURIS (MOLETTE)
 

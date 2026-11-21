@@ -1,8 +1,9 @@
-// Panneau palette de couleurs custom (additif) — alternative au nuancier natif
+// Panneau palette de couleurs custom — remplace le nuancier natif
 // <input type="color">, dont le champ hex « personnalisé » s'affiche en vertical
 // caractère par caractère sur mobile (panneau système étroit). Ici : swatches
-// organisés (classiques / pastels / pantone), champ hex éditable, et un accès
-// explicite au nuancier système quand même.
+// organisés (classiques / clair-obscur / pantone), champ hex éditable en
+// horizontal en dessous du panneau, et un accès explicite au nuancier système
+// quand même (bouton « Nuancier système… »).
 import { ICONS } from './icons.js';
 import { TRANSPARENT } from '../core/model.js';
 
@@ -16,10 +17,10 @@ export const COLOR_GROUPS = [
     ],
   },
   {
-    name: 'Pastels',
+    name: 'Clair-obscur (gris soulagés)',
     colors: [
-      { n: 'Rose pastel', c: '#ffd1dc' }, { n: 'Pêche', c: '#ffdab9' }, { n: 'Jaune pâle', c: '#ffffe0' }, { n: 'Menthe', c: '#98ff98' }, { n: 'Bleu pastel', c: '#aec6cf' }, { n: 'Lavande', c: '#e6e6fa' },
-      { n: 'Saumon', c: '#fa8072' }, { n: 'Khaki', c: '#f0e68c' }, { n: 'Corail', c: '#ff7f50' }, { n: 'Turquoise', c: '#40e0d0' }, { n: 'Lilas', c: '#c8a2c8' }, { n: 'Abricot', c: '#fbceb1' },
+      { n: 'Ivoire', c: '#f5f0e1' }, { n: 'Coquille', c: '#e9e2d9' }, { n: 'Gris perle', c: '#e8e6e3' }, { n: 'Beige', c: '#e6dcc8' }, { n: 'Poudre', c: '#dccfc0' }, { n: 'Grège', c: '#c9bfae' },
+      { n: 'Gris chaud', c: '#d6cfc7' }, { n: 'Taupe', c: '#b8a99a' }, { n: 'Brun clair', c: '#a89a8c' }, { n: 'Ardoise clair', c: '#9aa5ad' }, { n: 'Gris bleuté', c: '#aeb8bf' }, { n: 'Gris froid', c: '#cfd4d8' },
     ],
   },
   {
@@ -115,7 +116,13 @@ export function openColorPanel(anchorBtn, input, opts = {}) {
   sysBtn.textContent = 'Nuancier système…';
   sysBtn.title = 'Ouvrir le sélecteur de couleur natif du navigateur';
   sysBtn.addEventListener('click', () => {
-    try { if (input.showPicker) input.showPicker(); } catch (_) { /* certains contextes bloquent showPicker */ }
+    try {
+      // L'input est readOnly (pour bloquer le panneau natif au clic) : on lève
+      // temporairement le readOnly, le temps du showPicker.
+      input.readOnly = false;
+      if (input.showPicker) input.showPicker();
+    } catch (_) { /* certains contextes bloquent showPicker */ }
+    finally { input.readOnly = true; }
   });
   row.appendChild(sysBtn);
 
@@ -179,8 +186,18 @@ export function attachColorPalette(host, input, opts = {}) {
   btn.type = 'button';
   btn.className = 'icon-btn palette-btn';
   btn.innerHTML = ICONS.palette;
-  btn.title = 'Palette de couleurs (classiques, pastels, pantone) — le clic sur la case ouvre directement le nuancier système';
+  btn.title = 'Palette de couleurs (classiques, clair-obscur, pantone) + code hex horizontal en dessous';
   btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (openState && openState.anchorBtn === btn) { closeColorPanel(); return; }
+    openColorPanel(btn, input, opts);
+  });
+  // Le clic sur la case couleur ouvre NOTRE panneau (champ hex « personnalisé »
+  // en horizontal, en dessous) au lieu du panneau système natif dont le champ
+  // hex s'affiche en vertical caractère par caractère sur mobile.
+  input.readOnly = true;
+  input.addEventListener('click', (e) => {
+    e.preventDefault();
     e.stopPropagation();
     if (openState && openState.anchorBtn === btn) { closeColorPanel(); return; }
     openColorPanel(btn, input, opts);

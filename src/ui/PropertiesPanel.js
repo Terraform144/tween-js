@@ -99,8 +99,9 @@ export function mountPropertiesPanel(container, state) {
     noColorBtn.addEventListener('click', () => onChange(TRANSPARENT));
     linkLabelToField(l, input);
     row.append(l, input, noColorBtn);
-    // Bouton palette (swatches classiques/pastels/pantone + hex) à côté du
-    // swatch : le nuancier natif mobile écrit le hex en vertical.
+    // Bouton palette (swatches classiques/clair-obscur/pantone + hex en
+    // horizontal en dessous) à côté du swatch : le clic sur la case ouvre le
+    // panneau custom, jamais le nuancier natif mobile (hex en vertical).
     attachColorPalette(row, input, {
       allowTransparent: true,
       isTransparent: value === TRANSPARENT,
