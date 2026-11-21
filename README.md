@@ -3,13 +3,7 @@
 Éditeur d'animation vectorielle image par image, inspiré d'Adobe Animate,
 en JavaScript vanilla (ES modules, sans framework UI). Konva.js est utilisé
 comme moteur de rendu Canvas 2D pour la scène ; le reste (état, timeline,
-bibliothèque, panneau de propriétés, export) est écrit à la main.
-
-Thème Solarisé clair (fond crème, texte quasi-noir adouci, un seul accent —
-rouge-orange par défaut) ; toutes les icônes de l'interface sont des SVG au
-trait dessinés à la main dans `src/ui/icons.js` (voir cette section plus
-bas). Interface responsive : TV/desktop grand écran, tablette et
-smartphone (voir section dédiée plus bas).
+bibliothèque, panneau de propriétés, export) est écrit en vanilla JS.
 
 ## Démarrer
 
