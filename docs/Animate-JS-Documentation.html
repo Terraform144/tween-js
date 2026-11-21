@@ -59,6 +59,7 @@
     <li>Coder avec TweenJS : script de MovieClip et éditeur de code externe</li>
     <li>Simplification de forme (Ramer-Douglas-Peucker)</li>
     <li>Nouveautés du 29/10/2026</li>
+    <li>Nouveautés du 31/10 au 18/11/2026</li>
     <li>Dépannage</li>
     <li>Annexes : raccourcis et limites connues</li>
   </ol>
@@ -75,6 +76,7 @@ npm run dev        <span style="color:#8a93a3">« ouvre http://localhost:5173 »
   <tr><td>Principale</td><td><code>src/</code>, servie par Vite</td><td>Développement, build <code>dist/</code></td></tr>
   <tr><td>PureVanilla</td><td><code>Animate_JS_PureVanilla/</code> (HTML + bundle statiques)</td><td>Déploiement statique, aucune dépendance CDN (Konva et CreateJS sont des copies locales dans <code>libs/</code>)</td></tr>
 </table>
+<p><b>Dépôt source :</b> <a href="https://github.com/Terraform144/tween-js">github.com/Terraform144/tween-js</a> — branche de travail <code>TweenJS_workflow.V.0.1</code> (licence CC BY-NC 4.0, voir chapitre 12.4).</p>
 <p><b>100 % Vanilla JS, 100 % sans serveur.</b> Le site n'a besoin d'aucun backend : tout (HTML, CSS, JavaScript, bibliothèques, APK) est servi sous forme de fichiers statiques. Vous pouvez <b>copier le dossier du site tel quel</b> — sur une clé USB, un autre ordinateur, un hébergement simple — et il fonctionnera <b>à l'identique</b>, même hors ligne.</p>
 <h2>1.2 Créer sa première animation en 60 secondes</h2>
 <ol>
@@ -718,6 +720,71 @@ simplifyShape(shape, tolerance = 1.0, closed = null, smoothPasses = 0)</code></p
   <li><b>Interdit sans autorisation écrite</b> : toute exploitation commerciale — vente, licence payante, intégration dans un produit ou service monétisé.</li>
   <li><b>Pour une exploitation commerciale</b> : merci de réécrire le code et les fonctionnalités à votre sauce. ^_^</li>
   <li>Les bibliothèques CreateJS embarquées (EaselJS, TweenJS, SoundJS, PreloadJS) restent sous leur licence MIT d'origine.</li>
+</ul>
+
+<h1 class="chap">14. Nouveautés du 31/10 au 18/11/2026</h1>
+
+<h2>14.1 Pinceau : 5 nouveaux motifs et pression du stylet (09/11)</h2>
+<ul>
+  <li>Le panneau Propriétés propose désormais <b>9 motifs</b> : rond (historique), calligraphie, crayon, marqueur, aérographe, pinceau sec, craie — géométrie déterministe, jamais de hasard entre l'aperçu et le trait final.</li>
+  <li>Case <b>« Pression (stylet) »</b> + sensibilité 0–100 % : la largeur du trait suit la pression du PointerEvent (tablette/stylet) ; à la souris, la pression vaut 0,5.</li>
+</ul>
+
+<h2>14.2 Thème sombre Solarized dark (31/10)</h2>
+<ul>
+  <li>Menu Fichier &gt; « Thème sombre (Solarized dark) » : toute l'interface passe en sombre (la feuille de la scène reste blanche — c'est le document). Choix persisté.</li>
+</ul>
+
+<h2>14.3 Export vidéo WebM (31/10)</h2>
+<ul>
+  <li>Menu Fichier &gt; « Exporter vidéo WebM… » : enregistre la lecture réelle (caméra, tweens, scripts) en <code>.webm</code> (VP9 &gt; VP8, 8 Mbps) via MediaRecorder sur le canvas de la scène.</li>
+</ul>
+
+<h2>14.4 Export / ouverture « projet vers dossier » (31/10)</h2>
+<ul>
+  <li>Menu Fichier &gt; « Exporter projet vers dossier… » : <code>projet.json</code> + <code>assets/</code> (binaires) + <code>scripts/*.js</code> éclatés — dossier natif (Chromium) ou ZIP sinon. « Ouvrir un dossier… » relit le projet (les <code>.js</code> écrasent le code inline) dans une nouvelle fenêtre-projet.</li>
+</ul>
+
+<h2>14.5 Autocomplétion de l'API dans l'éditeur de scripts (31/10)</h2>
+<ul>
+  <li>CodeMirror propose <code>Scene.</code>, <code>createjs.</code> et sous-API (Tween/Ease/Ticker/Sound), les noms d'instances du document et l'API événements — selon que la cible éditée est la scène racine ou un MovieClip.</li>
+</ul>
+
+<h2>14.6 Shape hints pour le morphing (31/10)</h2>
+<ul>
+  <li>Section « Shape hints » du panneau Propriétés : des paires de points (même id des deux côtés) guident l'interpolation entre deux images clés (bijection par ordre circulaire depuis le premier hint).</li>
+</ul>
+
+<h2>14.7 Archives en ligne — dossier ./Archives, clé <code>?adm=4321</code> (10/11)</h2>
+<ul>
+  <li>Avec la clé dans l'URL, le menu Archives affiche une section « En ligne » : sauvegarder / lister / ouvrir / supprimer des projets dans <code>./Archives</code> via l'API <code>/api/archives</code> (dev-server.py en local ; en hébergement 100 % statique, repli en téléchargement local).</li>
+</ul>
+
+<h2>14.8 Scrollbars H/V de la zone de travail, zoom ancré, pan (12/11)</h2>
+<ul>
+  <li>La zone de travail scrolle nativement (scrollbars H/V) dès que la feuille déborde — plein écran compris. Le zoom (Ctrl+molette ou boutons) conserve le point sous le curseur. L'outil main déplace la vue par le scroll.</li>
+</ul>
+
+<h2>14.9 Piste caméra dans la timeline + <code>Scene.camera</code> (12/11)</h2>
+<ul>
+  <li>La piste caméra est toujours visible en scène racine : bouton « + » ou double-clic pour poser une clé, double-clic sur une clé pour la supprimer, glisser pour déplacer, clic droit pour changer l'easing (pastille colorée), zoom courant affiché dans la ligne.</li>
+  <li>Dans les scripts : <code>Scene.camera</code> (lecture x/y/zoom/rotation à l'image courante, <code>hasKeyframes</code>, <code>set({...})</code> pose une clé à l'image courante, <code>remove()</code>) — éditeur et exports.</li>
+</ul>
+
+<h2>14.10 Colonne des calques escamotable + nom complet au survol (18/11)</h2>
+<ul>
+  <li>Bouton « panneau » en tête de la toolbar de la timeline : masque la colonne des calques (options) pour donner toute la largeur aux pistes ; persisté (repliée par défaut sur téléphone).</li>
+  <li>Au survol du nom d'un calque, l'infobulle affiche le <b>nom complet</b> (le texte affiché est tronqué en ellipsis) + le rappel « double-clic pour renommer ».</li>
+</ul>
+
+<h2>14.11 Pan : le cadre entier de la scène est draggable (18/11)</h2>
+<ul>
+  <li>Hors plein écran, l'outil main déplace <b>toute la feuille</b> (cadre blanc inclus) dans la zone de travail — par scroll quand elle déborde (zoom), par déplacement direct à 100 %. En plein écran, le contenu glisse dans le cadre (le transform est interdit sur l'élément plein écran).</li>
+</ul>
+
+<h2>14.12 Panneau latéral basculable à gauche ‹ | › (18/11)</h2>
+<ul>
+  <li>Le bouton ‹ | › au-dessus du panneau latéral (bibliothèque / scripts / propriétés) le bascule à <b>gauche</b> de la scène — pratique pour un droitier. Le redimensionnement par glisser fonctionne des deux côtés ; choix persisté.</li>
 </ul>
 
 </body>

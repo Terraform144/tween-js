@@ -571,6 +571,24 @@ export function mountTimeline(container, state) {
     syncing = true; layersCol.scrollTop = tracksScroll.scrollTop; syncing = false;
   });
 
+  // Molette souris (laptop/TV) : un deltaY défile HORIZONTALEMENT les pistes
+  // quand la timeline déborde en largeur — le scroll horizontal natif à la
+  // souris n'existant pas (hors Shift+molette), la molette verticale est le
+  // seul vecteur disponible. deltaX (molette horizontale / trackpad) reste
+  // géré nativement par le navigateur. Au bord horizontal atteint, on rend la
+  // main au scroll vertical. Le tactile (mobile) continue via le scroll natif
+  // de overflow:auto, inchangé.
+  tracksScroll.addEventListener('wheel', (e) => {
+    if (e.deltaX !== 0 || e.deltaY === 0) return;
+    const maxLeft = tracksScroll.scrollWidth - tracksScroll.clientWidth;
+    if (maxLeft <= 0) return;
+    const d = e.deltaMode === 1 ? e.deltaY * CELL_W : e.deltaY;
+    const canH = d > 0 ? tracksScroll.scrollLeft < maxLeft - 1 : tracksScroll.scrollLeft > 1;
+    if (!canH) return;
+    tracksScroll.scrollLeft += d;
+    e.preventDefault();
+  }, { passive: false });
+
   btnAddLayer.addEventListener('click', () => {
     const layers = layersInContext();
     const layer = createLayer(`Calque ${layers.length + 1}`);

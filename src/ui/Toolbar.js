@@ -1,5 +1,6 @@
 import { notify } from '../state.js';
 import { ICONS } from './icons.js';
+import { attachColorPalette } from './colorPalette.js';
 
 const TOOLS = [
   { id: 'select', icon: 'select', title: 'Sélection (V)' },
@@ -64,6 +65,11 @@ export function mountToolbar(container, state, { onDelete } = {}) {
   strokeInput.addEventListener('change', () => { state.strokeColor = strokeInput.value; notify(state); });
 
   colorRow.append(fillInput, strokeInput);
+  // Boutons palette à côté de chaque swatch (le nuancier natif mobile écrit le
+  // hex en vertical ; le panneau custom = swatches + hex). Pas de ∅ ici : le
+  // transparent reste réservé au panneau Propriétés (règle session 20).
+  attachColorPalette(colorRow, fillInput, { allowTransparent: false });
+  attachColorPalette(colorRow, strokeInput, { allowTransparent: false });
   container.appendChild(colorRow);
 
   window.addEventListener('keydown', (e) => {

@@ -288,6 +288,20 @@ html, body {
 }
 #menubar label { color: var(--text-dim); margin-left: 6px; font-size: 12px; flex: none; }
 #menubar input[type="text"] { flex: none; }
+/* Swatch de fond de la scène (poussé en haut à droite par .spacer) : jamais
+   écrasé par le flex de la barre (flex:none + toujours CARRÉ, aspect-ratio 1),
+   taille tactile confortable sur mobile. */
+#menubar input[type="color"] {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+}
 
 /* Cliquer-glisser souris pour les barres qui débordent horizontalement — voir
    util/dragScroll.js (nécessaire sur mobile quand une souris est connectée :
@@ -394,12 +408,74 @@ html, body {
   .tool-btn { width: 42px; height: 42px; }
   .tool-btn svg { width: 21px; height: 21px; }
 }
-.tool-color-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
-.tool-color-row input[type="color"] { width: 26px; height: 20px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
+.tool-color-row { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 8px; }
+.tool-color-row input[type="color"] { width: 30px; height: 30px; aspect-ratio: 1; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
 /* Bouton « transparent » (∅) dans le panneau propriétés, à côté du sélecteur
    de couleur de la forme (demande user : PAS dans la barre d'outils gauche) */
 .no-color-btn { width: 20px; height: 20px; padding: 0; flex: none; }
 .no-color-btn svg { width: 14px; height: 14px; }
+
+/* ---------- Panneau palette de couleurs (src/ui/colorPalette.js) ----------
+   Alternative au nuancier natif <input type=color> dont le champ hex
+   « personnalisé » s'affiche en vertical sur mobile. Swatches carrés organisés
+   (classiques / pastels / pantone) + champ hex éditable + nuancier système. */
+.palette-btn { flex: none; }
+.color-panel {
+  position: fixed;
+  z-index: 10000;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  padding: 8px;
+  max-height: min(430px, calc(100vh - 16px));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cp-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); }
+.cp-grid { display: grid; grid-template-columns: repeat(6, 30px); gap: 4px; }
+.cp-swatch {
+  width: 30px;
+  height: 30px;
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+}
+.cp-swatch:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cp-swatch.current { outline: 2px solid var(--accent); outline-offset: 1px; box-shadow: inset 0 0 0 2px var(--bg-1); }
+.cp-actions { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
+.cp-hex {
+  width: 84px;
+  flex: none;
+  font-family: monospace;
+  font-size: 12px;
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+.cp-hex.invalid { border-color: var(--danger); }
+.cp-sys-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.cp-sys-btn:hover { border-color: var(--accent); color: var(--accent); }
+@media (pointer: coarse), (max-width: 1024px) {
+  .cp-grid { grid-template-columns: repeat(6, 34px); }
+  .cp-swatch { width: 34px; height: 34px; }
+  .tool-color-row input[type="color"] { width: 36px; height: 36px; }
+  #menubar input[type="color"] { width: 40px; height: 40px; }
+}
 .tool-color-row input[type="range"] { width: 100px; cursor: pointer; }
 .tool-color-row select { padding: 2px 4px; border: 1px solid var(--border); background: var(--bg-1); color: var(--text); cursor: pointer; }
 
@@ -410,32 +486,43 @@ html, body {
   overflow: hidden;
   position: relative;
 }
-#stage-container {
-  /* La feuille EST le scroller : scrollbars H/V natives dès que le canvas
-     dépasse de la zone de travail (zoom ou fenêtre étroite) — et ça marche
-     aussi en plein écran, où #stage-container couvre l'écran. Centrage « sûr »
-     par margin:auto (et non justify-content:center sur le parent) : quand la
-     feuille déborde, les marges tombent à 0 et TOUTE la feuille reste
-     atteignable au scroll — avec justify-content:center, le débordement côté
-     haut/gauche serait coupé et inatteignable. max-width/height la cantonnent
-     à la zone (c'est alors le scroll INTERNE qui déborde), flex:none empêche
-     le rétrécissement. */
-  margin: auto;
-  flex: none;
-  max-width: 100%;
-  max-height: 100%;
+/* Hors plein écran, c'est #stage-scroll qui scrolle : la feuille entière
+   (#stage-container) déborde alors de la zone grise et les scrollbars H/V
+   couvrent TOUT le cadre (et pas seulement son contenu). Centrage « sûr »
+   par margin:auto sur la feuille (et non justify-content:center ici) :
+   quand elle déborde, les marges tombent à 0 et tous les coins restent
+   atteignables au scroll. */
+#stage-scroll {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow: auto;
   display: flex;
   scrollbar-width: thin;
+}
+#stage-container {
+  /* Taille naturelle de la feuille (canvas) : elle peut dépasser de la zone
+     et être déplacée entière par le pan (outil main, transform — voir
+     Stage.js applyPanTransform). En plein écran (natif ou repli CSS),
+     l'élément couvre l'écran et scrolle en interne. */
+  margin: auto;
+  flex: none;
+  display: flex;
   background: #ffffff;
   box-shadow: 0 0 0 1px var(--text), 0 8px 24px var(--stage-shadow);
   position: relative;
 }
-/* Wrapper du canvas Konva dans #stage-container (élément flex centré par
-   margin:auto dans le scroller). Le pan (outil main) ne transforme plus rien :
-   il scroll #stage-container (voir Stage.js). Un doigt qui dessine ne doit
-   jamais faire défiler/zoomer la page — tout le geste tactile revient à Konva
-   (mousedown/touchstart déjà gérés dans Stage.js). */
+#stage-container:fullscreen,
+#stage-container.fs-css-active {
+  overflow: auto;
+  scrollbar-width: thin;
+}
+/* Wrapper du canvas Konva dans #stage-container. Hors plein écran, c'est
+   #stage-container (la feuille entière) que le pan translate ; en plein
+   écran, la feuille UA interdit le transform sur l'élément fullscreen et le
+   pan scrolle le conteneur (voir Stage.js applyPanTransform / activeScroller).
+   Un doigt qui dessine ne doit jamais faire défiler/zoomer la page — tout le
+   geste tactile revient à Konva (mousedown/touchstart déjà gérés). */
 .stage-pan-layer {
   position: relative;
   margin: auto;
@@ -634,6 +721,42 @@ body.fs-css .fs-css-active {
   flex-direction: column;
   min-height: 0;
 }
+/* Bascule gauche/droite du panneau (pref 'sidebarSide') : la grille réordonne
+   les colonnes — toolbar | sidebar | resizer | scène. */
+/* grid-row: 1 explicite : sinon le placement auto de la grille, après avoir
+   posé la scène en colonne 4, fait passer le curseur à la ligne suivante et
+   le resizer/la sidebar tombent dans des lignes implicites (panneau écrasé
+   en bas). */
+#main.sidebar-left #toolbar { grid-column: 1; grid-row: 1; }
+#main.sidebar-left #sidebar { grid-column: 2; grid-row: 1; border-left: none; border-right: 1px solid var(--border); }
+#main.sidebar-left #sidebar-resizer { grid-column: 3; grid-row: 1; }
+#main.sidebar-left #stage-wrap { grid-column: 4; grid-row: 1; }
+/* Header au-dessus du panneau : bouton de bascule < | > */
+#sidebar-header {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+#sidebar-header button {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#sidebar-header button:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+#sidebar-header button svg { width: 14px; height: 14px; }
+/* En mode tiroir (écran étroit), le panneau flotte par-dessus : le côté n'a
+   pas de sens, on masque le bouton de bascule. */
+#sidebar.overlay-mode #sidebar-header { display: none; }
 .panel {
   display: flex;
   flex-direction: column;
@@ -719,7 +842,7 @@ body.fs-css .fs-css-active {
   padding: 4px;
   width: 0;
 }
-.prop-row input[type="color"] { width: 28px; height: 22px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
+.prop-row input[type="color"] { width: 32px; height: 32px; aspect-ratio: 1; flex: none; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
 .prop-row select { flex: 1; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px; }
 .prop-row-textarea { align-items: flex-start; }
 .prop-row-textarea label { padding-top: 4px; }
@@ -1114,7 +1237,7 @@ button.icon-btn:disabled { opacity: 0.4; cursor: default; }
     padding: 8px;
     font-size: 13px;
   }
-  .prop-row input[type="color"] { width: 34px; height: 28px; }
+  .prop-row input[type="color"] { width: 40px; height: 40px; }
 }
 
 /* ---------- Téléphone (< 640px) : optimisation maximale ---------- */
@@ -1177,7 +1300,8 @@ button.icon-btn:disabled { opacity: 0.4; cursor: default; }
     padding: 10px;
     font-size: 14px;
   }
-  .prop-row input[type="color"] { width: 38px; height: 32px; }
+  .prop-row input[type="color"] { width: 44px; height: 44px; }
+  #menubar input[type="color"] { width: 44px; height: 44px; }
   .prop-row label { width: 80px; font-size: 12px; }
   
   /* Scripts : onglets plus grands */

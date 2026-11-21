@@ -22,15 +22,21 @@ function check(label, cond) {
   console.log((cond ? '  OK  ' : 'FAIL  ') + label);
   if (!cond) failed++;
 }
+// Scroller actif : #stage-scroll hors plein écran (la feuille entière y
+// déborde), #stage-container en plein écran (natif ou repli CSS).
 async function scrollPos(page) {
   return page.evaluate(() => {
-    const sc = document.getElementById('stage-container');
-    return { x: sc.scrollLeft, y: sc.scrollTop, maxX: sc.scrollWidth - sc.clientWidth, maxY: sc.scrollHeight - sc.clientHeight };
+    const c = document.getElementById('stage-container');
+    const fs = !!document.fullscreenElement || c.classList.contains('fs-css-active');
+    const sc = fs ? c : document.getElementById('stage-scroll');
+    return { x: sc.scrollLeft, y: sc.scrollTop, maxX: sc.scrollWidth - sc.clientWidth, maxY: sc.scrollHeight - sc.clientHeight, fs };
   });
 }
 async function setScroll(page, x, y) {
   await page.evaluate(([sx, sy]) => {
-    const sc = document.getElementById('stage-container');
+    const c = document.getElementById('stage-container');
+    const fs = !!document.fullscreenElement || c.classList.contains('fs-css-active');
+    const sc = fs ? c : document.getElementById('stage-scroll');
     sc.scrollLeft = sx; sc.scrollTop = sy;
   }, [x, y]);
   await new Promise((r) => setTimeout(r, 120));
@@ -159,6 +165,41 @@ try {
   const parent2 = await page.evaluate(() => document.querySelector('.stage-zoom-controls').parentElement.id);
   console.log('  parent du contrôle zoom : ' + parent2);
   check('contrôle zoom de retour dans #stage-wrap', parent2 === 'stage-wrap');
+
+  console.log('--- 7. Pan à 100% hors plein écran : TOUTE la feuille est draggable (transform du cadre) ---');
+  await page.click('.zoom-percent'); // reset zoom 100%
+  await new Promise((r) => setTimeout(r, 300));
+  const s100 = await scrollPos(page);
+  check('à 100% aucun débordement (pas de scroll possible)', s100.maxX <= 0 && s100.maxY <= 0);
+  const c4 = await canvasCenter(page);
+  await page.mouse.move(c4.x, c4.y);
+  await page.mouse.down();
+  await page.mouse.move(c4.x - 60, c4.y - 30, { steps: 5 });
+  await page.mouse.up();
+  await new Promise((r) => setTimeout(r, 250));
+  const tr100 = await transforms(page);
+  console.log('  transform du cadre : ' + (tr100.container || '(vide)'));
+  check('pan 100% : le CADRE entier bouge (transform sur #stage-container)', tr100.container === 'translate(-60px, -30px)');
+
+  console.log('--- 8. Plein écran à 100% : pan par transform du panLayer (scroll sans plage) ---');
+  await page.click('.stage-fullscreen-btn');
+  await new Promise((r) => setTimeout(r, 800));
+  await page.click('.zoom-percent'); // 100% en plein écran : plus de débordement
+  await new Promise((r) => setTimeout(r, 300));
+  const sFs100 = await scrollPos(page);
+  check('plein écran 100% : aucune plage de scroll', sFs100.maxX <= 0 && sFs100.maxY <= 0);
+  const c5 = await canvasCenter(page);
+  await page.mouse.move(c5.x, c5.y);
+  await page.mouse.down();
+  await page.mouse.move(c5.x - 50, c5.y - 25, { steps: 5 });
+  await page.mouse.up();
+  await new Promise((r) => setTimeout(r, 250));
+  const trFs100 = await transforms(page);
+  console.log('  transforms en fs 100% : container=' + (trFs100.container || '(vide)') + ' panLayer=' + (trFs100.panLayer || '(vide)'));
+  check('pan fs 100% : transform sur le panLayer (translate(-50px, -25px))', trFs100.panLayer === 'translate(-50px, -25px)');
+  check('pan fs 100% : aucun transform sur le conteneur (interdit par l UA)', !trFs100.container);
+  await page.click('.stage-fullscreen-btn'); // sortie plein écran
+  await new Promise((r) => setTimeout(r, 500));
 } catch (err) {
   console.log('EXCEPTION : ' + err.message);
   failed++;

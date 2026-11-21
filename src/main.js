@@ -493,9 +493,39 @@ sidebarBackdrop.addEventListener('click', () => {
 });
 document.body.appendChild(sidebarBackdrop);
 
+// Côté du panneau latéral (pref 'sidebarSide') : 'right' (défaut) ou 'left' —
+// pour un droitier, le panneau à gauche dégage la droite de la scène.
+let sidebarSide = getPref('sidebarSide', 'right') === 'left' ? 'left' : 'right';
+const sidebarSideBtn = document.getElementById('sidebar-side-btn');
+
 function applySidebarWidth(px) {
   const tb = toolbarWidth();
-  mainEl.style.gridTemplateColumns = isOverlayMode() ? `${tb}px 1fr 34px` : `${tb}px 1fr 5px ${px}px`;
+  if (isOverlayMode()) {
+    mainEl.style.gridTemplateColumns = `${tb}px 1fr 34px`;
+  } else if (sidebarSide === 'left') {
+    mainEl.style.gridTemplateColumns = `${tb}px ${px}px 5px 1fr`;
+  } else {
+    mainEl.style.gridTemplateColumns = `${tb}px 1fr 5px ${px}px`;
+  }
+}
+
+function applySidebarSide() {
+  mainEl.classList.toggle('sidebar-left', sidebarSide === 'left');
+  if (sidebarSideBtn) {
+    sidebarSideBtn.innerHTML = ICONS.sidebarSide;
+    sidebarSideBtn.title = sidebarSide === 'left'
+      ? 'Panneau à droite (‹ | ›)'
+      : 'Panneau à gauche (‹ | ›)';
+  }
+  applySidebarWidth(sidebarCollapsed ? 0 : sidebarWidth);
+}
+if (sidebarSideBtn) {
+  sidebarSideBtn.addEventListener('click', () => {
+    sidebarSide = sidebarSide === 'left' ? 'right' : 'left';
+    setPref('sidebarSide', sidebarSide);
+    applySidebarSide();
+    stage.resize();
+  });
 }
 
 let sidebarWidth = getPref('sidebarWidth', isLargeScreen() ? 320 : 260);
@@ -525,6 +555,7 @@ function applySidebarCollapse() {
   sidebarToggleBtn.innerHTML = ICONS[sidebarCollapsed ? 'chevronLeft' : 'chevronRight'];
 }
 applySidebarCollapse();
+applySidebarSide();
 
 sidebarToggleBtn.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -543,7 +574,11 @@ sidebarResizer.addEventListener('mousedown', (e) => {
 window.addEventListener('mousemove', (e) => {
   if (!resizingSidebar) return;
   const rect = mainEl.getBoundingClientRect();
-  sidebarWidth = Math.max(200, Math.min(600, rect.right - e.clientX));
+  // Panneau à droite : largeur = distance au bord droit ; à gauche : distance
+  // au bord gauche moins la colonne outils.
+  sidebarWidth = sidebarSide === 'left'
+    ? Math.max(200, Math.min(600, e.clientX - rect.left - toolbarWidth()))
+    : Math.max(200, Math.min(600, rect.right - e.clientX));
   applySidebarWidth(sidebarWidth);
   stage.resize();
 });

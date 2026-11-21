@@ -51,14 +51,13 @@ function clonePathPoint(p) {
 export function createStage({ container, state, onSelectionChange = () => {} }) {
   const initialDoc = state.doc;
 
-  // Scroller de la zone de travail : #stage-container LUI-MÊME (overflow:auto,
-  // cantonné à la zone par max-width/height:100% — voir style.css). Il porte
-  // les scrollbars H/V natives quand la feuille dépasse (zoom ou fenêtre
-  // étroite), et c'est lui que l'outil main fait défiler (pan = scroll natif,
-  // donc les scrollbars reflètent toujours la vue). Ça marche aussi en plein
-  // écran, où #stage-container couvre tout l'écran (et où la feuille UA
-  // interdit de toute façon tout transform sur l'élément fullscreen).
-  const scroller = container;
+  // Scroller de la zone de travail : #stage-scroll (parent de #stage-container)
+  // HORS plein écran — la feuille entière y déborde et les scrollbars couvrent
+  // tout le cadre. EN plein écran, seul le sous-arbre de l'élément fullscreen
+  // est rendu : c'est alors #stage-container lui-même qui scrolle (overflow:auto
+  // via :fullscreen / .fs-css-active, voir style.css).
+  const scrollEl = container.parentElement || container;
+  const activeScroller = () => (fullscreenElement() === container) ? container : scrollEl;
 
   const panLayer = document.createElement('div');
   panLayer.className = 'stage-pan-layer';
@@ -211,13 +210,36 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // (compteur partagé dans core/model.js) -> importer asset/symbole avec le
   // même id dans un autre doc ne peut pas entrer en conflit.
   let clipboard = { elements: [], assets: {}, symbols: {} };
-  let panStart = null; // { mouseX, mouseY, scrollLeft, scrollTop } — glisser-déposer en cours avec la main
+  let panStart = null; // { mouseX, mouseY, scrollLeft, scrollTop, scrollable, tx, ty } — glisser-déposer en cours avec la main
+  const panOffset = { x: 0, y: 0 }; // décalage CSS translate courant de la feuille
 
-  // Le pan (outil main) passe par le scroll natif du scroller : les
-  // scrollbars reflètent toujours la vue, en fenêtre comme en plein écran.
+  // Pan (outil main) : hors plein écran, TOUTE LA FEUILLE (#stage-container)
+  // est translatée — le cadre entier se déplace dans la zone grise, même à 100%
+  // quand aucun scroll n'est possible. En plein écran, la feuille UA impose
+  // transform:none !important à l'élément fullscreen : on scrolle alors le
+  // conteneur lui-même (le contenu glisse dans le cadre plein écran).
+  function applyPanTransform() {
+    const t = (panOffset.x || panOffset.y) ? `translate(${panOffset.x}px, ${panOffset.y}px)` : '';
+    if (fullscreenElement() === container) {
+      // Plein écran : transform interdit sur l'élément fullscreen -> panLayer
+      // (enfant, autorisé). Le scroll du conteneur reste prioritaire quand
+      // la feuille déborde (voir panStart.scrollable).
+      panLayer.style.transform = t;
+      container.style.transform = '';
+    } else {
+      container.style.transform = t;
+      panLayer.style.transform = '';
+    }
+  }
+
   function resetPan() {
-    scroller.scrollLeft = 0;
-    scroller.scrollTop = 0;
+    scrollEl.scrollLeft = 0;
+    scrollEl.scrollTop = 0;
+    container.scrollLeft = 0;
+    container.scrollTop = 0;
+    panOffset.x = 0;
+    panOffset.y = 0;
+    applyPanTransform();
   }
 
   function currentLayers() {
@@ -722,9 +744,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   // Règles : deux bandes DOM épinglées dans #stage-wrap (hors du scroller
-  // #stage-container : elles ne défilent pas avec la scène), graduations
+  // #stage-scroll : elles ne défilent pas avec la scène), graduations
   // selon zoom/scroll. Glisser depuis une règle pose un guide (doc.guides).
-  const rulersHost = container.parentElement || container;
+  const rulersHost = container.closest('#stage-wrap') || container.parentElement || container;
   const rulerH = document.createElement('div');
   rulerH.id = 'ruler-h';
   const rulerV = document.createElement('div');
@@ -813,7 +835,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   rulerV.addEventListener('mousedown', (e) => { e.preventDefault(); rulerDragStart('v'); });
   // Au scroll de la scène, seules les graduations des règles sont redessinées
   // (les bandes restent épinglées dans #stage-wrap, hors du scroller).
-  scroller.addEventListener('scroll', () => renderRulers());
+  scrollEl.addEventListener('scroll', () => renderRulers());
+  container.addEventListener('scroll', () => renderRulers());
 
   // ------------------------------------------------------------ caméra
   // Pendant la lecture, le monde entier (page + contenu) est vu à travers
@@ -1636,7 +1659,14 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       // Tactile : e.evt est un TouchEvent SANS clientX (il est sur
       // touches[0]) -> panStart undefined -> NaN au move -> pan figé.
       const src = (evt.touches && evt.touches[0]) || evt;
-      panStart = { mouseX: src.clientX, mouseY: src.clientY, scrollLeft: scroller.scrollLeft, scrollTop: scroller.scrollTop };
+      const sc = activeScroller();
+      panStart = {
+        mouseX: src.clientX, mouseY: src.clientY,
+        scrollLeft: sc.scrollLeft, scrollTop: sc.scrollTop,
+        scrollable: sc.scrollWidth > sc.clientWidth + 1 || sc.scrollHeight > sc.clientHeight + 1,
+        fullscreen: fullscreenElement() === container,
+        tx: panOffset.x, ty: panOffset.y,
+      };
       container.classList.add('grabbing');
       return;
     }
@@ -1777,8 +1807,31 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       const src = (evt.touches && evt.touches[0]) || evt;
       const dx = src.clientX - panStart.mouseX;
       const dy = src.clientY - panStart.mouseY;
-      scroller.scrollLeft = panStart.scrollLeft - dx;
-      scroller.scrollTop = panStart.scrollTop - dy;
+      if (panStart.fullscreen && panStart.scrollable) {
+        // Plein écran avec débordement : scroll du conteneur (transform
+        // interdit sur l'élément fullscreen). Le contenu glisse dans le cadre.
+        container.scrollLeft = panStart.scrollLeft - dx;
+        container.scrollTop = panStart.scrollTop - dy;
+      } else if (panStart.fullscreen) {
+        // Plein écran à 100% (aucun débordement, le scroll n'a aucune plage) :
+        // transform du panLayer, enfant de l'élément fullscreen.
+        panOffset.x = panStart.tx + dx;
+        panOffset.y = panStart.ty + dy;
+        applyPanTransform();
+      } else if (panStart.scrollable) {
+        // Fenêtré avec débordement : scroll de #stage-scroll -> TOUTE la
+        // feuille (le cadre) se déplace, les scrollbars suivent.
+        scrollEl.scrollLeft = panStart.scrollLeft - dx;
+        scrollEl.scrollTop = panStart.scrollTop - dy;
+      } else {
+        // Fenêtré sans débordement (zoom 100%) : le scroll ne peut rien
+        // déplacer -> transform sur #stage-container, le cadre entier bouge.
+        // Signe « attraper » : le cadre suit la souris, comme le scroll
+        // (scrollLeft = start - dx) — translate(+dx, +dy).
+        panOffset.x = panStart.tx + dx;
+        panOffset.y = panStart.ty + dy;
+        applyPanTransform();
+      }
       return;
     }
     if (marquee) {
@@ -2505,16 +2558,21 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       // clientX = rect.left + pixel.x + mx - scrollLeft (le scroll décale le
       // contenu vers la gauche), d'où scrollLeft = pixel.x + mx - (clientX - rect.left).
       const pixel = contentLayer.getAbsoluteTransform().point(anchorDoc);
-      const r = scroller.getBoundingClientRect();
-      const mx = Math.max(0, (scroller.clientWidth - konvaStage.width()) / 2);
-      const my = Math.max(0, (scroller.clientHeight - konvaStage.height()) / 2);
-      scroller.scrollLeft = pixel.x + mx - (anchor.x - r.left);
-      scroller.scrollTop = pixel.y + my - (anchor.y - r.top);
+      const sc = activeScroller();
+      const r = sc.getBoundingClientRect();
+      const mx = Math.max(0, (sc.clientWidth - konvaStage.width()) / 2);
+      const my = Math.max(0, (sc.clientHeight - konvaStage.height()) / 2);
+      sc.scrollLeft = pixel.x + mx - (anchor.x - r.left);
+      sc.scrollTop = pixel.y + my - (anchor.y - r.top);
     }
+    // Le pan par transform est transitoire : on le remet à zéro à chaque zoom.
+    panOffset.x = 0;
+    panOffset.y = 0;
+    applyPanTransform();
   }
 
   function scrollerCenter() {
-    const r = scroller.getBoundingClientRect();
+    const r = activeScroller().getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
 

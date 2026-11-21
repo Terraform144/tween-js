@@ -12,6 +12,7 @@ import { enableDragScroll } from '../util/dragScroll.js';
 import { toggleFullscreen, fullscreenElement, onFullscreenChange } from '../util/fullscreen.js';
 import { getAllProjects, saveProject, loadProject, deleteProject, deleteAllProjects } from '../util/projects.js';
 import { isAdminMode } from '../util/adminMode.js';
+import { attachColorPalette } from './colorPalette.js';
 import { listRemoteArchives, saveRemoteArchive, loadRemoteArchive, deleteRemoteArchive } from '../util/remoteArchives.js';
 
 export function mountMenuBar(container, state, { onDocReplaced, onStageResize, history, onSvgImport = () => {}, onImageImport = () => {}, onAudioImport = () => {}, onProjectLoad = () => {}, onExportVideo = () => {}, onExportProject = () => {}, onOpenProjectFolder = () => {}, onToggleTheme = () => {} }) {
@@ -540,6 +541,10 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
     fpsLabel, fpsInput, framesLabel, framesInput,
     bgLabel, bgInput,
   );
+  // Bouton palette à côté du sélecteur de fond (en haut à droite de la barre) :
+  // le nuancier natif affiche son champ hex en vertical sur mobile, le panneau
+  // custom propose des swatches (classiques/pastels/pantone) + hex éditable.
+  attachColorPalette(container, bgInput, { allowTransparent: false });
   enableDragScroll(container);
 
   function resetDocument(newDoc) {

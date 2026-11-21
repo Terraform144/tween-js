@@ -34,6 +34,7 @@ export const ICONS = {
   tag: svg('<path d="M11 3H6a2 2 0 0 0-2 2v5l10.5 10.5a1 1 0 0 0 1.4 0l5.1-5.1a1 1 0 0 0 0-1.4L11 3Z"/><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/>'),
   eye: svg('<path d="M2.5 12S6.5 5.5 12 5.5 21.5 12 21.5 12 17.5 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.6"/>'),
   noColor: svg('<rect x="5" y="5" width="14" height="14" rx="2" stroke-dasharray="2.5 3"/><path d="M4.5 19.5 19.5 4.5"/>'),
+  palette: svg('<rect x="4" y="4" width="5" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="10" y="4" width="5" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="16" y="4" width="4.5" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="4" y="10" width="5" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="10" y="10" width="5" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="16" y="10" width="4.5" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="4" y="16" width="5" height="4.5" rx="1" fill="currentColor" stroke="none"/><rect x="10" y="16" width="5" height="4.5" rx="1" fill="currentColor" stroke="none"/><rect x="16" y="16" width="4.5" height="4.5" rx="1" fill="currentColor" stroke="none"/>'),
   layerMask: svg('<rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor" stroke="none"/>'),
   layerMasked: svg('<rect x="4" y="9" width="16" height="11" rx="2"/><rect x="7.5" y="4" width="9" height="7" rx="1.5" fill="currentColor" stroke="none"/>'),
   guide: svg('<path d="M4 18C8 7 15 6 19.5 12.5"/><path d="M19.5 12.5l-3.4-.3M19.5 12.5l-.5-3.3"/>'),
@@ -70,6 +71,7 @@ export const ICONS = {
   zoomOut: svg('<circle cx="12" cy="12" r="5"/><path d="M16.3 16.3L20 20"/><path d="M9 12h6"/>'),
   hand: svg('<path d="M18 12V8a2 2 0 0 0-4 0v3M14 11V6a2 2 0 0 0-4 0v6M10 11V7a2 2 0 0 0-4 0v7c0 4 3 6 6 6h1a4 4 0 0 0 4-4v-3a2 2 0 0 0-4 0"/>'),
   panelLeft: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M9.5 4.5v15"/><path d="M5.5 7.5h2M5.5 10.5h2M5.5 13.5h2"/>'),
+  sidebarSide: svg('<path d="M8.5 6 4 12l4.5 6"/><path d="M15.5 6 20 12l-4.5 6"/><path d="M12 4.5v15"/>'),
 };
 
 // Injecte l'icône dans un bouton/élément existant, avant tout texte déjà

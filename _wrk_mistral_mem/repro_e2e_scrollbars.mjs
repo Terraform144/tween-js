@@ -1,4 +1,4 @@
-// E2E scrollbars de la zone de travail — #stage-container (la feuille) porte les scrollbars
+// E2E scrollbars de la zone de travail — #stage-scroll porte les scrollbars (la feuille entière déborde)
 // H/V natives dès que la feuille dépasse (zoom ou fenêtre étroite), toute la
 // feuille reste atteignable (centrage sûr par margin:auto, plus de
 // justify-content:center qui coupait le côté haut/gauche), les règles restent
@@ -27,8 +27,8 @@ await new Promise(r => setTimeout(r, 400));
 //Snapshot de la géométrie utile
 const snap = () => page.evaluate(() => {
   const wrap = document.getElementById('stage-wrap');
-  const sc = document.getElementById('stage-container');
-  const cont = document.getElementById('stage-container');
+  const sc = document.getElementById('stage-scroll');
+  const cont = document.getElementById('stage-scroll');
   const pan = cont.querySelector('.stage-pan-layer');
   const rulerH = document.getElementById('ruler-h');
   const rulerV = document.getElementById('ruler-v');
@@ -58,15 +58,15 @@ ok(s.scroller.scrollWidth > s.scroller.clientWidth, 'débordement horizontal (sc
 ok(s.scroller.scrollHeight > s.scroller.clientHeight, 'débordement vertical (scrollHeight ' + s.scroller.scrollHeight + ' > clientHeight ' + s.scroller.clientHeight + ')');
 // (headless shell = scrollbars overlay sans épaisseur : on teste la
 // scrollabilité fonctionnelle plutôt que la largeur des barres)
-const scrollWorks = await page.evaluate(() => { const sc = document.getElementById('stage-container'); sc.scrollLeft = 37; sc.scrollTop = 23; const r = sc.scrollLeft === 37 && sc.scrollTop === 23; sc.scrollLeft = 0; sc.scrollTop = 0; return r; });
+const scrollWorks = await page.evaluate(() => { const sc = document.getElementById('stage-scroll'); sc.scrollLeft = 37; sc.scrollTop = 23; const r = sc.scrollLeft === 37 && sc.scrollTop === 23; sc.scrollLeft = 0; sc.scrollTop = 0; return r; });
 ok(scrollWorks, 'le scroller répond au scroll H et V (scrollLeft/Top modifiables)');
 
 console.log('— 3. Toute la feuille est atteignable (coin haut-gauche puis bas-droit)');
-await page.evaluate(() => { const sc = document.getElementById('stage-container'); sc.scrollLeft = 0; sc.scrollTop = 0; });
+await page.evaluate(() => { const sc = document.getElementById('stage-scroll'); sc.scrollLeft = 0; sc.scrollTop = 0; });
 await new Promise(r => setTimeout(r, 150));
 s = await snap();
 ok(Math.abs(s.pan.left - s.scroller.left) < 3 && Math.abs(s.pan.top - s.scroller.top) < 3, 'scroll (0,0) : le coin haut-gauche de la feuille est visible (pan.left=' + s.pan.left.toFixed(1) + ' vs scroller.left=' + s.scroller.left.toFixed(1) + ')');
-await page.evaluate(() => { const sc = document.getElementById('stage-container'); sc.scrollLeft = sc.scrollWidth; sc.scrollTop = sc.scrollHeight; });
+await page.evaluate(() => { const sc = document.getElementById('stage-scroll'); sc.scrollLeft = sc.scrollWidth; sc.scrollTop = sc.scrollHeight; });
 await new Promise(r => setTimeout(r, 150));
 s = await snap();
 ok(Math.abs(s.pan.right - (s.scroller.left + s.scroller.clientWidth)) < 3, 'scroll max X : le coin droit de la feuille est visible');
@@ -74,7 +74,7 @@ ok(Math.abs(s.pan.bottom - (s.scroller.top + s.scroller.clientHeight)) < 3, 'scr
 
 console.log('— 4. Règles épinglées + graduations suivent le scroll');
 const r0 = await snap();
-await page.evaluate(() => { const sc = document.getElementById('stage-container'); sc.scrollLeft = 0; sc.scrollTop = 0; });
+await page.evaluate(() => { const sc = document.getElementById('stage-scroll'); sc.scrollLeft = 0; sc.scrollTop = 0; });
 await new Promise(r => setTimeout(r, 150));
 const r1 = await snap();
 ok(r1.rulerHVisible, 'règle horizontale visible');
@@ -83,7 +83,7 @@ ok(Math.abs(r0.rulerH.top - r1.rulerH.top) < 2 && Math.abs(r0.rulerV.left - r1.r
 ok(r0.rulerHData !== r1.rulerHData, 'graduations de la règle H redessinées après scroll');
 
 console.log('— 5. Outil main (M) : le drag scrolle la zone');
-await page.evaluate(() => { const sc = document.getElementById('stage-container'); sc.scrollLeft = 60; sc.scrollTop = 40; });
+await page.evaluate(() => { const sc = document.getElementById('stage-scroll'); sc.scrollLeft = 60; sc.scrollTop = 40; });
 await page.keyboard.press('m');
 await new Promise(r => setTimeout(r, 100));
 const before = await snap();
@@ -100,7 +100,7 @@ ok(Math.abs(after.scroller.scrollTop - (before.scroller.scrollTop + 40)) < 4, 'd
 await page.keyboard.press('m');
 
 console.log('— 6. Zoom molette Ctrl : le point sous le curseur reste sous le curseur');
-await page.evaluate(() => { const sc = document.getElementById('stage-container'); sc.scrollLeft = 100; sc.scrollTop = 60; });
+await page.evaluate(() => { const sc = document.getElementById('stage-scroll'); sc.scrollLeft = 100; sc.scrollTop = 60; });
 await new Promise(r => setTimeout(r, 100));
 const ax = (await snap()).scroller.left + 220;
 const ay = (await snap()).scroller.top + 180;

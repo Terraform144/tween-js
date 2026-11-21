@@ -6,6 +6,7 @@ import { setElementPivotField, resetElementPivot } from '../core/pivot.js';
 import { simplifyShape } from '../util/simplify.js';
 import { notify } from '../state.js';
 import { createPanel } from './Panel.js';
+import { attachColorPalette } from './colorPalette.js';
 
 // Lie un <label> à son champ via un id/name unique : sans cette association
 // (attribut for), DevTools signale « form field without id or name » et
@@ -98,6 +99,13 @@ export function mountPropertiesPanel(container, state) {
     noColorBtn.addEventListener('click', () => onChange(TRANSPARENT));
     linkLabelToField(l, input);
     row.append(l, input, noColorBtn);
+    // Bouton palette (swatches classiques/pastels/pantone + hex) à côté du
+    // swatch : le nuancier natif mobile écrit le hex en vertical.
+    attachColorPalette(row, input, {
+      allowTransparent: true,
+      isTransparent: value === TRANSPARENT,
+      onPick: (c) => onChange(c),
+    });
     body.appendChild(row);
   }
 
@@ -178,6 +186,11 @@ export function mountPropertiesPanel(container, state) {
       del.addEventListener('click', () => mutateSelectedElement((e) => { e.fillGradient.stops.splice(i, 1); }));
       linkLabelToField(lab, off);
       r.append(lab, off, col, noCol, del);
+      attachColorPalette(r, col, {
+        allowTransparent: true,
+        isTransparent: s.color === TRANSPARENT,
+        onPick: (c) => mutateSelectedElement((e) => { e.fillGradient.stops[i].color = c; }),
+      });
       body.appendChild(r);
     });
 
