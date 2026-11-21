@@ -1,6 +1,8 @@
 # NOTES SYNTHESE - Projet TweenJS
 - NOTE USER 29/10 soir : l utilisateur veut DEVELOPPER AVEC MOI et compte sur moi pour l aider a implementer les prochaines todo (voir _wrk_mistral_mem/TODO.md : export WebM, shape hints, theme sombre, autocompletion CodeMirror, export dossier...). Session collaborative reguliere, a ce soir.
 
+*Mise à jour : 21/11/2026 (session 44 bis)*
+*Fix pan caméra zoomée : quand la caméra est zoomée, le cadre (doc/zoom) sort de la feuille et devenait inatteignable — glisser N'IMPORTE OÙ sur la scène (outil caméra, clic hors cadre) pan désormais la caméra ; le drag du cadre reste prioritaire. E2E pan_zoom / pan_fit / pan_cam / pan_cam2 tous verts. APK 0 niché, commit+push faits.*
 *Mise à jour : 21/11/2026 (session 44)*
 *Dernière session : 21/11/2026 — Panneau couleur mobile : le clic sur la case couleur ouvre le panneau custom (champ hex « personnalisé » en horizontal en dessous, jamais vertical) au lieu du nuancier natif ; groupe « Pastels » remplacé par « Clair-obscur (gris soulagés) » ; Pantone conservé dans le même panneau. F7 confirmé = clé vide (pas de F5 ajouté). Synchro PureVanilla + commit + push + APK 0 niché (flux canonique, md5 5dbef2b7… aux emplacements suivis). Note build : JDK 21 requis (Capacitor 8, source release 21) installé dans ~/jdk21, lancer avec JAVA_HOME=/home/zulup/jdk21.*
 *Session 43 : 18/11/2026 — FIX pan (outil main) : le CADRE entier de la scène est à nouveau draggable hors plein écran (session 40) ; session 39 : colonne des calques escamotable + infobulle du nom (commit+push+APK faits) ; pomodoros IIB v3.0 toujours prévus pour plus tard*

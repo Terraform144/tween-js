@@ -211,6 +211,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // même id dans un autre doc ne peut pas entrer en conflit.
   let clipboard = { elements: [], assets: {}, symbols: {} };
   let panStart = null; // { mouseX, mouseY, scrollLeft, scrollTop, scrollable, tx, ty } — glisser-déposer en cours avec la main
+  let camPanBg = null; // { startPointer, startCam } — pan caméra depuis le FOND de la scène (outil caméra, clic hors cadre)
   const panOffset = { x: 0, y: 0 }; // décalage CSS translate courant de la feuille
 
   // Pan (outil main) : hors plein écran, TOUTE LA FEUILLE (#stage-container)
@@ -1752,6 +1753,16 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       startOrContinuePen(p);
     } else if (tool === 'brush') {
       startOrContinueBrush(p, eventPressure(e));
+    } else if (tool === 'camera' && e.target === konvaStage && !state.playing && !state.editPath.length) {
+      // Pan caméra depuis le FOND : quand la caméra est zoomée, le cadre
+      // (doc.width/zoom) rétrécit et peut sortir de la feuille, donc devenir
+      // inatteignable au glisser. Ici, glisser N'IMPORTE OÙ sur la scène
+      // (hors cadre) pan quand même la caméra. Le drag du cadre lui-même
+      // reste prioritaire (e.target = le cadre, pas konvaStage).
+      e.cancelBubble = true;
+      const cam = resolveCameraAtFrame(state.doc, state.currentFrame) || defaultCamera(state.doc);
+      camPanBg = { startPointer: { x: p.x, y: p.y }, startCam: { ...cam } };
+      return;
     } else if (tool === 'text') {
       // Mode texte : clic simple = texte avec dimensions par défaut
       // Clic + glisser = dessiner un rectangle pour définir le cadre du texte
@@ -1799,6 +1810,22 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   }
 
   konvaStage.on('mousemove touchmove', (e) => {
+    if (camPanBg) {
+      // Prévisu du pan caméra depuis le fond : le cadre suit le delta du
+      // pointeur en coordonnées document (stagePointer tient compte du zoom
+      // d'affichage). Le modèle n'est touché qu'au relâcher.
+      const p2 = stagePointer();
+      if (!p2) return;
+      const g = cameraGroup.children[0];
+      if (g) {
+        g.position({
+          x: camPanBg.startCam.x + (camPanBg.startPointer.x - p2.x),
+          y: camPanBg.startCam.y + (camPanBg.startPointer.y - p2.y),
+        });
+        overlayLayer.batchDraw();
+      }
+      return;
+    }
     if (panStart) {
       const evt = e.evt;
       // Tactile : l'implicite `event` (window.event) est un TouchEvent SANS
@@ -1914,6 +1941,17 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   });
 
   konvaStage.on('mouseup touchend', () => {
+    if (camPanBg) {
+      // Relâcher : pose la clé caméra pan (x/y seulement, zoom/rotation
+      // intacts) comme le dragend du cadre.
+      const g = cameraGroup.children[0];
+      camPanBg = null;
+      if (g && state.currentTool === 'camera') {
+        upsertCameraKeyframe(state.doc, state.currentFrame, { x: g.x(), y: g.y() });
+        notify(state);
+      }
+      return;
+    }
     if (panStart) {
       panStart = null;
       container.classList.remove('grabbing');
@@ -1957,7 +1995,21 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // Filet de sécurité si le bouton est relâché hors de la scène (l'événement
   // Konva ne se déclenche alors pas) — même principe que le redimensionnement
   // du panneau latéral dans main.js.
-  window.addEventListener('mouseup', () => { if (marquee) finishMarquee(); if (rotateDrag) finishRotate(); if (panStart) { panStart = null; container.classList.remove('grabbing'); } });
+  window.addEventListener('mouseup', () => {
+    if (marquee) finishMarquee();
+    if (rotateDrag) finishRotate();
+    if (camPanBg) {
+      // Secours si le relâcher tombe hors du stage : même commit que le
+      // mouseup de konvaStage (camPanBg remis à null, donc exécuté 1 fois).
+      const g = cameraGroup.children[0];
+      camPanBg = null;
+      if (g && state.currentTool === 'camera') {
+        upsertCameraKeyframe(state.doc, state.currentFrame, { x: g.x(), y: g.y() });
+        notify(state);
+      }
+    }
+    if (panStart) { panStart = null; container.classList.remove('grabbing'); }
+  });
 
   const MARQUEE_CLICK_THRESHOLD = 3; // px, en dessous duquel on considère que c'était un simple clic (pas un glissé)
 
