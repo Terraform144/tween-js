@@ -249,6 +249,13 @@ export function mountTimeline(container, state) {
 
   let lastAudioCellClick = { index: -1, time: 0 };
 
+  // Double-clic sur le NOM d'un calque décelé MANUELLEMENT : le clic sur la
+  // ligne sélectionne le calque -> notify -> rebuild des lignes (innerHTML),
+  // l'événement dblclick natif ne peut donc jamais partir sur le même nœud
+  // (même leçon que les cellules caméra/audio) — la mémoire du dernier clic
+  // vit en closure.
+  let lastNameClick = { layerId: null, time: 0 };
+
   function buildAudioTrack() {
     const assets = audioAssets(state.doc);
     const row = document.createElement('div');
@@ -766,10 +773,16 @@ export function mountTimeline(container, state) {
       // Infobulle = nom COMPLET du calque (le texte affiché est tronqué en
       // ellipsis quand la colonne est étroite) + rappel du double-clic.
       name.title = layer.name + ' — double-clic pour renommer';
-      name.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        const next = prompt('Nom du calque :', layer.name);
-        if (next) { layer.name = next; notify(state); }
+      name.addEventListener('click', (e) => {
+        const now = Date.now();
+        if (lastNameClick.layerId === layer.id && now - lastNameClick.time < 450) {
+          lastNameClick = { layerId: null, time: 0 };
+          e.stopPropagation();
+          const next = prompt('Nom du calque :', layer.name);
+          if (next) { layer.name = next; notify(state); }
+        } else {
+          lastNameClick = { layerId: layer.id, time: now };
+        }
       });
 
       row.append(eye, name, maskBtn, maskedBtn, guideBtn, guidedBtn, lock);

@@ -1,6 +1,9 @@
 # NOTES SYNTHESE - Projet TweenJS
 - NOTE USER 29/10 soir : l utilisateur veut DEVELOPPER AVEC MOI et compte sur moi pour l aider a implementer les prochaines todo (voir _wrk_mistral_mem/TODO.md : export WebM, shape hints, theme sombre, autocompletion CodeMirror, export dossier...). Session collaborative reguliere, a ce soir.
 
+*Mise à jour : 21/11/2026 (session 45, branche TweenJS_workflow.V.0.2 créée depuis V.0.1)*
+*FIX renommage calque : le double-clic sur le nom d'un calque ne déclenchait plus le prompt — le 1er clic sélectionne le calque -> notify -> rebuild complet des lignes (layersCol.innerHTML), le 2e clic tombe sur un nouveau nœud et le dblclick natif ne part jamais (même piège que les cellules caméra, commentaire Timeline.js). Fix additif : détection MANUELLE du double-clic en closure (lastNameClick {layerId,time}, seuil 450 ms) sur le click du .layer-name, handler dblclick natif retiré. E2E repro_e2e_layer_rename.mjs 3/3 sur vanilla (:4185) ET main (:4180) — prompt appelé, nom appliqué ; non-régression repro_e2e_layers_col 15/15. Rebuild ordre canonique (vanilla -> cp bundle+css -> main), node --check OK. camera_track2 bloque à la navigation (headless:'new' + chrome-headless-shell, networkidle0) = artefact env préexistant, pas une régression. Commit local sur V.0.2, pas de push (pas demandé), pas d'APK (pas demandé).*
+
 *Mise à jour : 21/11/2026 (session 44 bis)*
 *Fix pan caméra zoomée : quand la caméra est zoomée, le cadre (doc/zoom) sort de la feuille et devenait inatteignable — glisser N'IMPORTE OÙ sur la scène (outil caméra, clic hors cadre) pan désormais la caméra ; le drag du cadre reste prioritaire. E2E pan_zoom / pan_fit / pan_cam / pan_cam2 tous verts. APK 0 niché, commit+push faits.*
 *Mise à jour : 21/11/2026 (session 44)*
