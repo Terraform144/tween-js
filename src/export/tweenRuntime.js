@@ -924,20 +924,24 @@ export class MovieClip {
       }
     };
 
-    // Masque de calque (layer.mask rogne les layer.masked au-dessus de lui en
-    // lecture) : les calques masqués sont dessinés dans un canvas offscreen,
-    // le masque est appliqué en 'destination-in', puis le bloc est aplati sur
-    // le ctx principal. Copie autonome de computeMaskOwner (core/mask.js).
-    const owner = (function computeMaskOwner(ls) {
-      const own = new Array(ls.length).fill(-1);
-      let openMask = -1;
+    // Masque de calque v2 (imbrication) : chaque calque masqué porte la chaîne
+    // de ses masques (externe -> interne, copie autonome de computeMaskChain).
+    // Les calques masqués d'une même chaîne sont dessinés dans un canvas
+    // offscreen, puis chaque masque de la chaîne est appliqué en
+    // 'destination-in' (silhouette seule, strokeWidth 0), et le bloc aplati
+    // sur le ctx principal.
+    const chains = (function computeMaskChain(ls) {
+      const ch = ls.map(() => []);
+      let stack = [];
       for (let i = ls.length - 1; i >= 0; i--) {
         const l = ls[i];
-        if (l.mask) openMask = i;
-        else if (l.masked && openMask >= 0) own[i] = openMask;
-        else openMask = -1;
+        if (l.mask) {
+          if (l.masked) ch[i] = stack.slice();
+          stack.push(i);
+        } else if (l.masked) ch[i] = stack.slice();
+        else stack = [];
       }
-      return own;
+      return ch;
     })(layers);
     const hasMask = layers.some((l) => l.mask || l.masked);
     if (!hasMask) {
@@ -946,33 +950,51 @@ export class MovieClip {
       }
       return;
     }
-    const groups = new Map(); // maskIndex -> { canvas, ctx }
     const offscreen = (w, h) => {
       const c = document.createElement('canvas');
       c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h));
       return { canvas: c, ctx: c.getContext('2d') };
     };
+    const groups = new Map(); // clé chaîne -> { canvas, ctx, chain }
+    const W = this.data.width || 550, H = this.data.height || 400;
     for (let i = 0; i < layers.length; i++) {
       const layer = layers[i];
       if (!layer.visible || !elsByLayer[i]) continue;
-      const m = owner[i];
-      if (m >= 0) {
-        if (!groups.has(m)) groups.set(m, offscreen(this.data.width || 550, this.data.height || 400));
-        renderEls(groups.get(m).ctx, elsByLayer[i]);
+      const chain = chains[i];
+      if (chain.length > 0) {
+        // un calque mask+masked ne se peint pas comme contenu : silhouette seule
+        if (layer.mask) continue;
+        const key = JSON.stringify(chain);
+        let g = groups.get(key);
+        if (!g) { g = { ...offscreen(W, H), chain }; groups.set(key, g); }
+        renderEls(g.ctx, elsByLayer[i]);
       } else if (layer.mask) {
-        if (!groups.has(i)) groups.set(i, offscreen(this.data.width || 550, this.data.height || 400));
-        const g = groups.get(i);
-        g.ctx.save();
-        g.ctx.globalCompositeOperation = 'destination-in';
-        // Masque = silhouette seule : contour retiré (strokeWidth 0), sinon le
-        // composite dest-in se comporte mal (même constat que côté éditeur).
-        const maskEls = elsByLayer[i].map((e) => ({ ...e, strokeWidth: 0 }));
-        renderEls(g.ctx, maskEls);
-        g.ctx.restore();
-        ctx.drawImage(g.canvas, 0, 0);
+        // masque non masqué : rien à peindre directement (sa silhouette est
+        // appliquée par les groupes qui le référencent)
       } else {
         renderEls(ctx, elsByLayer[i]);
       }
+    }
+    // aplatir les blocs masqués (dans l'ordre des calques, du fond vers le haut)
+    const order = [];
+    for (let i = 0; i < layers.length; i++) {
+      const chain = chains[i];
+      if (chain.length) {
+        const key = JSON.stringify(chain);
+        if (!order.includes(key)) order.push(key);
+      }
+    }
+    for (const key of order) {
+      const g = groups.get(key);
+      for (const m of g.chain) {
+        const maskEls = (elsByLayer[m] || []).map((e) => ({ ...e, strokeWidth: 0, stroke: undefined }));
+        if (!maskEls.length) continue;
+        g.ctx.save();
+        g.ctx.globalCompositeOperation = 'destination-in';
+        renderEls(g.ctx, maskEls);
+        g.ctx.restore();
+      }
+      ctx.drawImage(g.canvas, 0, 0);
     }
   }
 

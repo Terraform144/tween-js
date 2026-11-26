@@ -1,7 +1,7 @@
 import Konva from 'konva';
 import { getContextLayers, getContextFrameCount, insertKeyframe, createShape, createInstance, createPathPoint, createBone, getChildBones, getAllChildBones, solveIK, calculateBoneWeightsForPoint, applyBoneTransformToPoint, nextSkeletonId, getSkeletonBones, cloneElement, getActiveKeyframe } from '../core/model.js';
 import { onionFrames, tintElementForOnion } from '../core/onionSkin.js';
-import { computeMaskOwner, hasMasks } from '../core/mask.js';
+import { computeMaskOwner, computeMaskChain, hasMasks } from '../core/mask.js';
 import { elementLocalBoxKonva, gradientPoint } from '../core/gradient.js';
 import { gridLines, snapPoint, addGuide, removeGuide, rulerStep, nearestGuide } from '../core/grid.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
@@ -561,26 +561,46 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // JAMAIS poser listening:false sur le groupe gco lui-même (Konva applique
   // quand même le gco mais ne dessine pas les enfants). Tant que le calque
   // masque est sélectionné, il est rendu normal (visible + interactif).
+  // Silhouette d'un calque masque : pas de contour, pas de dégradé, fill opaque
+  // (un stroke dans un groupe destination-in casse le composite Konva).
+  function maskSilhouetteOf(maskLayer) {
+    return {
+      ...maskLayer,
+      keyframes: (maskLayer.keyframes || []).map((kf) => ({
+        ...kf,
+        elements: (kf.elements || []).map((e) => ({ ...e, stroke: undefined, strokeWidth: 0, fill: '#000000', fillGradient: null })),
+      })),
+    };
+  }
+
   function renderLayersWithMasks(layers, frameIndex, tick) {
     if (!hasMasks(layers)) {
       renderInto(contentLayer, layers, frameIndex, tick, 0);
       return;
     }
-    const owner = computeMaskOwner(layers);
-    // découpe en segments ordonnés (normal | mask) selon l'ordre des calques
-    const segments = [];
+    // v2 : imbrication via computeMaskChain — chaque calque masqué porte la
+    // chaîne de ses masques (externe -> interne). On regroupe les calques
+    // masqués par chaîne identique : un Konva.Layer dédié par groupe, avec
+    // un destination-in par masque de la chaîne (l'intersection est
+    // commutative, l'ordre d'application n'a pas d'importance).
+    const chains = computeMaskChain(layers);
+    const segments = []; // { kind:'normal'|'mask'|'masklayer', layers?, chain? }
     let cur = null;
+    const groups = new Map(); // clé chaîne -> segment mask
     for (let i = 0; i < layers.length; i++) {
       const layer = layers[i];
       if (!layer.visible) continue;
-      const m = owner[i];
-      if (m >= 0) {
-        if (!cur || cur.kind !== 'mask' || cur.maskIndex !== m) { cur = { kind: 'mask', maskIndex: m, layers: [] }; segments.push(cur); }
-        cur.layers.push(layer);
+      const chain = chains[i];
+      if (chain.length > 0) {
+        const key = JSON.stringify(chain);
+        let seg = groups.get(key);
+        if (!seg) { seg = { kind: 'mask', chain, layers: [] }; groups.set(key, seg); segments.push(seg); cur = null; }
+        seg.layers.push(layer);
       } else if (layer.mask) {
-        if (!cur || cur.kind !== 'mask' || cur.maskIndex !== i) { cur = { kind: 'mask', maskIndex: i, layers: [] }; segments.push(cur); }
-        cur.layers.push(layer);
-        cur = null;
+        // calque masque non masqué lui-même : segment dédié (visible seulement
+        // s'il est sélectionné — sinon seule sa silhouette en dest-in compte)
+        cur = { kind: 'masklayer', layers: [layer] };
+        segments.push(cur);
       } else {
         if (!cur || cur.kind !== 'normal') { cur = { kind: 'normal', layers: [] }; segments.push(cur); }
         cur.layers.push(layer);
@@ -598,38 +618,39 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         kl.scale(contentLayer.scale());
       }
       if (seg.kind === 'normal') { renderInto(kl, seg.layers, frameIndex, tick, 0); segLayers.push({ kl, ghost: null }); return; }
-      const masked = seg.layers.slice(0, -1);
-      const maskLayer = seg.layers[seg.layers.length - 1];
+      if (seg.kind === 'masklayer') {
+        // masque non masqué : rendu normal seulement s'il est sélectionné
+        const maskLayer = seg.layers[0];
+        if (maskLayer.id === state.selectedLayerId) renderInto(kl, seg.layers, frameIndex, tick, 0);
+        segLayers.push({ kl, ghost: null });
+        return;
+      }
+      // segment masqué avec chaîne de masques
+      const chain = seg.chain; // externe -> interne
+      // Un calque qui est LUI-MÊME masque (mask+masked) ne se rend pas comme
+      // contenu visible : seule sa silhouette sert (dans les groupes dest-in
+      // des chaînes qui le référencent) — sauf s'il est sélectionné (édition).
+      const masked = seg.layers.filter((l) => !l.mask || l.id === state.selectedLayerId);
       // Group englobant INDISPENSABLE : un gco sur un enfant DIRECT du layer
       // s'applique mal (Konva), mais dans un Group ça marche (vérifié E2E).
       const g = new Konva.Group();
       kl.add(g);
       if (masked.length) renderInto(g, masked, frameIndex, tick, 0);
-      // Le masque n'a besoin que de sa SILHOUETTE (le fill) : un stroke sur un
-      // nœud du groupe destination-in casse le composite dans Konva (vérifié
-      // E2E pixel par pixel) -> on rend le calque masque cloné sans contour.
-      const maskNoStroke = {
-        ...maskLayer,
-        keyframes: maskLayer.keyframes.map((kf) => ({
-          ...kf,
-          // silhouette pleine et opaque : pas de contour, pas de dégradé
-          elements: (kf.elements || []).map((e) => ({ ...e, stroke: undefined, strokeWidth: 0, fill: '#000000', fillGradient: null })),
-        })),
-      };
-      if (maskLayer.id === state.selectedLayerId) {
-        renderInto(g, [maskLayer], frameIndex, tick, 0); // édition : masque visible
-      } else {
-        const mg = new Konva.Group({ globalCompositeOperation: 'destination-in' });
-        g.add(mg);
-        renderInto(mg, [maskNoStroke], frameIndex, tick, 1);
-        const mute = (n) => { n.listening(false); if (n.children) n.children.forEach(mute); };
-        mg.children.forEach(mute);
+      const mute = (n) => { n.listening(false); if (n.children) n.children.forEach(mute); };
+      for (const m of chain) {
+        const maskLayer = layers[m];
+        const sil = maskSilhouetteOf(maskLayer);
+        if (maskLayer.id === state.selectedLayerId) {
+          renderInto(g, [maskLayer], frameIndex, tick, 0); // édition : masque visible
+        } else {
+          const mg = new Konva.Group({ globalCompositeOperation: 'destination-in' });
+          g.add(mg);
+          renderInto(mg, [sil], frameIndex, tick, 1);
+          mg.children.forEach(mute);
+        }
       }
       // ÉDITION seule : fantôme des parties ROGNÉES en gris clair transparent
-      // 15% (demande user). Layer Konva DÉDIÉ (sinon son destination-out
-      // effacerait aussi la partie visible du layer du bloc) : les calques
-      // masqués grisés + le masque en destination-out = il ne reste que la
-      // partie HORS masque. Pas en lecture, pas dans les exports.
+      // 15%. Layer Konva DÉDIÉ + destination-out pour chaque masque de la chaîne.
       let ghost = null;
       if (!state.playing && masked.length) {
         ghost = new Konva.Layer({ listening: false });
@@ -641,9 +662,11 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
         const g2 = new Konva.Group();
         ghost.add(g2);
         renderInto(g2, masked.map(ghostLayerOf), frameIndex, tick, 1);
-        const mg2 = new Konva.Group({ globalCompositeOperation: 'destination-out' });
-        g2.add(mg2);
-        renderInto(mg2, [maskNoStroke], frameIndex, tick, 1);
+        for (const m of chain) {
+          const mg2 = new Konva.Group({ globalCompositeOperation: 'destination-out' });
+          g2.add(mg2);
+          renderInto(mg2, [maskSilhouetteOf(layers[m])], frameIndex, tick, 1);
+        }
       }
       segLayers.push({ kl, ghost });
     });
