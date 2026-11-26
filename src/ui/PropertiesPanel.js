@@ -446,12 +446,22 @@ export function mountPropertiesPanel(container, state) {
       noneOpt.value = ''; noneOpt.textContent = 'Aucune (couleur unie)';
       sel.appendChild(noneOpt);
       const assets = state.doc.assets || {};
+      let nbImages = 0;
       for (const [id, a] of Object.entries(assets)) {
         if (a.kind && a.kind !== 'image') continue;
+        nbImages++;
         const opt = document.createElement('option');
         opt.value = id;
         opt.textContent = a.name || ('Image ' + id.slice(-4));
         sel.appendChild(opt);
+      }
+      if (nbImages === 0) {
+        const hint = document.createElement('option');
+        hint.value = '';
+        hint.textContent = '— importer une image d\'abord (Fichier > Importer image…) —';
+        hint.disabled = true;
+        hint.selected = true;
+        sel.appendChild(hint);
       }
       sel.value = state.brushTextureAssetId || '';
       sel.title = 'Remplit les prochains traits de pinceau avec cette image en mosaïque (au lieu de la couleur unie). Importez d\'abord une image (menu Fichier > Importer image…).';
