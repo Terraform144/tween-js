@@ -12,7 +12,7 @@ import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
 import { fullscreenElement } from '../util/fullscreen.js';
 import { ICONS } from '../ui/icons.js';
-import { brushToPoly, pressureToScale } from '../util/brushGeom.js';
+import { brushToPoly, pressureToScale, spatterDots } from '../util/brushGeom.js';
 
 const HANDLE_DRAG_THRESHOLD = 3; // px, avant qu'un clic-glissé plume ne devienne un point lisse
 const CLOSE_PATH_THRESHOLD = 8; // px, distance au premier point pour fermer le tracé au clic
@@ -345,8 +345,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
           // tableau du modèle (image tenue, sans tween) — l'édition de
           // points doit pouvoir muter elData librement pendant un drag
           // sans jamais toucher le modèle avant commitPoints().
-          const elData = { points: el.points.map(clonePathPoint), closed: !!el.closed, brushPoly: el.brushPoly };
-          node = new Konva.Shape({
+          const elData = { points: el.points.map(clonePathPoint), closed: !!el.closed, brushPoly: el.brushPoly, brushSpatter: el.brushSpatter || null };
+          const shapeAttrs = {
             fill: el.closed ? el.fill : undefined,
             stroke: el.stroke,
             strokeWidth: el.strokeWidth,
@@ -370,8 +370,28 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
                 tracePath(ctx, d.points, d.closed);
               }
               ctx.fillStrokeShape(shape);
+              // Éclaboussures : petits disques autour du tracé (même couleur de remplissage)
+              if (d.brushSpatter && d.brushSpatter.length) {
+                ctx.fillStyle = shape.fill() || '#000';
+                for (const dot of d.brushSpatter) {
+                  ctx.beginPath();
+                  ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+              }
             },
-          });
+          };
+          // Texture bitmap : mosaïque de l'asset image en remplissage du polygone
+          if (el.brushPoly && el.brushTexture && el.brushTexture.assetId) {
+            const img = getImage(el.brushTexture.assetId);
+            if (img) {
+              shapeAttrs.fill = undefined;
+              shapeAttrs.fillPatternImage = img;
+              shapeAttrs.fillPatternRepeat = 'repeat';
+              shapeAttrs.fillPriority = 'pattern';
+            }
+          }
+          node = new Konva.Shape(shapeAttrs);
           node.setAttr('elData', elData);
           // Konva.Shape générique : getSelfRect() par défaut se base sur les
           // attrs width/height (jamais renseignés ici) et renverrait une
@@ -2280,6 +2300,9 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (drawState.previewOutline) {
       drawState.previewOutline.destroy();
     }
+    if (drawState.previewSpatter) {
+      drawState.previewSpatter.destroy();
+    }
 
     // Générer le polygone de contour (avec échelle de pression si réglée)
     const result = brushToPoly(pts, brushSize, pattern, brushPressureScale());
@@ -2296,8 +2319,29 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     
     drawState.previewOutline = previewNode;
     overlayLayer.add(previewNode);
+
+    // Aperçu des éclaboussures (mêmes gouttes que le trait final : déterministes)
+    if (state.brushSpatter && pts.length > 0) {
+      const inten = (state.brushSpatterIntensity != null ? state.brushSpatterIntensity : 40) / 100;
+      const dots = spatterDots(pts, brushSize, inten, 7);
+      if (dots.length) {
+        const sp = new Konva.Shape({
+          listening: false,
+          sceneFunc: (ctx) => {
+            ctx.fillStyle = state.strokeColor;
+            for (const d of dots) {
+              ctx.beginPath();
+              ctx.arc(d.dx + result.cx, d.dy + result.cy, d.r, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          },
+        });
+        drawState.previewSpatter = sp;
+        overlayLayer.add(sp);
+      }
+    }
     overlayLayer.batchDraw();
-    
+
     // Stocker les données pour finishBrush
     drawState.polyResult = result;
   }
@@ -2331,9 +2375,21 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       fill: state.strokeColor,
       stroke: 'transparent',
       strokeWidth: 0,
-      brushPoly: true // Flag pour indiquer que c'est un polygone de brush
+      brushPoly: true, // Flag pour indiquer que c'est un polygone de brush
+      // Points centraux du tracé (relatifs au centre) — utilisés pour les
+      // éclaboussures et potentiellement d'autres effets le long du path.
+      brushCore: pts.map(p => [p[0] - finalResult.cx, p[1] - finalResult.cy]),
     });
-    
+    // Texture bitmap : remplissage du polygone en mosaïque d'un asset image
+    if (state.brushTextureAssetId && (state.doc.assets || {})[state.brushTextureAssetId]) {
+      el.brushTexture = { assetId: state.brushTextureAssetId };
+    }
+    // Éclaboussures (spatter) autour du tracé
+    if (state.brushSpatter) {
+      const inten = (state.brushSpatterIntensity != null ? state.brushSpatterIntensity : 40) / 100;
+      el.brushSpatter = spatterDots(pts, brushSize, inten, 7).map(d => ({ x: d.dx, y: d.dy, r: d.r }));
+    }
+
     cancelDraw();
     addElement(el, false); // trait non sélectionné (demande user : on enchaîne sans être gêné)
     // Garder le pinceau actif pour enchaîner les traits sans recliquer
@@ -2444,6 +2500,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     else if (drawState && drawState.tool === 'brush') {
       if (drawState.previewNode) drawState.previewNode.destroy();
       if (drawState.previewOutline) drawState.previewOutline.destroy();
+      if (drawState.previewSpatter) drawState.previewSpatter.destroy();
     }
     overlayLayer.draw();
     drawState = null;

@@ -571,10 +571,35 @@ function drawShape(ctx, el, data) {
   } else if (el.shapeType === 'line' || el.shapeType === 'path') {
     const pts = el.points || [];
     if (pts.length) {
-      ctx.beginPath();
-      tracePath(ctx, pts, !!el.closed);
-      if (el.closed && (el.fill || el.fillGradient)) ctx.fill();
+      // Texture bitmap sur un trait de pinceau : mosaïque de l'asset image
+      if (el.brushPoly && el.brushTexture && el.brushTexture.assetId) {
+        const tAsset = data.assets ? data.assets[el.brushTexture.assetId] : null;
+        const tImg = tAsset ? getImage(tAsset.dataUrl) : null;
+        if (tImg && tImg.complete && tImg.naturalWidth > 0 && el.closed) {
+          ctx.beginPath();
+          tracePath(ctx, pts, true);
+          ctx.fillStyle = ctx.createPattern(tImg, 'repeat') || (el.fill || '#000');
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          tracePath(ctx, pts, !!el.closed);
+          if (el.closed && (el.fill || el.fillGradient)) ctx.fill();
+        }
+      } else {
+        ctx.beginPath();
+        tracePath(ctx, pts, !!el.closed);
+        if (el.closed && (el.fill || el.fillGradient)) ctx.fill();
+      }
       if (el.strokeWidth) ctx.stroke();
+      // Éclaboussures du pinceau : disques autour du tracé
+      if (el.brushSpatter && el.brushSpatter.length) {
+        ctx.fillStyle = el.fill || '#000';
+        for (const d of el.brushSpatter) {
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
   } else if (el.shapeType === 'text') {
     const fontSize = el.fontSize || 24;

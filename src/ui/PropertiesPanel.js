@@ -434,6 +434,51 @@ export function mountPropertiesPanel(container, state) {
     if (state.brushPressure) {
       numberRow('Sensibilité', state.brushPressureSens, (v) => { state.brushPressureSens = Math.max(0, Math.min(100, v)); notify(state); }, { step: 5, min: 0, max: 100 });
     }
+
+    // Texture bitmap : mosaïque d'un asset image en remplissage du trait
+    {
+      const trow = document.createElement('div');
+      trow.className = 'prop-row';
+      const tl = document.createElement('label');
+      tl.textContent = 'Texture';
+      const sel = document.createElement('select');
+      const noneOpt = document.createElement('option');
+      noneOpt.value = ''; noneOpt.textContent = 'Aucune (couleur unie)';
+      sel.appendChild(noneOpt);
+      const assets = state.doc.assets || {};
+      for (const [id, a] of Object.entries(assets)) {
+        if (a.kind && a.kind !== 'image') continue;
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = a.name || ('Image ' + id.slice(-4));
+        sel.appendChild(opt);
+      }
+      sel.value = state.brushTextureAssetId || '';
+      sel.title = 'Remplit les prochains traits de pinceau avec cette image en mosaïque (au lieu de la couleur unie). Importez d\'abord une image (menu Fichier > Importer image…).';
+      sel.addEventListener('change', () => {
+        state.brushTextureAssetId = sel.value || null;
+        notify(state);
+      });
+      linkLabelToField(tl, sel);
+      trow.append(tl, sel);
+      body.appendChild(trow);
+    }
+
+    // Éclaboussures (spatter) autour du tracé
+    const srow = document.createElement('div');
+    srow.className = 'prop-row';
+    const sl = document.createElement('label');
+    sl.textContent = 'Éclaboussures';
+    const schk = document.createElement('input');
+    schk.type = 'checkbox';
+    schk.checked = !!state.brushSpatter;
+    schk.addEventListener('change', () => { state.brushSpatter = schk.checked; notify(state); });
+    linkLabelToField(sl, schk);
+    srow.append(sl, schk);
+    body.appendChild(srow);
+    if (state.brushSpatter) {
+      numberRow('Intensité', state.brushSpatterIntensity != null ? state.brushSpatterIntensity : 40, (v) => { state.brushSpatterIntensity = Math.max(0, Math.min(100, v)); notify(state); }, { step: 5, min: 0, max: 100 });
+    }
   }
 
   function render() {

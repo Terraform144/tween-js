@@ -242,4 +242,50 @@ export function brushToPoly(rawPts, size, pattern = 'round', pressureScale = nul
   return Object.assign({ points: outline }, bboxOf(outline));
 }
 
+// Longueur totale d'un polyline [[x,y],...]
+function polyLength(pts) {
+  let L = 0;
+  for (let i = 1; i < pts.length; i++) L += dist(pts[i - 1], pts[i]);
+  return L;
+}
+
+// Point à l'abscisse curviligne s sur le polyline
+function pointAtArc(pts, s) {
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const seg = dist(pts[i - 1], pts[i]);
+    if (acc + seg >= s && seg > 0) {
+      const t = (s - acc) / seg;
+      return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t];
+    }
+    acc += seg;
+  }
+  return pts[pts.length - 1].slice();
+}
+
+/* Éclaboussures (spatter) autour du tracé principal.
+   corePts : points centraux du tracé (absolus). size : taille du pinceau.
+   intensity : 0..1 (0 = aucune goutte). Retourne [{dx,dy,r}] relatifs au
+   centre (cx,cy) du tracé, déterministes (grain par index, jamais Math.random
+   sinon l'aperçu et le trait final différeraient). */
+export function spatterDots(corePts, size, intensity, salt = 7) {
+  const inten = Math.max(0, Math.min(1, intensity || 0));
+  if (inten <= 0 || !corePts || corePts.length === 0) return [];
+  const L = polyLength(corePts);
+  const bb = bboxOf(corePts);
+  const cx = bb.cx, cy = bb.cy;
+  // densité : ~1 goutte tous les size/2 px le long du tracé, modulée par l'intensité
+  const count = Math.round((L / Math.max(3, size * 0.5)) * inten * 2.5);
+  const dots = [];
+  for (let k = 0; k < count; k++) {
+    const s = grain(k, salt) * L;                 // position le long du tracé
+    const p = pointAtArc(corePts, s);
+    const off = (0.55 + 2.2 * grain(k, salt + 1)) * size; // distance au core
+    const ang = grain(k, salt + 2) * Math.PI * 2;
+    const r = Math.max(0.4, (0.35 + grain(k, salt + 3) * 0.9) * size * 0.16 * (0.4 + inten));
+    dots.push({ dx: p[0] + Math.cos(ang) * off - cx, dy: p[1] + Math.sin(ang) * off - cy, r });
+  }
+  return dots;
+}
+
 export { smoothPoints, halfWidthAt };
