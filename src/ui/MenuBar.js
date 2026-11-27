@@ -446,7 +446,11 @@ export function mountMenuBar(container, state, { onDocReplaced, onStageResize, h
       // dans la même fenêtre. Partout ailleurs, le PDF s'ouvre dans un
       // nouvel onglet comme avant.
       const nativeApp = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+      // Electron embarque un serveur HTTP local mais ses BrowserWindow ne
+      // rendent pas les PDF (plugin désactivé) : ouvrir la version HTML.
+      const isElectron = !!(window.animatejs && window.animatejs.platform === 'electron');
       if (nativeApp) window.location.href = 'docs/Animate-JS-Documentation.html';
+      else if (isElectron) window.open('/docs/Animate-JS-Documentation.html', '_blank');
       else window.open(window.__TJS_VANILLA__ ? 'docs/Animate-JS-Documentation.pdf' : '/docs/Animate-JS-Documentation.pdf', '_blank');
     } },
     { icon: 'chevronDown', label: 'APK Debug', action: () => { window.location.href = 'http://gamecreator.debrouillard.be/app/Tween_JS/app-debug.apk'; } },
