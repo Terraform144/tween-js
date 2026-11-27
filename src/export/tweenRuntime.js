@@ -126,14 +126,22 @@ function samplePath(points, closed) {
     length: length,
     pointAt: function (t) {
       const target = Math.max(0, Math.min(1, t)) * length;
-      let lo = 0, hi = cum.length - 1;
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < target) lo = mid + 1; else hi = mid; }
-      const i = Math.max(1, lo);
+      const i = segAt(target);
       const l0 = cum[i - 1], l1 = cum[i];
       const f = l1 > l0 ? (target - l0) / (l1 - l0) : 0;
       return { x: flat[i - 1].x + (flat[i].x - flat[i - 1].x) * f, y: flat[i - 1].y + (flat[i].y - flat[i - 1].y) * f };
     },
+    angleAt: function (t) {
+      const target = Math.max(0, Math.min(1, t)) * length;
+      const i = segAt(target);
+      return Math.atan2(flat[i].y - flat[i - 1].y, flat[i].x - flat[i - 1].x) * 180 / Math.PI;
+    },
   };
+  function segAt(target) {
+    let lo = 0, hi = cum.length - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < target) lo = mid + 1; else hi = mid; }
+    return Math.max(1, lo);
+  }
 }
 
 // --- dégradés (copies autonomes de core/gradient.js) ---
@@ -909,10 +917,20 @@ export class MovieClip {
           else if (firstAfter) t = 0;
         }
         if (t != null) {
-          const pt = guideCurves.get(gi).pointAt(t);
+          const curve = guideCurves.get(gi);
+          const pt = curve.pointAt(t);
           const baseKf = kf || getActiveKeyframe(layer, frameIndex);
-          const base = baseKf && baseKf.elements[0] ? { x: baseKf.elements[0].x, y: baseKf.elements[0].y } : { x: 0, y: 0 };
-          els = els.map((el) => ({ ...el, x: pt.x + (el.x - base.x), y: pt.y + (el.y - base.y) }));
+          const baseEl = baseKf && baseKf.elements[0];
+          const base = baseEl ? { x: baseEl.x, y: baseEl.y } : { x: 0, y: 0 };
+          const orient = !!layer.guideOrient;
+          const baseRot = baseEl ? (baseEl.rotation || 0) : 0;
+          const ang = orient ? curve.angleAt(t) : 0;
+          els = els.map((el) => ({
+            ...el,
+            x: pt.x + (el.x - base.x),
+            y: pt.y + (el.y - base.y),
+            ...(orient ? { rotation: (el.rotation || 0) - baseRot + ang } : null),
+          }));
         }
       }
       return els;

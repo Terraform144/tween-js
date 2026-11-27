@@ -39,6 +39,7 @@ export const ICONS = {
   layerMasked: svg('<rect x="4" y="9" width="16" height="11" rx="2"/><rect x="7.5" y="4" width="9" height="7" rx="1.5" fill="currentColor" stroke="none"/>'),
   guide: svg('<path d="M4 18C8 7 15 6 19.5 12.5"/><path d="M19.5 12.5l-3.4-.3M19.5 12.5l-.5-3.3"/>'),
   guided: svg('<path d="M4 18C8 7 15 6 19.5 12.5" stroke-dasharray="0.1 3.4"/><rect x="9" y="3.5" width="6.5" height="6.5" rx="1" fill="currentColor" stroke="none"/>'),
+  guideOrient: svg('<path d="M4 18C8 7 15 6 19.5 12.5" stroke-dasharray="0.1 3.4"/><path d="M12 7l4 5-5.6.4z" fill="currentColor" stroke="none"/>'),
   audio: svg('<path d="M9 18V6l10-2v11"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="15" r="2.5"/>'),
   grid: svg('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 9.3h16M4 14.6h16M9.3 4v16M14.6 4v16" stroke-dasharray="0.1 3"/>'),
   magnet: svg('<path d="M6 4h4v7a2 2 0 0 0 4 0V4h4v7a6 6 0 0 1-12 0Z"/><path d="M6 4v3M18 4v3"/>'),

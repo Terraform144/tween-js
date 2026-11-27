@@ -55,10 +55,23 @@ export function resolveLayersAtFrame(layers, frameIndex, opts = {}) {
         else if (firstAfter) t = 0;
       }
       if (t != null) {
-        const pt = guideCurves.get(gi).pointAt(t);
+        const curve = guideCurves.get(gi);
+        const pt = curve.pointAt(t);
         const baseKf = kf || getActiveKeyframe(layer, frameIndex);
-        const base = baseKf && baseKf.elements[0] ? { x: baseKf.elements[0].x, y: baseKf.elements[0].y } : { x: 0, y: 0 };
-        elements = elements.map((el) => ({ ...el, x: pt.x + (el.x - base.x), y: pt.y + (el.y - base.y) }));
+        const baseEl = baseKf && baseKf.elements[0];
+        const base = baseEl ? { x: baseEl.x, y: baseEl.y } : { x: 0, y: 0 };
+        // Orientation selon la tangente (layer.guideOrient, façon Animate
+        // "orient to path") : la rotation de base (kf de départ) + l'angle
+        // de la tangente au point courant.
+        const orient = !!layer.guideOrient;
+        const baseRot = baseEl ? (baseEl.rotation || 0) : 0;
+        const ang = orient ? curve.angleAt(t) : 0;
+        elements = elements.map((el) => ({
+          ...el,
+          x: pt.x + (el.x - base.x),
+          y: pt.y + (el.y - base.y),
+          ...(orient ? { rotation: (el.rotation || 0) - baseRot + ang } : null),
+        }));
       }
     }
     for (const el of elements) result.push({ ...el, layerId: layer.id });

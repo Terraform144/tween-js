@@ -71,16 +71,27 @@ export function samplePath(points, closed) {
     }
   }
   if (length <= 0) return null;
+  // index du segment contenant l'abscisse curviligne target
+  const segAt = (target) => {
+    let lo = 0, hi = cum.length - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < target) lo = mid + 1; else hi = mid; }
+    return Math.max(1, lo);
+  };
   return {
     length,
     pointAt(t) {
       const target = Math.max(0, Math.min(1, t)) * length;
-      let lo = 0, hi = cum.length - 1;
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < target) lo = mid + 1; else hi = mid; }
-      const i = Math.max(1, lo);
+      const i = segAt(target);
       const l0 = cum[i - 1], l1 = cum[i];
       const f = l1 > l0 ? (target - l0) / (l1 - l0) : 0;
       return { x: flat[i - 1].x + (flat[i].x - flat[i - 1].x) * f, y: flat[i - 1].y + (flat[i].y - flat[i - 1].y) * f };
+    },
+    // tangente au paramètre t, en degrés (0 = axe +X, sens horaire canvas)
+    angleAt(t) {
+      const target = Math.max(0, Math.min(1, t)) * length;
+      const i = segAt(target);
+      const dx = flat[i].x - flat[i - 1].x, dy = flat[i].y - flat[i - 1].y;
+      return Math.atan2(dy, dx) * 180 / Math.PI;
     },
   };
 }

@@ -768,6 +768,13 @@ export function mountTimeline(container, state) {
       guidedBtn.title = 'Calque guidé — son tween suit la courbe du calque "guide" au-dessus';
       guidedBtn.addEventListener('click', (e) => { e.stopPropagation(); layer.guided = !layer.guided; notify(state); });
 
+      // Orientation selon la tangente du guide ("orient to path", façon Animate)
+      const orientBtn = document.createElement('span');
+      orientBtn.className = 'mini-btn' + (layer.guideOrient ? ' active' : '');
+      orientBtn.innerHTML = ICONS.guideOrient;
+      orientBtn.title = 'Orienter selon la trajectoire — le calque guidé pivote pour suivre la tangente du guide (orient to path)';
+      orientBtn.addEventListener('click', (e) => { e.stopPropagation(); layer.guideOrient = !layer.guideOrient; notify(state); });
+
       const name = document.createElement('span');
       name.className = 'layer-name';
       name.textContent = layer.name;
@@ -786,7 +793,7 @@ export function mountTimeline(container, state) {
         }
       });
 
-      row.append(eye, name, maskBtn, maskedBtn, guideBtn, guidedBtn, lock);
+      row.append(eye, name, maskBtn, maskedBtn, guideBtn, guidedBtn, orientBtn, lock);
       row.addEventListener('click', () => { state.selectedLayerId = layer.id; notify(state); });
       row.addEventListener('pointerdown', (e) => startLayerDrag(e, layer, row));
       layersCol.appendChild(row);
