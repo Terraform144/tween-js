@@ -10,7 +10,7 @@ import { createRequire } from 'module';
 import { writeFileSync } from 'fs';
 import { createDocument, createLayer, createShape, createPathPoint, insertKeyframe } from '../src/core/model.js';
 
-const require = createRequire('/tmp/e2e/');
+const require = createRequire(import.meta.url);
 const puppeteer = require('puppeteer-core');
 const CHROME = process.env.HOME + '/.local/chromium/chrome-headless-shell-linux64/chrome-headless-shell';
 const URL = 'http://127.0.0.1:4180/';
