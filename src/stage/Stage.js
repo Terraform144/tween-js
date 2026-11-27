@@ -5,7 +5,7 @@ import { computeMaskOwner, computeMaskChain, hasMasks } from '../core/mask.js';
 import { elementLocalBoxKonva, gradientPoint } from '../core/gradient.js';
 import { gridLines, snapPoint, addGuide, removeGuide, rulerStep, nearestGuide } from '../core/grid.js';
 import { hasPivot, pivotNodeOffset, pivotBoxFromNode, pivotMoveDelta } from '../core/pivot.js';
-import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
+import { hasCamera, defaultCamera, resolveCameraAtFrame, upsertCameraKeyframe, removeCameraKeyframeAt, cameraLayerTransform, parallaxCamera, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX } from '../core/camera.js';
 import { WARP_DEFAULT_COLS, WARP_DEFAULT_ROWS, defaultWarpGrid, ensureWarp, hasValidWarp, drawWarpImage, warpOutlinePath, warpBounds } from '../core/warp.js';
 import { resolveLayersAtFrame } from '../playback/resolve.js';
 import { getClipState } from '../runtime/clipStates.js';
@@ -485,7 +485,19 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // racine ou symbole en cours d'édition). En profondeur > 0 (contenu d'une
   // instance imbriquée), les objets restent visibles mais non interactifs :
   // il faut double-cliquer pour entrer dans ce symbole et l'éditer lui-même.
-  function renderInto(parent, layers, frameIndex, tick, depth = 0) {
+  function renderInto(parent, layers, frameIndex, tick, depth = 0, forceFlat = false) {
+    // Parallaxe : si au moins un calque a un facteur < 1, on rend chaque calque
+    // dans son PROPRE Konva.Group (id 'lg_<layerId>') pour pouvoir appliquer
+    // un transform caméra individuel par calque dans applyCameraTransform.
+    if (depth === 0 && !forceFlat && layers.some((l) => l.parallax != null && l.parallax < 1)) {
+      for (const layer of layers) {
+        if (!layer.visible) continue;
+        const g = new Konva.Group({ id: 'lg_' + layer.id });
+        parent.add(g);
+        renderInto(g, [layer], frameIndex, tick, depth, true);
+      }
+      return;
+    }
     // En lecture, les calques guide ne sont pas rendus (ils ne servent qu'à
     // calculer les trajectoires) ; en édition ils restent visibles/éditables.
     const elements = resolveLayersAtFrame(layers, frameIndex, { includeGuides: !state.playing });
@@ -897,16 +909,37 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       ? resolveCameraAtFrame(doc, state.currentFrame)
       : null;
     const lt = cameraLayerTransform(cam, doc.width, doc.height);
-    for (const layer of [bgLayer, contentLayer]) {
-      if (lt) {
-        layer.position({ x: lt.x, y: lt.y });
-        layer.rotation(lt.rotation);
-        layer.scale({ x: lt.scaleX, y: lt.scaleY });
+    const setLt = (layer, t) => {
+      if (t) {
+        layer.position({ x: t.x, y: t.y });
+        layer.rotation(t.rotation);
+        layer.scale({ x: t.scaleX, y: t.scaleY });
       } else {
         layer.position({ x: 0, y: 0 });
         layer.rotation(0);
         layer.scale({ x: 1, y: 1 });
       }
+    };
+    // fond : toujours la caméra pleine (parallaxe 1)
+    setLt(bgLayer, lt);
+    const layers = currentLayers();
+    const hasPar = cam && layers.some((l) => l.parallax != null && l.parallax < 1);
+    if (hasPar) {
+      // contentLayer en identité : chaque groupe 'lg_<layerId>' reçoit le
+      // transform caméra interpolé selon le facteur de parallaxe du calque.
+      setLt(contentLayer, null);
+      for (const kl of contentStack) {
+        if (kl !== contentLayer) setLt(kl, null);
+        for (const g of kl.children) {
+          if (!g.id || !g.id().startsWith('lg_')) continue;
+          const layer = layers.find((l) => l.id === g.id().slice(3));
+          const f = layer && layer.parallax != null ? layer.parallax : 1;
+          const t = cameraLayerTransform(parallaxCamera(cam, f, doc), doc.width, doc.height);
+          setLt(g, t);
+        }
+      }
+    } else {
+      for (const layer of [contentLayer, ...contentStack.slice(1)]) setLt(layer, lt);
     }
   }
 
@@ -1221,8 +1254,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     bgRect.height(doc.height);
     bgRect.fill(doc.backgroundColor);
     resetContentStack();
-    applyCameraTransform();
     renderLayersWithMasks(currentLayers(), state.currentFrame, tick);
+    // APRÈS le rendu du contenu : avec la parallaxe, applyCameraTransform pose
+    // le transform caméra sur les groupes 'lg_<layerId>' créés par renderInto.
+    applyCameraTransform();
     renderOnionSkin();
     refreshSelectionVisuals();
     refreshPointHandles();

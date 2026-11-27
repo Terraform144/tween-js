@@ -775,6 +775,26 @@ export function mountTimeline(container, state) {
       orientBtn.title = 'Orienter selon la trajectoire — le calque guidé pivote pour suivre la tangente du guide (orient to path)';
       orientBtn.addEventListener('click', (e) => { e.stopPropagation(); layer.guideOrient = !layer.guideOrient; notify(state); });
 
+      // Parallaxe : facteur 0..1 appliqué au transform caméra pour ce calque
+      // (1 = normal, 0 = figé par rapport à la caméra). Clic = saisir la
+      // valeur, clic droit = revenir à 1 (normal).
+      const parallaxBtn = document.createElement('span');
+      const pActive = layer.parallax != null && layer.parallax < 1;
+      parallaxBtn.className = 'mini-btn' + (pActive ? ' active' : '');
+      parallaxBtn.innerHTML = ICONS.parallax;
+      parallaxBtn.title = 'Parallaxe — part du mouvement caméra subie par ce calque (1 = normal, 0 = figé). Clic = régler la valeur, clic droit = normal (1).' + (pActive ? ` Actuel : ${layer.parallax}` : '');
+      parallaxBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const cur = (layer.parallax != null) ? layer.parallax : 1;
+        const v = await promptText('Facteur de parallaxe (0 = figé, 1 = normal) :', String(cur));
+        if (v != null) {
+          const f = Math.max(0, Math.min(1, parseFloat(v)));
+          layer.parallax = Number.isNaN(f) ? 1 : f;
+          notify(state);
+        }
+      });
+      parallaxBtn.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); layer.parallax = null; notify(state); });
+
       const name = document.createElement('span');
       name.className = 'layer-name';
       name.textContent = layer.name;
@@ -793,7 +813,7 @@ export function mountTimeline(container, state) {
         }
       });
 
-      row.append(eye, name, maskBtn, maskedBtn, guideBtn, guidedBtn, orientBtn, lock);
+      row.append(eye, name, maskBtn, maskedBtn, guideBtn, guidedBtn, orientBtn, parallaxBtn, lock);
       row.addEventListener('click', () => { state.selectedLayerId = layer.id; notify(state); });
       row.addEventListener('pointerdown', (e) => startLayerDrag(e, layer, row));
       layersCol.appendChild(row);

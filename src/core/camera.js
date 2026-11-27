@@ -168,6 +168,24 @@ export function moveCameraKeyframe(doc, kf, targetIndex) {
 // étiré sur tout le canvas — c'est le travelling avant.)
 // La composition Konva position/rotation/scale est T(pos).R(φ).S(s) : on
 // intègre la translation finale (-cam) dans pos.
+// Caméra "parallaxe" d'un calque : on interpole l'état caméra vers le centre
+// du document selon le facteur f du calque (layer.parallax, 0..1, défaut 1).
+// f=1 -> caméra normale ; f=0 -> caméra = identité (le calque ne bouge pas
+// quand la caméra bouge, il reste centré). zoom et rotation sont interpolés
+// eux aussi (zoom 1 + (zoom-1)*f, rotation *f) pour un rendu cohérent.
+export function parallaxCamera(cam, f, doc) {
+  if (!cam) return null;
+  const ff = (typeof f === 'number') ? Math.min(1, Math.max(0, f)) : 1;
+  if (ff >= 1) return cam;
+  const cx = doc.width / 2, cy = doc.height / 2;
+  return {
+    x: cx + (cam.x - cx) * ff,
+    y: cy + (cam.y - cy) * ff,
+    zoom: 1 + ((cam.zoom || 1) - 1) * ff,
+    rotation: (cam.rotation || 0) * ff,
+  };
+}
+
 export function cameraLayerTransform(cam, width, height) {
   if (!cam) return null;
   const zoom = cam.zoom || 1;

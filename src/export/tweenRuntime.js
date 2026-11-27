@@ -550,6 +550,31 @@ export function applyCameraToContext(ctx, cam, width, height) {
   ctx.translate(-cam.x, -cam.y);
 }
 
+// Inverse de applyCameraToContext (pour le différentiel de parallaxe).
+function invertCameraFromContext(ctx, cam, width, height) {
+  if (!cam) return;
+  ctx.translate(cam.x, cam.y);
+  var s = cam.zoom || 1;
+  ctx.scale(1 / s, 1 / s);
+  ctx.rotate((cam.rotation || 0) * Math.PI / 180);
+  ctx.translate(-width / 2, -height / 2);
+}
+
+// Copie autonome de parallaxCamera (core/camera.js) : caméra interpolée vers
+// le centre du document selon le facteur f du calque (0 = figé, 1 = normal).
+function parallaxCameraRuntime(cam, f, docWidth, docHeight) {
+  if (!cam) return null;
+  var ff = (typeof f === 'number') ? Math.min(1, Math.max(0, f)) : 1;
+  if (ff >= 1) return cam;
+  var cx = docWidth / 2, cy = docHeight / 2;
+  return {
+    x: cx + (cam.x - cx) * ff,
+    y: cy + (cam.y - cy) * ff,
+    zoom: 1 + ((cam.zoom || 1) - 1) * ff,
+    rotation: (cam.rotation || 0) * ff,
+  };
+}
+
 function drawShape(ctx, el, data) {
   ctx.save();
   ctx.translate(el.x, el.y);
@@ -962,9 +987,24 @@ export class MovieClip {
       return ch;
     })(layers);
     const hasMask = layers.some((l) => l.mask || l.masked);
+    // Parallaxe par calque : le ctx subit déjà la caméra globale ; pour un
+    // calque de facteur f < 1 on applique le différentiel (caméra globale)^-1
+    // puis la caméra parallaxe de ce calque.
+    const camNow = resolveCameraAtFrame(this.data.camera, frameIndex, this.data.width || 550, this.data.height || 400);
+    const W0 = this.data.width || 550, H0 = this.data.height || 400;
+    const renderLayerParallax = (i, drawFn) => {
+      const f = layers[i].parallax;
+      if (!camNow || f == null || f >= 1 || !elsByLayer[i]) { drawFn(); return; }
+      const camF = parallaxCameraRuntime(camNow, f, W0, H0);
+      ctx.save();
+      invertCameraFromContext(ctx, camNow, W0, H0);
+      applyCameraToContext(ctx, camF, W0, H0);
+      drawFn();
+      ctx.restore();
+    };
     if (!hasMask) {
       for (let i = 0; i < layers.length; i++) {
-        if (elsByLayer[i]) renderEls(ctx, elsByLayer[i]);
+        if (elsByLayer[i]) renderLayerParallax(i, () => renderEls(ctx, elsByLayer[i]));
       }
       return;
     }
@@ -985,7 +1025,17 @@ export class MovieClip {
         const key = JSON.stringify(chain);
         let g = groups.get(key);
         if (!g) { g = { ...offscreen(W, H), chain }; groups.set(key, g); }
-        renderEls(g.ctx, elsByLayer[i]);
+        const f = layer.parallax;
+        if (camNow && f != null && f < 1) {
+          const camF = parallaxCameraRuntime(camNow, f, W, H);
+          g.ctx.save();
+          invertCameraFromContext(g.ctx, camNow, W, H);
+          applyCameraToContext(g.ctx, camF, W, H);
+          renderEls(g.ctx, elsByLayer[i]);
+          g.ctx.restore();
+        } else {
+          renderEls(g.ctx, elsByLayer[i]);
+        }
       } else if (layer.mask) {
         // masque non masqué : rien à peindre directement (sa silhouette est
         // appliquée par les groupes qui le référencent)
@@ -1004,6 +1054,11 @@ export class MovieClip {
     }
     for (const key of order) {
       const g = groups.get(key);
+      // parallaxe du 1er calque du groupe pour l'aplatissement sur le ctx principal
+      const firstIdx = layers.findIndex((l, i) => chains[i].length && JSON.stringify(chains[i]) === key);
+      const pf = firstIdx >= 0 ? layers[firstIdx].parallax : null;
+      const camF0 = (camNow && pf != null && pf < 1) ? parallaxCameraRuntime(camNow, pf, W, H) : null;
+      if (camF0) { ctx.save(); invertCameraFromContext(ctx, camNow, W, H); applyCameraToContext(ctx, camF0, W, H); }
       for (const m of g.chain) {
         const maskEls = (elsByLayer[m] || []).map((e) => ({ ...e, strokeWidth: 0, stroke: undefined }));
         if (!maskEls.length) continue;
@@ -1013,6 +1068,7 @@ export class MovieClip {
         g.ctx.restore();
       }
       ctx.drawImage(g.canvas, 0, 0);
+      if (camF0) ctx.restore();
     }
   }
 
