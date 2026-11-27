@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>TweenJS — Documentation</title>
+<style>
+  @page { size: A4; margin: 22mm 18mm; }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #1c1e26;
+    background: #ffffff;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+
+  .cover {
+    height: 100vh;
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+    page-break-after: always;
+  }
+  .cover .tag { color: #4f8ef7; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 13px; margin-bottom: 18px; }
+  .cover h1 { font-size: 42px; margin: 0 0 10px; color: #14161c; }
+  .cover .subtitle { font-size: 16px; color: #555b6e; max-width: 480px; }
+  .cover .meta { position: absolute; bottom: 22mm; left: 18mm; font-size: 11px; color: #8a90a3; }
+
+  h1 { font-size: 22px; color: #14161c; border-bottom: 3px solid #4f8ef7; padding-bottom: 8px; margin: 0 0 16px; page-break-before: always; }
+  h1.first { page-break-before: avoid; }
+  h2 { font-size: 15px; color: #2a5fd8; margin: 26px 0 8px; }
+  h3 { font-size: 13px; color: #333; margin: 16px 0 6px; }
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 12px; padding-left: 20px; }
+  li { margin-bottom: 4px; }
+
+  .toc { page-break-after: always; }
+  .toc ol { list-style: none; padding: 0; counter-reset: toc; }
+  .toc li { counter-increment: toc; padding: 6px 0; border-bottom: 1px dotted #d8dbe6; display: flex; justify-content: space-between; font-size: 13px; }
+  .toc li::before { content: counter(toc) ". "; color: #4f8ef7; font-weight: 700; margin-right: 6px; }
+
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 11.5px; }
+  th, td { border: 1px solid #dfe2ec; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #eef2fc; color: #23407a; font-weight: 600; }
+  tr:nth-child(even) td { background: #f8f9fd; }
+
+  code { background: #eef0f6; border-radius: 3px; padding: 1px 5px; font-family: "Consolas", "Courier New", monospace; font-size: 11.5px; color: #a1274b; }
+  pre {
+    background: #1c1e26; color: #d9dcea;
+    border-radius: 6px; padding: 12px 14px; overflow-x: auto;
+    font-family: "Consolas", "Courier New", monospace; font-size: 11px; line-height: 1.5;
+    margin: 10px 0 16px;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  .kw { color: #7fb3ff; } .str { color: #b7e396; } .cm { color: #7a8092; font-style: italic; }
+
+  .kbd { display: inline-block; border: 1px solid #c3c8d6; border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-family: Consolas, monospace; font-size: 10.5px; background: #f4f5f9; }
+  .note {
+    background: #eef4ff; border-left: 4px solid #4f8ef7; padding: 10px 14px;
+    border-radius: 0 4px 4px 0; margin: 12px 0; font-size: 11.5px;
+  }
+  .warn {
+    background: #fff6ea; border-left: 4px solid #e0a13d; padding: 10px 14px;
+    border-radius: 0 4px 4px 0; margin: 12px 0; font-size: 11.5px;
+  }
+  .badge {
+    display: inline-block; background: #4f8ef7; color: white; border-radius: 3px;
+    padding: 1px 7px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-right: 6px;
+  }
+  .badge.mc { background: #a1274b; }
+  .badge.gr { background: #2a8f5e; }
+
+  footer.pagefoot { position: fixed; bottom: 8mm; left: 18mm; right: 18mm; font-size: 9.5px; color: #b0b4c2; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="tag">Documentation utilisateur</div>
+  <h1>TweenJS</h1>
+  <div class="subtitle">
+    Éditeur d'animation vectorielle image par image, inspiré d'Adobe Animate,
+    entièrement en JavaScript vanilla — de la scène de dessin jusqu'à
+    l'export d'objets de jeu réutilisables.
+  </div>
+  <div class="meta">Version de la documentation — 2026-07-21</div>
+</section>
+
+<section class="toc">
+  <h1 class="first">Sommaire</h1>
+  <ol>
+    <li><span>Vue d'ensemble de l'interface</span></li>
+    <li><span>La scène et les outils de dessin</span></li>
+    <li><span>La plume Bézier et l'édition de points</span></li>
+    <li><span>La timeline : calques, images clés, tweens</span></li>
+    <li><span>Symboles et bibliothèque (Graphic / MovieClip)</span></li>
+    <li><span>Annuler / rétablir</span></li>
+    <li><span>Panneaux réductibles et redimensionnables</span></li>
+    <li><span>Enregistrer, ouvrir, exporter</span></li>
+    <li><span>Exploiter les MovieClips pour faire des jeux en JavaScript vanilla</span></li>
+  </ol>
+</section>
+
+<h1 class="first">1. Vue d'ensemble de l'interface</h1>
+<p>La fenêtre d'TweenJS est découpée en cinq zones :</p>
+<table>
+  <tr><th>Zone</th><th>Rôle</th></tr>
+  <tr><td><strong>Barre de menu</strong> (haut)</td><td>Annuler/rétablir, Nouveau, Ouvrir, Enregistrer JSON, Exporter HTML, propriétés du document (nom, largeur, hauteur, images/seconde, nombre d'images, couleur de fond).</td></tr>
+  <tr><td><strong>Barre d'outils</strong> (gauche)</td><td>Outils de sélection et de dessin, couleurs de remplissage/contour.</td></tr>
+  <tr><td><strong>Scène</strong> (centre)</td><td>Le canvas de travail — dessine, sélectionne, transforme les objets ici.</td></tr>
+  <tr><td><strong>Panneau latéral</strong> (droite)</td><td>Bibliothèque (symboles) en haut, Propriétés de l'objet sélectionné en bas.</td></tr>
+  <tr><td><strong>Timeline</strong> (bas)</td><td>Calques, images clés, lecture, tweens, étiquettes d'image.</td></tr>
+</table>
+<p>Quand tu double-cliques sur une instance de symbole (ou un élément de la bibliothèque), la scène bascule en <strong>édition isolée</strong> de ce symbole : un bandeau bleu apparaît en haut de la scène — cliquer dessus ramène à la scène principale.</p>
+
+<h1>2. La scène et les outils de dessin</h1>
+<p>La barre d'outils, de haut en bas :</p>
+<table>
+  <tr><th>Outil</th><th>Raccourci</th><th>Usage</th></tr>
+  <tr><td>✥ Sélection</td><td><span class="kbd">V</span></td><td>Sélectionner, déplacer, redimensionner et pivoter (poignées).</td></tr>
+  <tr><td>◇ Sous-sélection</td><td><span class="kbd">A</span></td><td>Éditer les points d'ancrage/poignées d'une courbe existante. Voir section 3.</td></tr>
+  <tr><td>▭ Rectangle</td><td><span class="kbd">R</span></td><td>Cliquer-glisser pour dessiner.</td></tr>
+  <tr><td>◯ Ellipse</td><td><span class="kbd">O</span></td><td>Cliquer-glisser pour dessiner.</td></tr>
+  <tr><td>╱ Ligne</td><td><span class="kbd">L</span></td><td>Cliquer-glisser pour un segment droit.</td></tr>
+  <tr><td>✎ Plume</td><td><span class="kbd">P</span></td><td>Courbes de Bézier. Voir section 3.</td></tr>
+  <tr><td>T Texte</td><td><span class="kbd">T</span></td><td>Clique sur la scène pour poser un bloc de texte (modifiable ensuite dans le panneau Propriétés).</td></tr>
+</table>
+<p>Avec l'outil Sélection : <span class="kbd">Suppr</span> efface la sélection, le glisser déplace, les poignées du cadre redimensionnent/pivotent. Les couleurs de remplissage et de contour (en bas de la barre d'outils) s'appliquent aux prochaines formes dessinées, ou à la sélection courante via le panneau Propriétés.</p>
+
+<h1>3. La plume Bézier et l'édition de points</h1>
+<p>L'outil Plume (<span class="kbd">P</span>) dessine des courbes de Bézier, comme dans Illustrator ou Animate :</p>
+<ul>
+  <li><strong>Clic simple</strong> : ajoute un point anguleux (pas de courbure).</li>
+  <li><strong>Clic-glissé</strong> : ajoute un point lisse avec deux poignées symétriques — la courbe s'incurve de part et d'autre.</li>
+  <li><strong>Clic près du premier point</strong> : referme le tracé (forme remplie).</li>
+  <li><span class="kbd">Entrée</span> ou double-clic : termine un tracé ouvert (juste un contour).</li>
+  <li><span class="kbd">Échap</span> : annule le tracé en cours.</li>
+</ul>
+<p>Une fois la courbe créée, l'outil <strong>Sous-sélection</strong> (<span class="kbd">A</span>) permet de cliquer dessus pour faire apparaître :</p>
+<ul>
+  <li>les <strong>points d'ancrage</strong> (cercles blancs, le premier en jaune) — glisse-les pour déplacer un point ;</li>
+  <li>les <strong>poignées de courbure</strong> (petits cercles orange, reliés par une fine ligne) — glisse-les pour ajuster la forme de la courbe. Sur un point "lisse", les deux poignées bougent en miroir automatiquement.</li>
+</ul>
+<div class="note">
+  <strong>Limite connue :</strong> il n'est pas possible d'ajouter une poignée à un point anguleux existant depuis l'outil Sous-sélection — seul le clic-glissé au moment de la création en crée une.
+</div>
+
+<h1>4. La timeline : calques, images clés, tweens</h1>
+<h2>Calques</h2>
+<p>Chaque calque a son propre contenu, indépendant des autres. Boutons de la timeline : ➕ (nouveau calque), 🗑 (supprimer), et sur chaque ligne de calque : 👁 (visibilité), 🔓/🔒 (verrouillage), double-clic sur le nom pour renommer.</p>
+<h2>Images clés</h2>
+<table>
+  <tr><th>Action</th><th>Raccourci</th><th>Effet</th></tr>
+  <tr><td>F6</td><td><span class="kbd">F6</span></td><td>Insère une image clé au niveau de la tête de lecture, en clonant le contenu de l'image précédente.</td></tr>
+  <tr><td>F7</td><td><span class="kbd">F7</span></td><td>Insère une image clé <em>vide</em> (rien ne s'affiche jusqu'à la prochaine image clé).</td></tr>
+  <tr><td>✕</td><td>—</td><td>Supprime l'image clé courante.</td></tr>
+  <tr><td>Lecture/Pause</td><td><span class="kbd">Espace</span></td><td>Joue l'animation en boucle sur toute la longueur de la scène (ou du symbole en cours d'édition).</td></tr>
+</table>
+<p>Un point plein marque une image clé avec contenu, un cercle creux une image clé vide. Cliquer sur la règle en haut (ou glisser dessus) déplace la tête de lecture.</p>
+<h2>Tween de mouvement</h2>
+<p>Le bouton <strong>⇄</strong> active/désactive l'interpolation entre l'image clé courante et la suivante. S'il n'y a pas encore d'image clé suivante, une nouvelle est créée automatiquement 12 images plus loin (contenu cloné) et la tête de lecture s'y déplace, prête à ce que tu repositionnes les objets pour définir le mouvement. Le panneau Propriétés propose 4 courbes d'accélération (linéaire, accélération, décélération, les deux).</p>
+<div class="note">
+  <strong>Morphing de courbes :</strong> si une courbe (dessinée à la plume) tweenée a <em>exactement le même nombre de points</em> sur l'image de départ et celle d'arrivée, ses points sont interpolés un à un — la forme se déforme réellement. Sinon, elle bouge comme un bloc rigide (position/rotation/échelle), sans se déformer. L'appariement se fait par index (1ᵉʳ point avec 1ᵉʳ, 2ᵉ avec 2ᵉ...), sans "shape hints" pour guider l'appariement comme dans Animate.
+</div>
+<h2>Étiquettes d'image (labels)</h2>
+<p>Le champ "Étiquette" de la timeline nomme l'image courante (ex. <code>walk</code>, <code>jump</code>) — affichée avec un petit 🏷 sur la règle. Ces noms deviennent utilisables avec <code>gotoAndPlay('walk')</code> une fois le symbole exporté (voir section 9).</p>
+
+<h1>5. Symboles et bibliothèque (Graphic / MovieClip)</h1>
+<p>Un symbole est un contenu réutilisable, comme dans Animate. Deux types :</p>
+<table>
+  <tr><th>Type</th><th>Comportement</th></tr>
+  <tr><td><span class="badge gr">Graphic</span></td><td>Sa timeline interne reste <strong>synchronisée</strong> sur l'image de la scène parente (image N du parent → image N mod (nb d'images du symbole)).</td></tr>
+  <tr><td><span class="badge mc">MovieClip</span></td><td>Sa timeline interne est <strong>indépendante</strong> : elle avance toute seule pendant la lecture, comme un mini-programme autonome — c'est le type à utiliser pour des objets de jeu (section 9).</td></tr>
+</table>
+<h2>Créer un symbole</h2>
+<ul>
+  <li><strong>+ Nouveau symbole</strong> (<span class="kbd">Ctrl+F8</span>) : crée un symbole vide et bascule directement en édition isolée dessus (scène vierge dédiée) — pratique pour dessiner un personnage ou un objet de zéro.</li>
+  <li><strong>Convertir en symbole</strong> (<span class="kbd">F8</span>) : transforme la sélection courante (une ou plusieurs formes, éventuellement déjà animées) en symbole. Si les objets sélectionnés étaient déjà tweenés, l'animation est préservée après conversion.</li>
+</ul>
+<h2>Utiliser un symbole</h2>
+<p>Dans la bibliothèque, chaque symbole propose : <strong>+</strong> (poser une instance au centre de la scène), <strong>✎</strong> (renommer), <strong>🎮</strong> (exporter comme objet de jeu JS — section 9), <strong>🗑</strong> (supprimer). Double-clic sur un symbole (ou sur une instance dans la scène) pour l'éditer en isolation ; le bandeau en haut de la scène ramène à la scène principale.</p>
+
+<h1>6. Annuler / rétablir</h1>
+<p>Boutons <strong>↩ Annuler</strong> / <strong>↪ Rétablir</strong> dans la barre de menu, raccourcis <span class="kbd">Ctrl+Z</span> / <span class="kbd">Ctrl+Y</span> (<span class="kbd">Ctrl+Shift+Z</span> fonctionne aussi pour rétablir). 15 niveaux d'historique. Seuls les changements réels du document sont suivis (formes, calques, images clés, symboles...) — la simple sélection ou le défilement de la timeline ne compte pas comme une action annulable.</p>
+
+<h1>7. Panneaux réductibles et redimensionnables</h1>
+<ul>
+  <li>Le bouton ▾/▸ en haut de la <strong>timeline</strong> et de la <strong>bibliothèque</strong> les réduit à leur simple barre de titre, pour libérer de la place.</li>
+  <li>Une poignée verticale entre la scène et le panneau latéral permet de <strong>glisser pour redimensionner</strong> la largeur de la bibliothèque et du panneau Propriétés (ils partagent la même colonne).</li>
+  <li>Ces réglages sont mémorisés dans le navigateur (localStorage) et retrouvés à la prochaine ouverture.</li>
+</ul>
+
+<h1>8. Enregistrer, ouvrir, exporter</h1>
+<table>
+  <tr><th>Action</th><th>Résultat</th></tr>
+  <tr><td>Enregistrer JSON</td><td>Télécharge le document complet (calques, symboles, tout) dans un fichier <code>.json</code>, rechargeable via "Ouvrir…".</td></tr>
+  <tr><td>Ouvrir…</td><td>Recharge un fichier <code>.json</code> précédemment enregistré.</td></tr>
+  <tr><td>Exporter HTML</td><td>Génère un fichier <code>.html</code> autonome (aucune dépendance) qui rejoue <strong>toute la scène</strong> en boucle, avec le runtime <code>MovieClip</code> embarqué. Idéal pour partager un aperçu ou publier une animation simple.</td></tr>
+  <tr><td>🎮 (par symbole, dans la bibliothèque)</td><td>Télécharge <code>tween-runtime.js</code> + <code>&lt;NomDuSymbole&gt;.js</code> — un objet réutilisable dans du code JS, détaillé section 9.</td></tr>
+</table>
+
+<h1>9. Exploiter les MovieClips pour faire des jeux en JavaScript vanilla</h1>
+
+<h2>9.1 Ce que tu obtiens en exportant un symbole</h2>
+<p>Le bouton 🎮 d'un symbole dans la bibliothèque télécharge deux fichiers :</p>
+<ul>
+  <li><code>tween-runtime.js</code> — le moteur de lecture, à garder <strong>un seul exemplaire</strong> par projet de jeu, quel que soit le nombre de symboles exportés.</li>
+  <li><code>&lt;NomDuSymbole&gt;.js</code> — une petite classe qui étend <code>MovieClip</code> et embarque les données du symbole (et de tout ce dont il dépend, s'il contient d'autres symboles imbriqués).</li>
+</ul>
+<div class="warn">
+  <strong>Important :</strong> les deux fichiers doivent rester dans le même dossier (le second fait <code>import { MovieClip } from './tween-runtime.js'</code>). Aucune autre dépendance n'est nécessaire — pas de Konva, pas de bundler, pas d'installation npm côté jeu.
+</div>
+
+<h2>9.2 API de la classe MovieClip</h2>
+<table>
+  <tr><th>Membre</th><th>Description</th></tr>
+  <tr><td><code>new MonClip({ x, y, rotation, scaleX, scaleY, opacity, loop })</code></td><td>Toutes les propriétés sont optionnelles (défauts : position 0,0 / rotation 0 / échelle 1 / opacité 1 / <code>loop: true</code>).</td></tr>
+  <tr><td><code>x</code>, <code>y</code>, <code>rotation</code>, <code>scaleX</code>, <code>scaleY</code>, <code>opacity</code>, <code>visible</code></td><td>Propriétés lisibles/modifiables à tout moment — c'est ainsi qu'on positionne/anime le clip depuis le code du jeu.</td></tr>
+  <tr><td><code>play()</code> / <code>stop()</code></td><td>Démarre/arrête l'avancement automatique des images.</td></tr>
+  <tr><td><code>gotoAndPlay(frame|label)</code></td><td>Saute à une image (numéro, base 0) ou à une étiquette nommée dans l'éditeur, puis joue.</td></tr>
+  <tr><td><code>gotoAndStop(frame|label)</code></td><td>Idem mais met en pause sur cette image.</td></tr>
+  <tr><td><code>currentFrame</code> / <code>frameCount</code></td><td>Lecture seule — image courante et nombre total d'images.</td></tr>
+  <tr><td><code>addEventListener('complete', fn)</code></td><td>Déclenché quand un clip non bouclé (<code>loop:false</code>) atteint sa dernière image.</td></tr>
+  <tr><td><code>addEventListener('loop', fn)</code></td><td>Déclenché à chaque retour au début, pour un clip en boucle.</td></tr>
+  <tr><td><code>update(dt)</code></td><td>Fait avancer l'animation. <code>dt</code> en millisecondes écoulées depuis le dernier appel — à appeler une fois par image de ta boucle de jeu.</td></tr>
+  <tr><td><code>draw(ctx)</code></td><td>Dessine le clip sur un contexte Canvas 2D existant, en tenant compte de x/y/rotation/échelle/opacité.</td></tr>
+</table>
+
+<h2>9.3 Exemple minimal</h2>
+<pre><code><span class="kw">import</span> { HeroClip } <span class="kw">from</span> <span class="str">'./Hero.js'</span>;
+
+<span class="kw">const</span> canvas = document.getElementById(<span class="str">'game'</span>);
+<span class="kw">const</span> ctx = canvas.getContext(<span class="str">'2d'</span>);
+
+<span class="kw">const</span> hero = <span class="kw">new</span> HeroClip({ x: <span class="str">150</span>, y: <span class="str">300</span> });
+hero.gotoAndPlay(<span class="str">'idle'</span>); <span class="cm">// étiquette posée dans l'éditeur</span>
+
+<span class="kw">let</span> lastTime = <span class="kw">null</span>;
+<span class="kw">function</span> loop(time) {
+  requestAnimationFrame(loop);
+  <span class="kw">if</span> (lastTime === <span class="kw">null</span>) lastTime = time;
+  <span class="kw">const</span> dt = time - lastTime;
+  lastTime = time;
+
+  hero.update(dt);
+
+  ctx.clearRect(<span class="str">0</span>, <span class="str">0</span>, canvas.width, canvas.height);
+  hero.draw(ctx);
+}
+requestAnimationFrame(loop);
+</code></pre>
+
+<h2>9.4 Piloter les états d'un personnage avec des labels</h2>
+<p>Pose des étiquettes de frame dans l'éditeur (section 4) — par exemple <code>idle</code> en image 0, <code>walk</code> en image 6, <code>jump</code> en image 18 — puis pilote-les depuis ton code :</p>
+<pre><code><span class="kw">function</span> onInput(direction) {
+  <span class="kw">if</span> (direction === <span class="str">'left'</span> || direction === <span class="str">'right'</span>) {
+    hero.scaleX = direction === <span class="str">'left'</span> ? -<span class="str">1</span> : <span class="str">1</span>; <span class="cm">// retourner le sprite</span>
+    <span class="kw">if</span> (hero.currentFrame < <span class="str">6</span>) hero.gotoAndPlay(<span class="str">'walk'</span>);
+  } <span class="kw">else</span> {
+    hero.gotoAndPlay(<span class="str">'idle'</span>);
+  }
+}
+
+<span class="kw">function</span> onJump() {
+  hero.loop = <span class="kw">false</span>;
+  hero.gotoAndPlay(<span class="str">'jump'</span>);
+  hero.addEventListener(<span class="str">'complete'</span>, () => {
+    hero.loop = <span class="kw">true</span>;
+    hero.gotoAndPlay(<span class="str">'idle'</span>);
+  });
+}
+</code></pre>
+
+<h2>9.5 Plusieurs instances indépendantes</h2>
+<p>Chaque <code>new HeroClip(...)</code> a son propre état de lecture — utile pour des ennemis, projectiles, effets, etc. animés indépendamment à partir du même symbole :</p>
+<pre><code><span class="kw">const</span> enemies = Array.from({ length: <span class="str">5</span> }, (_, i) =>
+  <span class="kw">new</span> EnemyClip({ x: <span class="str">80</span> + i * <span class="str">60</span>, y: <span class="str">200</span> })
+);
+
+<span class="kw">function</span> loop(dt) {
+  <span class="kw">for</span> (<span class="kw">const</span> e <span class="kw">of</span> enemies) { e.update(dt); e.draw(ctx); }
+}
+</code></pre>
+
+<h2>9.6 Symboles imbriqués : Graphic vs MovieClip</h2>
+<p>Si un symbole exporté contient lui-même des instances d'autres symboles :</p>
+<ul>
+  <li>les instances de type <span class="badge gr">Graphic</span> restent visuellement synchronisées à l'image du parent (aucun état propre à gérer) ;</li>
+  <li>les instances de type <span class="badge mc">MovieClip</span> tournent sur leur propre horloge dès que le clip parent est mis à jour — exactement le comportement observé dans l'éditeur.</li>
+</ul>
+<p>Le fichier exporté embarque automatiquement toutes les données des symboles dont il dépend : rien à exporter séparément pour les symboles imbriqués.</p>
+
+<h2>9.7 Intégration avec un moteur (Phaser, PixiJS, etc.)</h2>
+<p>Un <code>MovieClip</code> ne demande rien de plus qu'un contexte Canvas 2D : dans un moteur qui expose un canvas offscreen ou une texture dynamique, appelle <code>update(dt)</code> puis <code>draw(ctx)</code> sur ce contexte à chaque tick, comme dans l'exemple 9.3 — aucune intégration spécifique n'est nécessaire.</p>
+
+<div class="note">
+  <strong>En résumé :</strong> dessine et anime dans TweenJS, convertis en symbole MovieClip, exporte-le depuis la bibliothèque (🎮), puis utilise la classe générée comme n'importe quel objet de jeu — <code>x</code>/<code>y</code> pour la position, <code>gotoAndPlay()</code> pour changer d'état, <code>update()</code>/<code>draw()</code> dans ta boucle. Aucune dépendance à installer.
+</div>
+
+</body>
+</html>

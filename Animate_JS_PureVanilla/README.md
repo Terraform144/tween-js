@@ -64,14 +64,21 @@ Ouvrir l'URL affichée (http://localhost:5173).
 - **Motion guide** : deux boutons dans chaque ligne de calque — "guide de
   mouvement" (ce calque fournit la courbe, tracée avec la plume) et "calque
   guidé" (son tween suit la courbe au lieu d'une ligne droite, par longueur
-  d'arc, easing compris). Le guide est visible/editable en édition, mais ni
-  lu ni exporté. Fonctionne aussi dans les exports (HTML, compilé, PNG, objet
-  de jeu).
+  d'arc, easing compris). Plusieurs calques guidés peuvent suivre le même
+  guide. Un troisième bouton, "orienter selon la trajectoire", fait pivoter
+  l'objet guidé pour suivre la tangente de la courbe (orient to path, façon
+  Animate). Le guide est visible/editable en édition, mais ni lu ni exporté.
+  Fonctionne aussi dans les exports (HTML, compilé, PNG, objet de jeu).
 - **Masque de calque** : deux boutons dans chaque ligne de calque de la
   timeline — "ce calque est un masque" et "ce calque est masqué". Un calque
   masque rogne les calques masqués juste en dessous (silhouette du masque) ;
   tant que le calque masque est sélectionné, il est affiché normalement pour
-  être édité. Fonctionne en édition, pendant la lecture et dans tous les
+  être édité. **Masques imbriqués** : un calque peut être masque ET masqué en
+  même temps — il rogne ceux d'en dessous tout en étant lui-même rogné par
+  le masque au-dessus (chaînes appliquées en cascade). **Masque animé** : un
+  tween sur le calque masque déplace la zone rognée image par image. En
+  édition, les parties rognées d'un calque masqué apparaissent en fantôme
+  gris clair. Fonctionne en édition, pendant la lecture et dans tous les
   exports (HTML, compilé, PNG, objet de jeu).
 - **Peau d'oignon (onion skin)** : fantômes des images voisines de la tête de
   lecture, affichés sous la scène pendant l'édition — **bleus vers le passé,
@@ -89,12 +96,27 @@ Ouvrir l'URL affichée (http://localhost:5173).
   à TOUTE la scène pendant la lecture et dans les exports (le cadre caméra
   est toujours mappé sur la surface entière du canvas de sortie). Sans image
   clé caméra, le rendu est strictement identique au comportement historique.
+  **Parallaxe par calque** : le bouton couches d'une ligne de calque règle un
+  facteur 0..1 (clic = saisir la valeur, clic droit = normal) — part du
+  mouvement caméra subie par ce calque (1 = normal, 0 = figé). **Éditer à
+  travers la caméra** : le bouton caméra+œil de la piste caméra applique le
+  rendu caméra même en édition (pour dessiner ce que la caméra voit), les
+  coordonnées de dessin restent en coordonnées document.
 - **Import SVG** : bouton "Importer SVG" dans la barre de menu pour importer des
   fichiers vectoriels (.svg) et les convertir en formes éditables (rectangles,
   ellipses, lignes, courbes, texte, polygones).
 - **Plume Bézier** : clic = point anguleux, clic-glissé = point lisse
   (poignées symétriques), clic près du premier point = fermer le tracé,
   Entrée/double-clic = terminer un tracé ouvert, Échap = annuler.
+- **Pinceau (touche B)** : 9 motifs (rond, plat, calligraphie, effilé,
+  crayon, marqueur, aérographe, pinceau sec, craie), taille 1–80, sensibilité à
+  la pression du stylet (tablette, case « Pression (stylet) » + sensibilité).
+  Le trait terminé n'est pas sélectionné (on enchaîne). **Texture bitmap** :
+  le sélecteur « Texture » du panneau Pinceau remplit les traits en mosaïque
+  d'une image importée (Fichier → Importer image…). **Éclaboussures** : case
+  « Éclaboussures » + intensité — des gouttelettes sont projetées autour du
+  tracé (déterministes, aperçu identique au rendu final). Fonctionne dans
+  l'éditeur et dans tous les exports.
 - **Sous-sélection (touche A)** : sélectionner une courbe existante affiche
   ses points d'ancrage et leurs poignées, déplaçables individuellement pour
   retoucher la forme après coup.
@@ -185,9 +207,11 @@ Ouvrir l'URL affichée (http://localhost:5173).
   télécharge, "VS Code" ouvre le fichier dans Visual Studio Code via le
   protocole `vscode://` (tous navigateurs, le dossier local est demandé une
   fois). Sur Chrome/Edge/Vivaldi, le bouton "Lier" va plus loin : le fichier
-  est relu automatiquement au retour dans l'app (on sauvegarde dans VS Code,
-  on revient, le code est à jour). Le contenu lié est toujours incrusté dans
-  les exports : le HTML exporté reste 100% autonome.
+  est relu automatiquement toutes les 2 s (watch par polling) et au retour
+  dans l'app — on sauvegarde dans VS Code, le code est à jour sans même
+  revenir dans l'onglet. Le lien vivant couvre aussi les **scripts d'image**
+  (bouton "+ Sur cette image" puis "Lier"). Le contenu lié est toujours
+  incrusté dans les exports : le HTML exporté reste 100% autonome.
 
 ## Structure
 
