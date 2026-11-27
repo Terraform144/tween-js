@@ -429,7 +429,13 @@ export function mountTimeline(container, state) {
       upsertCameraKeyframe(state.doc, state.currentFrame);
       notify(state);
     });
-    camRow.append(icon, name, camState, addBtn);
+    // Édition à travers la caméra : applique le rendu caméra même hors lecture
+    const viewBtn = document.createElement('span');
+    viewBtn.className = 'mini-btn cam-view' + (state.editThroughCamera ? ' active' : '');
+    viewBtn.innerHTML = ICONS.cameraView;
+    viewBtn.title = 'Éditer à travers la caméra — applique le zoom/pan de la caméra à la scène même en édition (pour dessiner ce que la caméra voit)';
+    viewBtn.addEventListener('click', (e) => { e.stopPropagation(); state.editThroughCamera = !state.editThroughCamera; notify(state); });
+    camRow.append(icon, name, camState, addBtn, viewBtn);
     camRow.addEventListener('click', () => { state.currentTool = 'camera'; notify(state); });
     layersCol.appendChild(camRow);
 

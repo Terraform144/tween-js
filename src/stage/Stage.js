@@ -905,7 +905,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   // caméra est une notion de document, pas de symbole.
   function applyCameraTransform() {
     const doc = state.doc;
-    const cam = (state.playing && !state.editPath.length && hasCamera(doc))
+    // Caméra appliquée en lecture, OU hors lecture si "édition à travers la
+    // caméra" est actif (state.editThroughCamera) : on édite en voyant le
+    // rendu caméra. Réservé à la scène racine.
+    const cam = ((state.playing || state.editThroughCamera) && !state.editPath.length && hasCamera(doc))
       ? resolveCameraAtFrame(doc, state.currentFrame)
       : null;
     const lt = cameraLayerTransform(cam, doc.width, doc.height);

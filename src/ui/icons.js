@@ -14,6 +14,7 @@ export const ICONS = {
   subselect: svg('<path d="M5 17C7 9,13 15,18 6" stroke-dasharray="0.1 4"/><circle cx="5" cy="17" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="1.6"/><circle cx="12.4" cy="10.4" r="1.2"/>'),
   rotate: svg('<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>'),
   camera: svg('<rect x="3" y="7" width="11" height="10" rx="1.5"/><path d="M14 10.5 20.5 7.5v9L14 13.5"/><circle cx="6.8" cy="10.2" r="1.1" fill="currentColor" stroke="none"/>'),
+  cameraView: svg('<rect x="3" y="8" width="10" height="8" rx="1.5"/><path d="M13 10.5 19 8v8l-6-2.5"/><path d="M7 4.5c1.5-1 4.5-1 6 0" opacity="0.6"/>'),
   mesh: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="1"/><path d="M3.5 9.5h17M3.5 14.5h17M9.2 4.5v15M15 4.5v15" stroke-dasharray="0.1 3"/><circle cx="9.2" cy="9.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="9.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="9.2" cy="14.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="14.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12.1" cy="7" r="1.8"/>'),
   rect: svg('<rect x="4.5" y="6.5" width="15" height="11" rx="1"/>'),
   ellipse: svg('<ellipse cx="12" cy="12" rx="8.5" ry="6"/>'),

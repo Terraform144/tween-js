@@ -28,6 +28,7 @@ export function createEditorState(doc) {
     zoom: 1,
     onionSkin: defaultOnionSkin(), // peau d'oignon : fantômes bleus (passé) / rouges (futur) — réglage d'interface global, persisté via prefs (voir main.js / Timeline.js)
     audioAssetId: null, // dernier asset audio importé/sélectionné pour la piste audio (réglage d'interface global)
+    editThroughCamera: false, // édition à travers la caméra : applique le transform caméra même hors lecture
     grid: defaultGrid(), // grille + snap + règles de la scène (persisté via prefs 'gridPrefs', voir main.js / Timeline.js)
     listeners: new Set(),
   };
