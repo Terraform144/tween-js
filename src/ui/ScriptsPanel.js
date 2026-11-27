@@ -143,6 +143,11 @@ export function mountScriptsPanel(container, state, { runtime }) {
   // du document, script de symbole (MovieClip) ou script d'image. `key`
   // identifie le lien fichier (File System Access API), `fileMeta`/`setFileMeta`
   // portent la métadonnée { fileName, mode: 'import' | 'export' | 'linked' }.
+  function layerNameOf(layerId) {
+    const l = getContextLayers(state.doc, state.editPath).find((x) => x.id === layerId);
+    return l ? sanitizeFileName(l.name || 'calque') : 'calque';
+  }
+
   function activeTarget() {
     const docId = state.doc.id || 'doc';
     const base = sanitizeFileName((state.doc.name || 'scene'));
@@ -164,12 +169,14 @@ export function mountScriptsPanel(container, state, { runtime }) {
       if (!kf) return null;
       return {
         kind: 'frame',
-        key: null, // pas de lien vivant sur les scripts d'image (v1)
-        fileName: sanitizeFileName(base + '_image_' + (frameTarget.frameIndex + 1)) + '.js',
+        // v2 : lien vivant aussi sur les scripts d'image (même workflow que
+        // les scripts nommés / de symbole). La meta vit sur la keyframe.
+        key: docId + ':frame:' + frameTarget.layerId + ':' + frameTarget.frameIndex,
+        fileName: sanitizeFileName(base + '_f' + (frameTarget.frameIndex + 1) + '_' + layerNameOf(frameTarget.layerId)) + '.js',
         get code() { return kf.script || ''; },
         set code(v) { kf.script = v; },
-        get fileMeta() { return null; },
-        setFileMeta() {},
+        get fileMeta() { return kf.scriptFile || null; },
+        setFileMeta(m) { kf.scriptFile = m; },
       };
     }
     const sc = state.doc.scripts.find((s) => s.id === activeId);
@@ -249,6 +256,22 @@ export function mountScriptsPanel(container, state, { runtime }) {
       if (sym.scriptFile && sym.scriptFile.mode === 'linked') {
         jobs.push({ key: (doc.id || 'doc') + ':sym:' + sym.id, get code() { return sym.script || ''; }, set code(v) { sym.script = v; } });
       }
+      // scripts d'image du symbole
+      for (const layer of sym.layers || []) {
+        for (const kf of layer.keyframes || []) {
+          if (kf.scriptFile && kf.scriptFile.mode === 'linked') {
+            jobs.push({ key: (doc.id || 'doc') + ':frame:' + layer.id + ':' + kf.index, get code() { return kf.script || ''; }, set code(v) { kf.script = v; } });
+          }
+        }
+      }
+    }
+    // scripts d'image de la scène racine
+    for (const layer of doc.layers || []) {
+      for (const kf of layer.keyframes || []) {
+        if (kf.scriptFile && kf.scriptFile.mode === 'linked') {
+          jobs.push({ key: (doc.id || 'doc') + ':frame:' + layer.id + ':' + kf.index, get code() { return kf.script || ''; }, set code(v) { kf.script = v; } });
+        }
+      }
     }
     let changed = false;
     for (const j of jobs) {
@@ -258,6 +281,11 @@ export function mountScriptsPanel(container, state, { runtime }) {
     if (changed) notify(state);
   }
   window.addEventListener('focus', refreshLinkedScripts);
+  // Watch par polling : toutes les 2 s, on relit les fichiers liés modifiés
+  // (utile quand on édite dans VS Code sans revenir dans l'onglet navigateur).
+  // Chromium uniquement (File System Access API) — hors Chromium, un
+  // navigateur ne peut pas lire le disque sans serveur local.
+  setInterval(() => { refreshLinkedScripts(); }, 2000);
 
   function editSymbolScript() {
     const sym = contextSymbol();
