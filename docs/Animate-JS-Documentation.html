@@ -667,8 +667,8 @@ simplifyShape(shape, tolerance = 1.0, closed = null, smoothPasses = 0)</code></p
 <ul>
   <li><b>Peau d'oignon (onion skin)</b> : bouton dans la barre de la timeline + deux champs (nb passé / nb futur). Les images voisines de la tête de lecture s'affichent sous la scène — <b>bleues vers le passé, rouges vers l'avenir</b>, opacité dégressive. Édition seulement ; mémorisé d'une session à l'autre.</li>
   <li><b>Couleurs transparentes</b> : bouton ∅ dans le panneau Propriétés (Remplissage / Contour) pour poser <code>transparent</code> — ex. contour noir + remplissage transparent. Les tweens de couleur fondent proprement vers/depuis transparent (canal alpha).</li>
-  <li><b>Masque de calque</b> : deux boutons par ligne de calque (masque / masqué). Le masque rogne les calques masqués en dessous, en édition comme en lecture et dans tous les exports. En édition, les parties rognées apparaissent en <b>gris clair transparent à 15 %</b>. Sélectionner le calque masque l'affiche pour l'éditer.</li>
-  <li><b>Motion guide</b> : boutons guide / guidé par ligne de calque. Le tween du calque guidé suit la courbe du guide (par longueur d'arc, easing compris) — y compris les instances de MovieClip. L'objet reste à la fin du guide après le tween. Le guide n'est ni lu ni exporté.</li>
+  <li><b>Masque de calque</b> : deux boutons par ligne de calque (masque / masqué). Le masque rogne les calques masqués en dessous, en édition comme en lecture et dans tous les exports. En édition, les parties rognées apparaissent en <b>gris clair transparent à 15 %</b>. Sélectionner le calque masque l'affiche pour l'éditer. <b>v2</b> : masques <b>imbriqués</b> (un calque peut être masque ET masqué — chaînes en cascade) et <b>masque animé</b> (tween sur le calque masque).</li>
+  <li><b>Motion guide</b> : boutons guide / guidé par ligne de calque. Le tween du calque guidé suit la courbe du guide (par longueur d'arc, easing compris) — y compris les instances de MovieClip. L'objet reste à la fin du guide après le tween. Plusieurs calques guidés peuvent suivre le même guide. <b>v2</b> : bouton « orienter selon la trajectoire » (orient to path — l'objet pivote selon la tangente). Le guide n'est ni lu ni exporté.</li>
   <li><b>Copier/coller entre fenêtres-projets</b> : Ctrl+C / Ctrl+X / Ctrl+V avec un presse-papiers partagé entre toutes les fenêtres ouvertes ; les images (assets) et symboles référencés sont importés automatiquement dans le projet cible.</li>
   <li><b>Piste audio</b> : menu Fichier → « Importer audio… » ; une piste <b>Audio</b> apparaît dans la timeline (liste des sons, bouton + pour poser à l'image courante, double-clic sur une cellule, clic droit pour supprimer). Le son est joué quand sa frame est atteinte, dans l'éditeur et dans les exports HTML/compilé. Dans un script : <code>Scene.playSound('id-ou-nom-asset')</code> ou <code>Scene.playSound('data:audio/...')</code>.</li>
   <li><b>Dégradés (linéaire / radial)</b> : ligne « Dégradé » dans le panneau Propriétés de la forme (et uniquement là) : type, coordonnées en fraction de la boîte, stops de couleur éditables (offset, couleur, ∅ transparent, +/✕). Interpolés dans les tweens, rendus à l'identique dans l'éditeur et les exports.</li>
@@ -702,7 +702,7 @@ simplifyShape(shape, tolerance = 1.0, closed = null, smoothPasses = 0)</code></p
 <h2>12.2 Limites connues (octobre 2026)</h2>
 <ul>
   <li>Hit-test des éléments <b>tweenés</b> : position de l'image clé (approximation).</li>
-  <li>Pinceau : un seul pattern (trait lisse), pas de sensibilité à la pression.</li>
+  <li>Pinceau : 9 motifs, pression du stylet, texture bitmap et éclaboussures disponibles — voir le chapitre 14.</li>
   <li>Les événements de scripts ne vivent qu'en lecture (choix assumé, comme les scripts d'image d'Animate CC).</li>
   <li>L'« objet de jeu » exporte un symbole et ses dépendances, pas toute la scène racine.</li>
 </ul>
@@ -785,6 +785,16 @@ simplifyShape(shape, tolerance = 1.0, closed = null, smoothPasses = 0)</code></p
 <h2>14.12 Panneau latéral basculable à gauche ‹ | › (18/11)</h2>
 <ul>
   <li>Le bouton ‹ | › au-dessus du panneau latéral (bibliothèque / scripts / propriétés) le bascule à <b>gauche</b> de la scène — pratique pour un droitier. Le redimensionnement par glisser fonctionne des deux côtés ; choix persisté.</li>
+</ul>
+
+<h2>14.13 Caméra v2, masque v2, guide v2, pinceau texture/spatter, lien vivant des scripts d'image (21/11)</h2>
+<ul>
+  <li><b>Parallaxe par calque</b> : bouton « couches » d'une ligne de calque — facteur 0..1 (clic = valeur, clic droit = normal) ; part du mouvement caméra subie par le calque (0 = figé). Appliqué en lecture et dans les exports.</li>
+  <li><b>Éditer à travers la caméra</b> : bouton caméra+œil de la piste caméra — applique le rendu caméra même en édition (dessiner ce que la caméra voit), coordonnées de dessin inchangées.</li>
+  <li><b>Masques imbriqués + masque animé</b> : un calque peut être masque ET masqué (chaînes en cascade, éditeur + exports) ; un tween sur le calque masque anime la zone rognée image par image.</li>
+  <li><b>Motion guide « orient to path »</b> : le calque guidé pivote selon la tangente de la courbe.</li>
+  <li><b>Pinceau texture + éclaboussures</b> : sélecteur « Texture » (mosaïque d'une image importée) et case « Éclaboussures » + intensité (gouttelettes déterministes autour du tracé).</li>
+  <li><b>Lien vivant aussi sur les scripts d'image</b> : bouton « + Sur cette image » puis « Lier » ; les fichiers liés sont relus toutes les 2 s (watch par polling), plus seulement au focus.</li>
 </ul>
 
 </body>
