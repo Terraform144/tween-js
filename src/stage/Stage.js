@@ -12,7 +12,69 @@ import { getClipState } from '../runtime/clipStates.js';
 import { notify } from '../state.js';
 import { fullscreenElement } from '../util/fullscreen.js';
 import { ICONS } from '../ui/icons.js';
-import { brushToPoly, pressureToScale, spatterDots } from '../util/brushGeom.js';
+import { brushToPolys, pressureToScale, spatterDots, bboxOf, PATTERN_FX } from '../util/brushGeom.js';
+
+// --- Brosses : effets vectoriels (hachures) et symétrie ---
+// Cache de motifs de hachures (canvas 8x8, lignes diagonales dans la couleur demandée)
+const hatchPatternCache = new Map();
+function hatchPatternCanvas(color) {
+  const key = color || '#000';
+  if (hatchPatternCache.has(key)) return hatchPatternCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = 8; c.height = 8;
+  const g = c.getContext('2d');
+  g.strokeStyle = key; g.lineWidth = 2; g.lineCap = 'butt';
+  g.beginPath();
+  g.moveTo(-2, 10); g.lineTo(10, -2);
+  g.moveTo(-2, 2); g.lineTo(2, -2);
+  g.moveTo(6, 10); g.lineTo(10, 6);
+  g.stroke();
+  hatchPatternCache.set(key, c);
+  return c;
+}
+
+// Variantes symétriques d'un tracé (miroir / rotation autour du centre de la bbox)
+function brushSymVariants(pts) {
+  const sym = state.brushSymmetry || 'none';
+  if (sym === 'none' || !pts.length) return [pts];
+  const bb = bboxOf(pts);
+  const mx = pts.map(p => [2 * bb.cx - p[0], p[1]]);
+  const my = pts.map(p => [p[0], 2 * bb.cy - p[1]]);
+  const variants = [pts];
+  if (sym === 'h' || sym === 'hv' || sym === 'radial') variants.push(mx);
+  if (sym === 'v' || sym === 'hv' || sym === 'radial') variants.push(my);
+  if (sym === 'hv') variants.push(pts.map(p => [2 * bb.cx - p[0], 2 * bb.cy - p[1]]));
+  if (sym === 'radial') {
+    // rotations de 90° et 270° autour du centre (180° = combinaison h+v déjà là)
+    for (const k of [1, 3]) {
+      const a = k * Math.PI / 2, c = Math.cos(a), s = Math.sin(a);
+      variants.push(pts.map(p => {
+        const dx = p[0] - bb.cx, dy = p[1] - bb.cy;
+        return [bb.cx + dx * c - dy * s, bb.cy + dx * s + dy * c];
+      }));
+    }
+  }
+  return variants;
+}
+
+// Génère tous les polygones du trait courant (motif + jitter + symétrie)
+function computeBrushPolys(pts) {
+  const brushSize = state.brushSize || 5;
+  const pattern = state.brushPattern || 'round';
+  const jitter = (state.brushJitter || 0) / 100;
+  const all = [];
+  for (const variant of brushSymVariants(pts)) {
+    const r = brushToPolys(variant, brushSize, pattern, brushPressureScale(), jitter);
+    for (const p of r.polys) all.push(p.points);
+  }
+  // bbox globale
+  let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+  for (const poly of all) for (const p of poly) {
+    minx = Math.min(minx, p[0]); maxx = Math.max(maxx, p[0]);
+    miny = Math.min(miny, p[1]); maxy = Math.max(maxy, p[1]);
+  }
+  return { polys: all, cx: (minx + maxx) / 2, cy: (miny + maxy) / 2, w: maxx - minx, h: maxy - miny };
+}
 
 const HANDLE_DRAG_THRESHOLD = 3; // px, avant qu'un clic-glissé plume ne devienne un point lisse
 const CLOSE_PATH_THRESHOLD = 8; // px, distance au premier point pour fermer le tracé au clic
@@ -345,7 +407,15 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
           // tableau du modèle (image tenue, sans tween) — l'édition de
           // points doit pouvoir muter elData librement pendant un drag
           // sans jamais toucher le modèle avant commitPoints().
-          const elData = { points: el.points.map(clonePathPoint), closed: !!el.closed, brushPoly: el.brushPoly, brushSpatter: el.brushSpatter || null };
+          const elData = {
+            points: el.points.map(clonePathPoint),
+            closed: !!el.closed,
+            brushPoly: el.brushPoly,
+            brushPolys: el.brushPolys ? el.brushPolys.map(poly => poly.map(clonePathPoint)) : null,
+            brushFx: el.brushFx || null,
+            fillCol: el.fill,
+            brushSpatter: el.brushSpatter || null,
+          };
           const shapeAttrs = {
             fill: el.closed ? el.fill : undefined,
             stroke: el.stroke,
@@ -356,15 +426,15 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
               const d = shape.getAttr('elData');
               ctx.beginPath();
               if (d.brushPoly) {
-                // Dessiner le polygone de brush directement
-                if (d.points.length > 0) {
-                  ctx.moveTo(d.points[0].x, d.points[0].y);
-                  for (let i = 1; i < d.points.length; i++) {
-                    ctx.lineTo(d.points[i].x, d.points[i].y);
+                // Dessiner le(s) polygone(s) de brush directement
+                const polys = (d.brushPolys && d.brushPolys.length) ? d.brushPolys : [d.points];
+                for (const poly of polys) {
+                  if (!poly.length) continue;
+                  ctx.moveTo(poly[0].x, poly[0].y);
+                  for (let i = 1; i < poly.length; i++) {
+                    ctx.lineTo(poly[i].x, poly[i].y);
                   }
-                  if (d.closed) {
-                    ctx.closePath();
-                  }
+                  if (d.closed) ctx.closePath();
                 }
               } else {
                 tracePath(ctx, d.points, d.closed);
@@ -372,7 +442,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
               ctx.fillStrokeShape(shape);
               // Éclaboussures : petits disques autour du tracé (même couleur de remplissage)
               if (d.brushSpatter && d.brushSpatter.length) {
-                ctx.fillStyle = shape.fill() || '#000';
+                ctx.fillStyle = d.fillCol || shape.fill() || '#000';
                 for (const dot of d.brushSpatter) {
                   ctx.beginPath();
                   ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
@@ -381,6 +451,24 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
               }
             },
           };
+          // Effets vectoriels du motif de pinceau (100 % vectoriel, aucun raster)
+          if (el.brushPoly && el.brushFx) {
+            if (el.brushFx.alpha != null) shapeAttrs.globalAlpha = el.brushFx.alpha;
+            if (el.brushFx.glow) {
+              shapeAttrs.shadowColor = el.fill;
+              shapeAttrs.shadowBlur = el.brushFx.glowBlur || 12;
+              shapeAttrs.shadowOpacity = 0.9;
+            }
+            if (el.brushFx.hatch && el.closed) {
+              const pat = hatchPatternCanvas(el.fill);
+              if (pat) {
+                shapeAttrs.fill = undefined;
+                shapeAttrs.fillPatternImage = pat;
+                shapeAttrs.fillPatternRepeat = 'repeat';
+                shapeAttrs.fillPriority = 'pattern';
+              }
+            }
+          }
           // Texture bitmap : mosaïque de l'asset image en remplissage du polygone
           if (el.brushPoly && el.brushTexture && el.brushTexture.assetId) {
             const img = getImage(el.brushTexture.assetId);
@@ -1231,6 +1319,8 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
   let currentTick = 0;
   let lastBrushSize = null;
   let lastBrushPattern = null;
+  let lastBrushJitter = null;
+  let lastBrushSymmetry = null;
   
   function render(tick = 0) {
     // Changer d'outil en pleine plume ou chaîne de bones abandonnait un tracé fantôme
@@ -1239,16 +1329,21 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     if (drawState && drawState.tool === 'brush' && state.currentTool !== 'brush') finishBrush();
     if (rotateDrag && state.currentTool !== 'rotate') finishRotate();
     
-    // Mettre à jour l'aperçu du pinceau si la taille ou le pattern a changé
+    // Mettre à jour l'aperçu du pinceau si la taille, le motif, le jitter ou la symétrie a changé
     if (drawState && drawState.tool === 'brush') {
-      if (state.brushSize !== lastBrushSize || state.brushPattern !== lastBrushPattern) {
+      if (state.brushSize !== lastBrushSize || state.brushPattern !== lastBrushPattern
+          || state.brushJitter !== lastBrushJitter || state.brushSymmetry !== lastBrushSymmetry) {
         lastBrushSize = state.brushSize;
         lastBrushPattern = state.brushPattern;
+        lastBrushJitter = state.brushJitter;
+        lastBrushSymmetry = state.brushSymmetry;
         updateBrushPreview();
       }
     } else {
       lastBrushSize = null;
       lastBrushPattern = null;
+      lastBrushJitter = null;
+      lastBrushSymmetry = null;
     }
     
     currentTick = tick;
@@ -2365,17 +2460,29 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       drawState.previewSpatter.destroy();
     }
 
-    // Générer le polygone de contour (avec échelle de pression si réglée)
-    const result = brushToPoly(pts, brushSize, pattern, brushPressureScale());
-    
-    // Créer un shape Konva avec le polygone
-    const previewNode = new Konva.Line({
-      points: result.points.flat(),
+    // Générer tous les polygones du contour (motif + jitter + symétrie)
+    const result = computeBrushPolys(pts);
+    const fx = PATTERN_FX[pattern] || null;
+
+    // Créer un shape Konva avec les polygones
+    const previewNode = new Konva.Shape({
+      listening: false,
+      sceneFunc: (ctx, shape) => {
+        ctx.beginPath();
+        for (const poly of result.polys) {
+          ctx.moveTo(poly[0][0], poly[0][1]);
+          for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+          ctx.closePath();
+        }
+        ctx.fillStrokeShape(shape);
+      },
+      fill: state.strokeColor,
       stroke: state.strokeColor,
       strokeWidth: 1,
-      fill: state.strokeColor,
       closed: true,
-      listening: false
+      globalAlpha: fx && fx.alpha != null ? fx.alpha : 1,
+      shadowColor: fx && fx.glow ? state.strokeColor : 'transparent',
+      shadowBlur: fx && fx.glow ? (fx.glowBlur || 12) : 0,
     });
     
     drawState.previewOutline = previewNode;
@@ -2416,20 +2523,21 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     
     const brushSize = state.brushSize || 5;
     const pattern = state.brushPattern || 'round';
-    
-    // Générer le polygone final avec les points finaux
+
+    // Générer le polygone final avec les points finaux (motif + jitter + symétrie)
     const pts = drawState.points.map(p => [p.x, p.y]);
-    const finalResult = brushToPoly(pts, brushSize, pattern, brushPressureScale());
-    
+    const finalResult = computeBrushPolys(pts);
+    const mainPoly = finalResult.polys[0] || [];
+
     // Créer un shape path fermé avec le polygone
     // On utilise createShape mais on va stocker le polygone dans un format spécial
     // pour pouvoir le dessiner correctement dans buildNode
-    
+
     // Stocker le polygone brut dans l'élément
     const el = createShape('path', {
       x: finalResult.cx,
       y: finalResult.cy,
-      points: finalResult.points.map(p => createPathPoint(p[0] - finalResult.cx, p[1] - finalResult.cy)),
+      points: mainPoly.map(p => createPathPoint(p[0] - finalResult.cx, p[1] - finalResult.cy)),
       closed: true,
       width: finalResult.w,
       height: finalResult.h,
@@ -2437,6 +2545,10 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
       stroke: 'transparent',
       strokeWidth: 0,
       brushPoly: true, // Flag pour indiquer que c'est un polygone de brush
+      // Tous les sous-polygones (motifs multi-traits : double, bristles ; symétrie)
+      brushPolys: finalResult.polys.map(poly => poly.map(p => createPathPoint(p[0] - finalResult.cx, p[1] - finalResult.cy))),
+      // Effets vectoriels du motif (alpha, glow, hachures)
+      brushFx: Object.assign({ pattern }, PATTERN_FX[pattern] || {}),
       // Points centraux du tracé (relatifs au centre) — utilisés pour les
       // éclaboussures et potentiellement d'autres effets le long du path.
       brushCore: pts.map(p => [p[0] - finalResult.cx, p[1] - finalResult.cy]),

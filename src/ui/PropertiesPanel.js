@@ -416,8 +416,27 @@ export function mountPropertiesPanel(container, state) {
       ['marker', 'Marqueur'],
       ['airbrush', 'Aérographe'],
       ['drybrush', 'Pinceau sec'],
-      ['chalk', 'Craie']
+      ['chalk', 'Craie'],
+      ['copic', 'Copic (alcool)'],
+      ['ink', 'Encre (bavure)'],
+      ['pastel', 'Pastel gras'],
+      ['spray', 'Aérosol'],
+      ['highlighter', 'Surligneur'],
+      ['glow', 'Néon (glow)'],
+      ['hatch', 'Hachures'],
+      ['double', 'Double trait'],
+      ['bristles', 'Poils (bristles)']
     ], (v) => { state.brushPattern = v; notify(state); });
+
+    numberRow('Jitter', state.brushJitter, (v) => { state.brushJitter = Math.max(0, Math.min(100, v)); notify(state); }, { step: 5, min: 0, max: 100 });
+
+    enumRow('Symétrie', state.brushSymmetry, [
+      ['none', 'Aucune'],
+      ['h', 'Miroir horizontal'],
+      ['v', 'Miroir vertical'],
+      ['hv', 'Miroir H+V'],
+      ['radial', 'Radial (4x)']
+    ], (v) => { state.brushSymmetry = v; notify(state); });
 
     // Sensibilité à la pression du stylet (PointerEvent.pressure, tablettes)
     const prow = document.createElement('div');

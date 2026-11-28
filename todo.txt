@@ -1,0 +1,22 @@
+[v] Color dans la version mobile (color panel <-- personnel) -- Done Mistral 2026
+[v] Timeline doit être scollable horizontallement -- Done Mistral 2026
+
+-- Brosses prevues (inspirees Krita / Autodesk Sketchbook) --
+Nouveaux motifs :
+[x] Copic / marqueur alcool (translucide alpha 0.55) -- Done Mistral 2026
+[ ] Aquarelle a bords humides (bavure + granulation, style Krita/Sketchbook) -- proche de 'encre', version 2 tons a faire
+[x] Encre avec bavure (ink bleed, bords plumeux) -- Done Mistral 2026
+[x] Pastel gras (texture poudreuse, alpha 0.85) -- Done Mistral 2026
+[x] Bombe aerosol (bouffees douces alpha 0.28 + spatter) -- Done Mistral 2026
+[ ] Tampons le long du trace (herbe, feuilles, etoiles...) avec espacement regglable
+[x] Brosse a poils / bristles (5 sous-traits fins en eventail) -- Done Mistral 2026
+[x] Hachures (remplissage pattern de lignes diagonales, vectoriel) -- Done Mistral 2026
+[x] Double trait (2 sous-polygones paralleles) -- Done Mistral 2026
+[x] Neon / glow (halo shadowBlur, editeur + export) -- Done Mistral 2026
+[x] Surligneur (bande large alpha 0.35) -- Done Mistral 2026
+Fonctionnalites transversales :
+[x] Jitter (variation deterministe de largeur a chaque point, 0..100 %) -- Done Mistral 2026
+[ ] Espacement (spacing) des tampons
+[x] Symetrie (miroir H / V / H+V / radial 4x autour du centre) -- Done Mistral 2026
+[ ] Gomme / doigt smudge / color smudge -- EXCLU : necessite une couche raster, on reste vectoriel
+[ ] Degrade de couleur le long du trait

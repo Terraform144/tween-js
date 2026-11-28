@@ -117,6 +117,14 @@ Ouvrir l'URL affichée (http://localhost:5173).
   « Éclaboussures » + intensité — des gouttelettes sont projetées autour du
   tracé (déterministes, aperçu identique au rendu final). Fonctionne dans
   l'éditeur et dans tous les exports.
+  **Brosses façon Krita / Sketchbook** (100 % vectoriel, voir `todo.txt`) :
+  copic (marqueur alcool translucide), encre à bavure, pastel gras, bombe
+  aérosol, surligneur, néon/glow (halo), hachures (remplissage en pattern),
+  double trait et poils « bristles » (multi-polygones) — plus **jitter**
+  (variation déterministe de largeur) et **symétrie** (miroir H/V/H+V,
+  radial 4×). Implémenté dans `src/util/brushGeom.js` (`brushToPolys`,
+  `PATTERN_FX`), rendu éditeur (Konva) et exports (canvas 2D). Gomme/smudge
+  exclus : ils exigeraient une couche raster.
 - **Sous-sélection (touche A)** : sélectionner une courbe existante affiche
   ses points d'ancrage et leurs poignées, déplaçables individuellement pour
   retoucher la forme après coup.

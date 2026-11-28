@@ -797,5 +797,20 @@ simplifyShape(shape, tolerance = 1.0, closed = null, smoothPasses = 0)</code></p
   <li><b>Lien vivant aussi sur les scripts d'image</b> : bouton « + Sur cette image » puis « Lier » ; les fichiers liés sont relus toutes les 2 s (watch par polling), plus seulement au focus.</li>
 </ul>
 
+<h2>14.14 Brosses prévues — inspirées Krita / Autodesk Sketchbook (en projet)</h2>
+<ul>
+  <li><b>Nouveaux motifs</b> : Copic / marqueur alcool (translucide, les couches se superposent et foncent), aquarelle à bords humides (bavure + granulation), encre à bavure, pastel gras / huile (impasto), bombe aérosol, tampons le long du tracé (herbe, feuilles, étoiles — espacement réglable), brosse à poils « bristles », hachures, double trait, néon / glow, surligneur semi-transparent.</li>
+  <li><b>Fonctionnalités transversales</b> : jitter (taille / opacité / angle à chaque dab), espacement des tampons, symétrie (miroir X/Y, radial), gomme &amp; smudge / color smudge (façon Krita), dégradé de couleur le long du trait.</li>
+  <li>Implémentation prévue dans <code>src/util/brushGeom.js</code> + panneau Propriétés ; suivi des cases dans <code>todo.txt</code>.</li>
+</ul>
+
+<h2>14.15 Brosses Krita / Sketchbook implémentées — 100 % vectoriel (voir todo.txt)</h2>
+<ul>
+  <li><b>9 nouveaux motifs</b> (total 18) : <code>copic</code> (alcool, alpha 0,55), <code>ink</code> (bavure), <code>pastel</code>, <code>spray</code> (aérosol, alpha 0,28), <code>highlighter</code> (surligneur, alpha 0,35), <code>glow</code> (néon, halo shadowBlur), <code>hatch</code> (hachures, remplissage pattern de lignes diagonales), <code>double</code> et <code>bristles</code> (multi-polygones : 2 / 5 sous-traits parallèles).</li>
+  <li><b>Jitter</b> (0–100 %) : variation déterministe de largeur point par point. <b>Symétrie</b> : miroir H / V / H+V / radial 4× autour du centre du tracé.</li>
+  <li>Géométrie : <code>brushToPolys()</code> + <code>PATTERN_FX</code> dans <code>src/util/brushGeom.js</code> (déterministe, aperçu = rendu final). Rendu éditeur : Konva (<code>globalAlpha</code>, <code>shadowBlur</code>, <code>fillPatternImage</code>) ; exports : canvas 2D autonome (<code>tweenRuntime.js</code>, sous-polygones <code>brushPolys</code>, <code>brushFx</code>).</li>
+  <li>Gomme / smudge / color smudge <b>exclus</b> : ils exigeraient une couche raster — le projet reste vectoriel.</li>
+</ul>
+
 </body>
 </html>

@@ -394,6 +394,26 @@ function tracePath(ctx, points, closed) {
   }
 }
 
+// Motif de hachures (pinceau 'hatch') : canvas 8x8 de lignes diagonales,
+// mis en cache par couleur. 100 % vectoriel (pattern canvas), aucun raster.
+const hatchPatternCacheRt = new Map();
+function hatchPatternCanvasRuntime(color) {
+  const key = color || '#000';
+  if (hatchPatternCacheRt.has(key)) return hatchPatternCacheRt.get(key);
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas');
+  c.width = 8; c.height = 8;
+  const g = c.getContext('2d');
+  g.strokeStyle = key; g.lineWidth = 2; g.lineCap = 'butt';
+  g.beginPath();
+  g.moveTo(-2, 10); g.lineTo(10, -2);
+  g.moveTo(-2, 2); g.lineTo(2, -2);
+  g.moveTo(6, 10); g.lineTo(10, 6);
+  g.stroke();
+  hatchPatternCacheRt.set(key, c);
+  return c; // l'appelant fait ctx.createPattern(canvas, 'repeat')
+}
+
 function traceSegment(ctx, a, b) {
   if (!a.cOut && !b.cIn) { ctx.lineTo(b.x, b.y); return; }
   const c1 = a.cOut ? { x: a.x + a.cOut.x, y: a.y + a.cOut.y } : { x: a.x, y: a.y };
@@ -604,26 +624,45 @@ function drawShape(ctx, el, data) {
   } else if (el.shapeType === 'line' || el.shapeType === 'path') {
     const pts = el.points || [];
     if (pts.length) {
+      // Trait de pinceau : sous-polygones (double/bristles/symétrie) + effets vectoriels
+      const fx = el.brushFx || null;
+      const polys = (el.brushPoly && el.brushPolys && el.brushPolys.length) ? el.brushPolys : [pts];
+      const pathAll = () => {
+        ctx.beginPath();
+        for (const pl of polys) tracePath(ctx, pl, !!el.closed);
+      };
+      ctx.save();
+      if (fx && fx.alpha != null) ctx.globalAlpha *= fx.alpha;
+      if (fx && fx.glow) { ctx.shadowColor = el.fill || '#000'; ctx.shadowBlur = fx.glowBlur || 12; }
+      let filled = false;
       // Texture bitmap sur un trait de pinceau : mosaïque de l'asset image
       if (el.brushPoly && el.brushTexture && el.brushTexture.assetId) {
         const tAsset = data.assets ? data.assets[el.brushTexture.assetId] : null;
         const tImg = tAsset ? getImage(tAsset.dataUrl) : null;
         if (tImg && tImg.complete && tImg.naturalWidth > 0 && el.closed) {
-          ctx.beginPath();
-          tracePath(ctx, pts, true);
+          pathAll();
           ctx.fillStyle = ctx.createPattern(tImg, 'repeat') || (el.fill || '#000');
           ctx.fill();
-        } else {
-          ctx.beginPath();
-          tracePath(ctx, pts, !!el.closed);
-          if (el.closed && (el.fill || el.fillGradient)) ctx.fill();
+          filled = true;
         }
-      } else {
-        ctx.beginPath();
-        tracePath(ctx, pts, !!el.closed);
+      }
+      // Motif hachures : remplissage en pattern de lignes diagonales (vectoriel)
+      if (!filled && fx && fx.hatch && el.closed) {
+        const hatchCv = hatchPatternCanvasRuntime(el.fill);
+        const pat = hatchCv ? ctx.createPattern(hatchCv, 'repeat') : null;
+        if (pat) {
+          pathAll();
+          ctx.fillStyle = pat;
+          ctx.fill();
+          filled = true;
+        }
+      }
+      if (!filled) {
+        pathAll();
         if (el.closed && (el.fill || el.fillGradient)) ctx.fill();
       }
-      if (el.strokeWidth) ctx.stroke();
+      if (el.strokeWidth) { pathAll(); ctx.stroke(); }
+      ctx.restore();
       // Éclaboussures du pinceau : disques autour du tracé
       if (el.brushSpatter && el.brushSpatter.length) {
         ctx.fillStyle = el.fill || '#000';

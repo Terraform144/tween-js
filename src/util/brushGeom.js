@@ -90,11 +90,61 @@ function halfWidthAt(t, dirAngle, size, pattern, i = 0, n = 1) {
     return half * (0.65 + 0.35 * grain(i, 3));
   }
 
-  return half; // round, flat
+  if (pattern === 'copic') {
+    // Marqueur alcool (style Copic/Sketchbook) : quasi constant, très légère ondulation
+    return half * (0.92 + 0.08 * grain(i, 10));
+  }
+
+  if (pattern === 'ink') {
+    // Encre à bavure : bords très irréguliers qui "mouillent"
+    return half * (0.72 + 0.48 * grain(i, 11));
+  }
+
+  if (pattern === 'pastel') {
+    // Pastel gras : poudreux doux, 70..100 % de la taille
+    return half * (0.7 + 0.3 * grain(i, 12));
+  }
+
+  if (pattern === 'spray') {
+    // Aérosol : bouffées très espacées et douces, 15..100 %
+    const w = Math.abs(Math.sin(t * Math.PI * 5 + 1.3));
+    return half * (0.15 + 0.85 * w * w * w);
+  }
+
+  if (pattern === 'highlighter') {
+    // Surligneur : large bande plate à bords nets (alpha faible au rendu)
+    return half * 1.6;
+  }
+
+  if (pattern === 'glow') {
+    // Néon : core rond régulier — le halo vient du rendu (shadowBlur)
+    return half;
+  }
+
+  if (pattern === 'hatch') {
+    // Hachures : corps plein — le motif croisé vient du remplissage (pattern)
+    return half;
+  }
+
+  return half; // round, flat, double, bristles (sous-lignes gérées ailleurs)
 }
 
 // Patterns dont les extrémités de trait sont arrondies (les autres sont droites)
-const ROUND_CAPS = new Set(['round', 'marker', 'airbrush']);
+const ROUND_CAPS = new Set(['round', 'marker', 'airbrush', 'copic', 'ink', 'pastel', 'spray', 'glow', 'highlighter']);
+
+/* Effets de rendu vectoriels associés à un motif (100 % vectoriel, aucun raster) :
+   alpha  = opacité du remplissage (copic/surligneur/aérosol translucides)
+   glow   = halo néon (shadowBlur Konva / ctx.shadow en canvas 2D)
+   hatch  = remplissage en hachures (pattern de lignes diagonales) */
+export const PATTERN_FX = {
+  copic:       { alpha: 0.55 },
+  highlighter: { alpha: 0.35 },
+  spray:       { alpha: 0.28 },
+  pastel:      { alpha: 0.85 },
+  ink:         { alpha: 0.92 },
+  glow:        { glow: true, glowBlur: 12 },
+  hatch:       { hatch: true },
+};
 
 // Mappe une pression brute (PointerEvent.pressure, 0..1 ; souris = 0.5) vers un
 // facteur d'échelle de la demi-largeur. sens = sensibilité 0..1 (0 = off :
@@ -176,6 +226,27 @@ function dabShape(p, size, pattern) {
     return { points: roughDisc(p[0], p[1], half, 9, 6) };
   }
 
+  if (pattern === 'copic' || pattern === 'glow' || pattern === 'hatch') {
+    return { points: ellipsePts(p[0], p[1], half, half, 0, 12) };
+  }
+
+  if (pattern === 'ink') {
+    return { points: roughDisc(p[0], p[1], half * 0.85, 9, 11) };
+  }
+
+  if (pattern === 'pastel') {
+    return { points: roughDisc(p[0], p[1], half * 0.85, 9, 12) };
+  }
+
+  if (pattern === 'spray') {
+    return { points: ellipsePts(p[0], p[1], half * 1.2, half * 1.2, 0, 16) };
+  }
+
+  if (pattern === 'highlighter') {
+    const w = half * 1.6, h = half * 0.55;
+    return { points: [[p[0]-w, p[1]-h], [p[0]+w, p[1]-h], [p[0]+w, p[1]+h], [p[0]-w, p[1]+h]] };
+  }
+
   // round (défaut)
   return { points: ellipsePts(p[0], p[1], half, half, 0, 12) };
 }
@@ -194,39 +265,38 @@ export function bboxOf(pts) {
   };
 }
 
-/* rawPts: [[x,y],...] absolute stage coordinates (>= 1 point).
-   pressureScale (optionnel) : facteur de demi-largeur par point (0..1+),
-   typiquement produit par pressureToScale — null = taille fixe historique.
-   Returns { points: outline (absolute), w, h, cx, cy } */
-export function brushToPoly(rawPts, size, pattern = 'round', pressureScale = null) {
-  pattern = pattern || 'round';
-  size = Math.max(1, size);
-  const ps = (i) => (pressureScale && pressureScale[i] != null) ? pressureScale[i] : 1;
-
+/* Construit le contour (outline) d'une ligne centrale.
+   rawPts: [[x,y],...] coordonnées absolues. size: taille du pinceau.
+   ps(i): facteur de demi-largeur par point (pression). jitter: 0..1,
+   variation déterministe de largeur à chaque point (grain par index).
+   Retourne le tableau de points du contour (absolu). */
+function strokeOutline(rawPts, size, pattern, ps, jitter = 0) {
   let pts = rawPts;
   if (pts.length > 2) pts = smoothPoints(pts, 2);
 
   // Cas spécial : un seul point (dab)
   if (pts.length === 1 || (pts.length === 2 && dist(pts[0], pts[1]) < 2)) {
-    const d = dabShape(pts[0], size * ps(0), pattern);
-    return Object.assign(d, bboxOf(d.points));
+    return dabShape(pts[0], size * ps(0), pattern).points;
   }
 
   const n = pts.length;
   const left = [], right = [], hw = new Array(n);
-  
+  const jit = Math.max(0, Math.min(1, jitter || 0));
+
   // Calculer les points gauche et droite pour chaque point du trait
   for (let i = 0; i < n; i++) {
     const prev = pts[Math.max(0, i - 1)], next = pts[Math.min(n - 1, i + 1)];
     const d = norm([next[0] - prev[0], next[1] - prev[1]]);
-    hw[i] = halfWidthAt(i / (n - 1), Math.atan2(d[1], d[0]), size, pattern, i, n) * ps(i);
+    let h = halfWidthAt(i / (n - 1), Math.atan2(d[1], d[0]), size, pattern, i, n) * ps(i);
+    if (jit > 0) h *= 1 + jit * (grain(i, 21) - 0.5) * 1.6; // jitter déterministe
+    hw[i] = h;
     const nv = [-d[1], d[0]]; // vecteur normal à gauche
     left.push([pts[i][0] + nv[0] * hw[i], pts[i][1] + nv[1] * hw[i]]);
     right.push([pts[i][0] - nv[0] * hw[i], pts[i][1] - nv[1] * hw[i]]);
   }
 
   const outline = left.slice();
-  
+
   // Pour les patterns à extrémités arrondies, ajouter les caps
   if (ROUND_CAPS.has(pattern)) {
     const dEnd = norm([pts[n - 1][0] - pts[n - 2][0], pts[n - 1][1] - pts[n - 2][1]]);
@@ -239,7 +309,88 @@ export function brushToPoly(rawPts, size, pattern = 'round', pressureScale = nul
     for (let i = n - 1; i >= 0; i--) outline.push(right[i]);
   }
 
-  return Object.assign({ points: outline }, bboxOf(outline));
+  return outline;
+}
+
+/* Contour d'une sous-ligne parallèle, décalée de `offset` le long de la
+   normale à la ligne centrale, avec sa propre demi-largeur (size réduit).
+   Utilisé par les motifs multi-traits : double, bristles. */
+function shiftedOutline(rawPts, size, offset, ps, jitter = 0, salt = 0) {
+  let pts = rawPts;
+  if (pts.length > 2) pts = smoothPoints(pts, 2);
+
+  if (pts.length === 1 || (pts.length === 2 && dist(pts[0], pts[1]) < 2)) {
+    return dabShape([pts[0][0] + offset, pts[0][1]], size * ps(0), 'round').points;
+  }
+
+  const n = pts.length;
+  const left = [], right = [], hw = new Array(n);
+  const jit = Math.max(0, Math.min(1, jitter || 0));
+
+  for (let i = 0; i < n; i++) {
+    const prev = pts[Math.max(0, i - 1)], next = pts[Math.min(n - 1, i + 1)];
+    const d = norm([next[0] - prev[0], next[1] - prev[1]]);
+    let h = (size / 2) * ps(i);
+    if (jit > 0) h *= 1 + jit * (grain(i, 22 + salt) - 0.5) * 1.6;
+    hw[i] = h;
+    const nv = [-d[1], d[0]];
+    left.push([pts[i][0] + nv[0] * (offset + hw[i]), pts[i][1] + nv[1] * (offset + hw[i])]);
+    right.push([pts[i][0] + nv[0] * (offset - hw[i]), pts[i][1] + nv[1] * (offset - hw[i])]);
+  }
+
+  const outline = left.slice();
+  const dEnd = norm([pts[n - 1][0] - pts[n - 2][0], pts[n - 1][1] - pts[n - 2][1]]);
+  const nvEnd = [-dEnd[1], dEnd[0]];
+  const cEnd = [pts[n - 1][0] + nvEnd[0] * offset, pts[n - 1][1] + nvEnd[1] * offset];
+  outline.push(...capPts(cEnd, dEnd, hw[n - 1], 6));
+  for (let i = n - 1; i >= 0; i--) outline.push(right[i]);
+  const dStart = norm([pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]]);
+  const nvStart = [-dStart[1], dStart[0]];
+  const cStart = [pts[0][0] + nvStart[0] * offset, pts[0][1] + nvStart[1] * offset];
+  outline.push(...capPts(cStart, [-dStart[0], -dStart[1]], hw[0], 6));
+  return outline;
+}
+
+/* rawPts: [[x,y],...] absolute stage coordinates (>= 1 point).
+   pressureScale (optionnel) : facteur de demi-largeur par point (0..1+),
+   typiquement produit par pressureToScale — null = taille fixe historique.
+   Returns { points: outline (absolute), w, h, cx, cy } */
+export function brushToPoly(rawPts, size, pattern = 'round', pressureScale = null) {
+  pattern = pattern || 'round';
+  size = Math.max(1, size);
+  const ps = (i) => (pressureScale && pressureScale[i] != null) ? pressureScale[i] : 1;
+  const points = strokeOutline(rawPts, size, pattern, ps, 0);
+  return Object.assign({ points }, bboxOf(points));
+}
+
+/* Variante multi-polygones de brushToPoly : certains motifs (double, bristles)
+   produisent plusieurs contours parallèles. jitter (0..1) ajoute une variation
+   déterministe de largeur point par point.
+   Returns { polys: [{ points, w, h, cx, cy }, ...], w, h, cx, cy } (bbox globale) */
+export function brushToPolys(rawPts, size, pattern = 'round', pressureScale = null, jitter = 0) {
+  pattern = pattern || 'round';
+  size = Math.max(1, size);
+  const ps = (i) => (pressureScale && pressureScale[i] != null) ? pressureScale[i] : 1;
+
+  let outlines;
+  if (pattern === 'double') {
+    // Double trait : deux lignes parallèles fines de part et d'autre du centre
+    outlines = [-size * 0.55, size * 0.55].map(off => shiftedOutline(rawPts, size * 0.28, off, ps, jitter, 0));
+  } else if (pattern === 'bristles') {
+    // Poils (bristles) : 5 traits fins en éventail autour de la ligne centrale
+    outlines = [-0.4, -0.2, 0, 0.2, 0.4].map((o, k) => shiftedOutline(rawPts, size * 0.22, size * o, ps, jitter, k + 1));
+  } else {
+    outlines = [strokeOutline(rawPts, size, pattern, ps, jitter)];
+  }
+
+  const polys = outlines.map(points => Object.assign({ points }, bboxOf(points)));
+  // Bounding box globale
+  let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+  for (const p of polys) {
+    minx = Math.min(minx, p.cx - p.w / 2); maxx = Math.max(maxx, p.cx + p.w / 2);
+    miny = Math.min(miny, p.cy - p.h / 2); maxy = Math.max(maxy, p.cy + p.h / 2);
+  }
+  return { polys, w: maxx - minx, h: maxy - miny, cx: (minx + maxx) / 2, cy: (miny + maxy) / 2 };
 }
 
 // Longueur totale d'un polyline [[x,y],...]

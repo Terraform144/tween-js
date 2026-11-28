@@ -19,7 +19,9 @@ export function createEditorState(doc) {
     strokeColor: '#073642',
     strokeWidth: 2,
     brushSize: 5,
-    brushPattern: 'round', // Patterns: round, flat, calligraphy, taper, pencil, marker, airbrush, drybrush, chalk
+    brushPattern: 'round', // Patterns: round, flat, calligraphy, taper, pencil, marker, airbrush, drybrush, chalk, copic, ink, pastel, spray, highlighter, glow, hatch, double, bristles
+    brushJitter: 0,         // variation déterministe de largeur à chaque point, 0..100 %
+    brushSymmetry: 'none',  // symétrie du tracé : none | h | v | hv | radial (miroir autour du centre de la bbox)
     brushPressure: false,  // sensibilité à la pression du stylet (PointerEvent.pressure) — off par défaut (souris = 0.5)
     brushPressureSens: 80, // sensibilité de la pression, 0..100 %
     brushTextureAssetId: null, // asset image utilisé comme texture de remplissage des traits (null = couleur unie)
