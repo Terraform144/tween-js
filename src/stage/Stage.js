@@ -34,7 +34,7 @@ function hatchPatternCanvas(color) {
 }
 
 // Variantes symétriques d'un tracé (miroir / rotation autour du centre de la bbox)
-function brushSymVariants(pts) {
+function brushSymVariants(state, pts) {
   const sym = state.brushSymmetry || 'none';
   if (sym === 'none' || !pts.length) return [pts];
   const bb = bboxOf(pts);
@@ -58,13 +58,13 @@ function brushSymVariants(pts) {
 }
 
 // Génère tous les polygones du trait courant (motif + jitter + symétrie)
-function computeBrushPolys(pts) {
+function computeBrushPolys(state, pts, pressureScale = null) {
   const brushSize = state.brushSize || 5;
   const pattern = state.brushPattern || 'round';
   const jitter = (state.brushJitter || 0) / 100;
   const all = [];
-  for (const variant of brushSymVariants(pts)) {
-    const r = brushToPolys(variant, brushSize, pattern, brushPressureScale(), jitter);
+  for (const variant of brushSymVariants(state, pts)) {
+    const r = brushToPolys(variant, brushSize, pattern, pressureScale, jitter);
     for (const p of r.polys) all.push(p.points);
   }
   // bbox globale
@@ -2461,7 +2461,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
     }
 
     // Générer tous les polygones du contour (motif + jitter + symétrie)
-    const result = computeBrushPolys(pts);
+    const result = computeBrushPolys(state, pts, brushPressureScale());
     const fx = PATTERN_FX[pattern] || null;
 
     // Créer un shape Konva avec les polygones
@@ -2526,7 +2526,7 @@ export function createStage({ container, state, onSelectionChange = () => {} }) 
 
     // Générer le polygone final avec les points finaux (motif + jitter + symétrie)
     const pts = drawState.points.map(p => [p.x, p.y]);
-    const finalResult = computeBrushPolys(pts);
+    const finalResult = computeBrushPolys(state, pts, brushPressureScale());
     const mainPoly = finalResult.polys[0] || [];
 
     // Créer un shape path fermé avec le polygone
